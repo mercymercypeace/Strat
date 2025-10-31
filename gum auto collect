@@ -1,4 +1,6 @@
-local library = loadstring(game:HttpGet(('https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wall%20v3')))()
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -58,39 +60,86 @@ spawn(function()
     end
 end)
 
-local w = library:CreateWindow("Gumdrop Collector")
+local Window = Fluent:CreateWindow({
+    Title = "Gumdrop Collector",
+    SubTitle = "Auto Farm",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
 
-local b = w:CreateFolder("Main")
+local Tabs = {
+    Main = Window:AddTab({ Title = "Main", Icon = "home" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
 
-b:Label("Auto Collector",{
-    TextSize = 25;
-    TextColor = Color3.fromRGB(255,255,255);
-    BgColor = Color3.fromRGB(69,69,69);
-}) 
+local Options = Fluent.Options
 
-b:Toggle("Enable Auto Collect",function(bool)
-    enabled = bool
-    print("Auto Collect:", enabled)
-end)
+do
+    Tabs.Main:AddParagraph({
+        Title = "Gumdrop Auto Collector",
+        Content = "Automatically teleports to nearby gumdrops\nConfigure settings below"
+    })
 
-b:Slider("Detection Range",{
-    min = 10;
-    max = 100;
-    precise = false;
-},function(value)
-    range = value
-    print("Range:", value)
-end)
+    local Toggle = Tabs.Main:AddToggle("AutoCollect", {
+        Title = "Enable Auto Collect", 
+        Default = false 
+    })
 
-b:Slider("Check Interval",{
-    min = 1;
-    max = 20;
-    precise = true;
-},function(value)
-    interval = value
-    print("Interval:", value)
-end)
+    Toggle:OnChanged(function()
+        enabled = Options.AutoCollect.Value
+        Fluent:Notify({
+            Title = "Auto Collect",
+            Content = enabled and "Enabled" or "Disabled",
+            Duration = 3
+        })
+    end)
 
-b:Button("Destroy GUI",function()
-    b:DestroyGui()
-end)
+    local RangeSlider = Tabs.Main:AddSlider("Range", {
+        Title = "Detection Range",
+        Description = "Distance to detect gumdrops",
+        Default = 20,
+        Min = 10,
+        Max = 100,
+        Rounding = 0,
+        Callback = function(Value)
+            range = Value
+        end
+    })
+
+    local IntervalSlider = Tabs.Main:AddSlider("Interval", {
+        Title = "Check Interval",
+        Description = "Time between checks (seconds)",
+        Default = 10,
+        Min = 1,
+        Max = 20,
+        Rounding = 1,
+        Callback = function(Value)
+            interval = Value
+        end
+    })
+end
+
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+
+InterfaceManager:SetFolder("GumdropCollector")
+SaveManager:SetFolder("GumdropCollector/configs")
+
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+
+Window:SelectTab(1)
+
+Fluent:Notify({
+    Title = "Gumdrop Collector",
+    Content = "Script loaded successfully!",
+    Duration = 5
+})
+
+SaveManager:LoadAutoloadConfig()
