@@ -1,4 +1,4 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/lime"))()
+local library = loadstring(game:HttpGet(('https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wall%20v3')))()
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -58,27 +58,39 @@ spawn(function()
     end
 end)
 
-local w = Library:Window("Gumdrop Collector")
+local w = library:CreateWindow("Gumdrop Collector")
 
-w:Toggle("Auto Collect", function(v)
-    enabled = v
-    print("Auto Collect:", v)
+local b = w:CreateFolder("Main")
+
+b:Label("Auto Collector",{
+    TextSize = 25;
+    TextColor = Color3.fromRGB(255,255,255);
+    BgColor = Color3.fromRGB(69,69,69);
+}) 
+
+b:Toggle("Enable Auto Collect",function(bool)
+    enabled = bool
+    print("Auto Collect:", enabled)
 end)
 
-w:Slider("Range", {
-    min = 10,
-    max = 100,
-    default = 20
-}, function(v)
-    range = v
-    print("Range set to:", v)
+b:Slider("Detection Range",{
+    min = 10;
+    max = 100;
+    precise = false;
+},function(value)
+    range = value
+    print("Range:", value)
 end)
 
-w:Slider("Interval", {
-    min = 1,
-    max = 20,
-    default = 10
-}, function(v)
-    interval = v
-    print("Interval set to:", v)
+b:Slider("Check Interval",{
+    min = 1;
+    max = 20;
+    precise = true;
+},function(value)
+    interval = value
+    print("Interval:", value)
+end)
+
+b:Button("Destroy GUI",function()
+    b:DestroyGui()
 end)
