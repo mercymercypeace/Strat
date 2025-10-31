@@ -1,0 +1,84 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/lime"))()
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local workspace = game:GetService("Workspace")
+
+local range = 20
+local interval = 10
+local enabled = false
+
+local function getRootPart()
+    local character = player.Character
+    if not character then
+        character = player.CharacterAdded:Wait()
+    end
+    return character:WaitForChild("HumanoidRootPart")
+end
+
+local function findNearestGumdrop(rootPart)
+    local nearest = nil
+    local shortestDist = math.huge
+    
+    local pickups = workspace:FindFirstChild("Pickups")
+    
+    if pickups then
+        for i, v in pairs(pickups:GetChildren()) do
+            if v:IsA("BasePart") then
+                local dist = (v.Position - rootPart.Position).magnitude
+                if dist <= range and dist < shortestDist then
+                    shortestDist = dist
+                    nearest = v
+                end
+            end
+        end
+    end
+    
+    return nearest, shortestDist
+end
+
+spawn(function()
+    local root = getRootPart()
+    
+    while true do
+        if enabled then
+            if not root.Parent or not root.Parent.Parent then
+                root = getRootPart()
+            end
+            
+            local gumdrop = findNearestGumdrop(root)
+            
+            if gumdrop then
+                local pos = gumdrop.Position + Vector3.new(0, root.Size.Y / 2 + 0.1, 0)
+                root.CFrame = CFrame.new(pos)
+            end
+        end
+        
+        wait(interval)
+    end
+end)
+
+local w = Library:Window("Gumdrop Collector")
+
+w:Toggle("Auto Collect", function(v)
+    enabled = v
+    print("Auto Collect:", v)
+end)
+
+w:Slider("Range", {
+    min = 10,
+    max = 100,
+    default = 20
+}, function(v)
+    range = v
+    print("Range set to:", v)
+end)
+
+w:Slider("Interval", {
+    min = 1,
+    max = 20,
+    default = 10
+}, function(v)
+    interval = v
+    print("Interval set to:", v)
+end)
