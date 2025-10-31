@@ -1,0 +1,142 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local workspace = game:GetService("Workspace")
+
+local range = 20
+local interval = 10
+local enabled = false
+
+local function getRootPart()
+    local character = player.Character
+    if not character then
+        character = player.CharacterAdded:Wait()
+    end
+    return character:WaitForChild("HumanoidRootPart")
+end
+
+local function findNearestGumdrop(rootPart)
+    local nearest = nil
+    local shortestDist = math.huge
+    
+    local pickups = workspace:FindFirstChild("Pickups")
+    
+    if pickups then
+        for i, v in pairs(pickups:GetChildren()) do
+            if v:IsA("BasePart") then
+                local dist = (v.Position - rootPart.Position).magnitude
+                if dist <= range and dist < shortestDist then
+                    shortestDist = dist
+                    nearest = v
+                end
+            end
+        end
+    end
+    
+    return nearest, shortestDist
+end
+
+spawn(function()
+    local root = getRootPart()
+    
+    while true do
+        if enabled then
+            if not root.Parent or not root.Parent.Parent then
+                root = getRootPart()
+            end
+            
+            local gumdrop = findNearestGumdrop(root)
+            
+            if gumdrop then
+                local pos = gumdrop.Position + Vector3.new(0, root.Size.Y / 2 + 0.1, 0)
+                root.CFrame = CFrame.new(pos)
+            end
+        end
+        
+        wait(interval)
+    end
+end)
+
+local Window = Library.CreateLib("Gumdrop Collector", "Ocean")
+
+local MainTab = Window:NewTab("Main")
+local MainSection = MainTab:NewSection("Auto Collector")
+
+MainSection:NewToggle("Enable Auto Collect", "Automatically collect gumdrops", function(state)
+    enabled = state
+    if state then
+        Library:Notification("Auto Collect", "Enabled", "Success")
+    else
+        Library:Notification("Auto Collect", "Disabled", "Default")
+    end
+end)
+
+MainSection:NewSlider("Detection Range", "Distance to detect gumdrops", 100, 10, function(s)
+    range = s
+end)
+
+MainSection:NewSlider("Check Interval", "Time between checks (seconds)", 20, 1, function(s)
+    interval = s
+end)
+
+local SettingsTab = Window:NewTab("Settings")
+local SettingsSection = SettingsTab:NewSection("UI Settings")
+
+SettingsSection:NewButton("Destroy GUI", "Close the interface", function()
+    Library:ToggleUI()
+end)
+
+-- Mobile Support: Draggable Toggle Button
+local ScreenGui = Instance.new("ScreenGui")
+local ToggleButton = Instance.new("TextButton")
+local UICorner = Instance.new("UICorner")
+local UIStroke = Instance.new("UIStroke")
+
+ScreenGui.Name = "MobileToggle"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = ScreenGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Position = UDim2.new(0.85, 0, 0.1, 0)
+ToggleButton.Size = UDim2.new(0, 65, 0, 65)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Text = "📋"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 32
+ToggleButton.Active = true
+ToggleButton.Draggable = true
+
+UICorner.CornerRadius = UDim.new(0, 15)
+UICorner.Parent = ToggleButton
+
+UIStroke.Color = Color3.fromRGB(100, 100, 100)
+UIStroke.Thickness = 2
+UIStroke.Parent = ToggleButton
+
+local guiVisible = true
+
+ToggleButton.MouseButton1Click:Connect(function()
+    Library:ToggleUI()
+    guiVisible = not guiVisible
+    
+    if guiVisible then
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        UIStroke.Color = Color3.fromRGB(100, 100, 100)
+    else
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        UIStroke.Color = Color3.fromRGB(150, 150, 150)
+    end
+    
+    local Tween = game:GetService("TweenService"):Create(ToggleButton, TweenInfo.new(0.2), {
+        Rotation = guiVisible and 0 or 180
+    })
+    Tween:Play()
+end)
+
+-- Initial notification
+Library:Notification("Gumdrop Collector", "Script loaded successfully!", "Success")
