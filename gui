@@ -1,5 +1,33 @@
 local Halloween = loadstring(game:HttpGet("https://raw.githubusercontent.com/mercymercypeace/Strat/refs/heads/main/custom%20gui"))()
 
+local players = game:GetService("Players")
+
+getgenv().Speed = 16
+getgenv().Enabled = false
+
+local function bypassWalkSpeed()
+    if getgenv().executed then
+        print("walkspeed already bypassed - applying changes")
+        if not getgenv().Enabled then
+            return
+        end
+    else
+        getgenv().executed = true
+        print("walkspeed bypassed")
+
+        local mt = getrawmetatable(game)
+        setreadonly(mt, false)
+
+        local oldindex = mt.__index
+        mt.__index = newcclosure(function(self, b)
+            if b == 'WalkSpeed' then
+                return 16
+            end
+            return oldindex(self, b)
+        end)
+    end
+end
+
 local win = Halloween:CreateWindow({
     Title = "halloween gui " .. Halloween.Version,
     SubTitle = "made by me lol",
@@ -49,20 +77,51 @@ tabs.main:AddButton({
     end
 })
 
-local currentSpeed = 16
+local speedToggle = tabs.main:AddToggle("speedtoggle", {
+    Title = "enable speed hack",
+    Default = false
+})
+
+speedToggle:OnChanged(function(val)
+    getgenv().Enabled = val
+    
+    if val then
+        bypassWalkSpeed()
+        
+        task.spawn(function()
+            while getgenv().Enabled and task.wait() do
+                local char = players.LocalPlayer.Character
+                if char and char:FindFirstChild("Humanoid") then
+                    char.Humanoid.WalkSpeed = getgenv().Speed
+                end
+            end
+        end)
+        
+        print("speed hack enabled")
+    else
+        local char = players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = 16
+        end
+        print("speed hack disabled")
+    end
+end)
 
 local speedSlider = tabs.main:AddSlider("speedslider", {
     Title = "walk speed",
-    Description = "change ur speed",
+    Description = "set your speed value",
     Default = 16,
     Min = 16,
     Max = 200,
     Rounding = 1,
     Callback = function(val)
-        currentSpeed = val
-        local char = game.Players.LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = val
+        getgenv().Speed = val
+        
+        if getgenv().Enabled then
+            local char = players.LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.WalkSpeed = val
+            end
         end
     end
 })
@@ -71,40 +130,24 @@ speedSlider:OnChanged(function(val)
     print("speed set to:", val)
 end)
 
-local speedToggle = tabs.main:AddToggle("speedtoggle", {
-    Title = "speed boost (100)",
-    Default = false
-})
-
-speedToggle:OnChanged(function(val)
-    local char = game.Players.LocalPlayer.Character
-    if char and char:FindFirstChild("Humanoid") then
-        if val then
-            currentSpeed = 100
-            char.Humanoid.WalkSpeed = 100
-            Halloween.Options.speedslider:SetValue(100)
-        else
-            currentSpeed = 16
-            char.Humanoid.WalkSpeed = 16
-            Halloween.Options.speedslider:SetValue(16)
-        end
+players.LocalPlayer.CharacterAdded:Connect(function(char)
+    if getgenv().Enabled then
+        bypassWalkSpeed()
+        local hum = char:WaitForChild("Humanoid")
+        task.wait(0.1)
+        hum.WalkSpeed = getgenv().Speed
     end
-end)
-
-game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
-    local hum = char:WaitForChild("Humanoid")
-    task.wait(0.1)
-    hum.WalkSpeed = currentSpeed
 end)
 
 tabs.main:AddButton({
     Title = "🎃 reset speed",
     Description = "sets speed back to 16",
     Callback = function()
-        currentSpeed = 16
+        getgenv().Speed = 16
+        getgenv().Enabled = false
         Halloween.Options.speedslider:SetValue(16)
         Halloween.Options.speedtoggle:SetValue(false)
-        local char = game.Players.LocalPlayer.Character
+        local char = players.LocalPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid.WalkSpeed = 16
         end
