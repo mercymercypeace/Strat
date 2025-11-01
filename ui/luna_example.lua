@@ -114,33 +114,41 @@ DragButton.MouseLeave:Connect(function()
     end
 end)
 
-local Luna = loadstring(game:HttpGet("https://raw.nebulasoftworks.xyz/luna", true))()
+local Luna = nil
+local Window = nil
+local isLunaLoaded = false
 
-local Window = Luna:CreateWindow({
-    Name = "LunarisX",
-    Subtitle = "example123",
-    LogoID = "6031097225",
-    LoadingEnabled = true,
-    LoadingTitle = "loading blah blah blah..",
-    LoadingSubtitle = "wait a sec",
-    ConfigSettings = {
-        RootFolder = nil,
-        ConfigFolder = "LunarisX"
-    },
-    KeySystem = false,
-    KeySettings = {
-        Title = "key thing",
-        Subtitle = "get the damn key",
-        Note = "example",
-        SaveKey = true,
-        Key = {"ExampleKey123"},
-        SecondAction = {
-            Enabled = true,
-            Type = "Discord",
-            Parameter = "exampleserver"
+local function loadLunaUI()
+    if isLunaLoaded then return end
+    isLunaLoaded = true
+    
+    Luna = loadstring(game:HttpGet("https://raw.nebulasoftworks.xyz/luna", true))()
+    
+    Window = Luna:CreateWindow({
+        Name = "LunarisX",
+        Subtitle = "example123",
+        LogoID = "6031097225",
+        LoadingEnabled = true,
+        LoadingTitle = "loading blah blah blah..",
+        LoadingSubtitle = "wait a sec",
+        ConfigSettings = {
+            RootFolder = nil,
+            ConfigFolder = "LunarisX"
+        },
+        KeySystem = false,
+        KeySettings = {
+            Title = "key thing",
+            Subtitle = "get the damn key",
+            Note = "example",
+            SaveKey = true,
+            Key = {"ExampleKey123"},
+            SecondAction = {
+                Enabled = true,
+                Type = "Discord",
+                Parameter = "exampleserver"
+            }
         }
-    }
-})
+    })
 
 local MainTab = Window:CreateTab({
     Name = "Main",
@@ -431,89 +439,26 @@ Window:CreateHomeTab()
 
 Luna:LoadAutoloadConfig()
 
-Luna:Notification({
-    Title = "loaded!",
-    Icon = "check_circle",
-    ImageSource = "Material",
-    Content = "the script is loaded now enjoy :)"
-})
-
-local isUIVisible = true
-
-task.wait(0.5)
-TweenService:Create(DragButton, TweenInfo.new(0.5), {
-    ImageTransparency = 1,
-    BackgroundTransparency = 1
-}):Play()
-TweenService:Create(Stroke, TweenInfo.new(0.5), {Transparency = 1}):Play()
-TweenService:Create(Shadow, TweenInfo.new(0.5), {ImageTransparency = 1}):Play()
-task.wait(0.5)
-DragButton.Visible = false
-
-local function showButton()
-    DragButton.Visible = true
-    TweenService:Create(DragButton, TweenInfo.new(0.3), {
-        ImageTransparency = 0,
-        BackgroundTransparency = 0
-    }):Play()
-    TweenService:Create(Stroke, TweenInfo.new(0.3), {Transparency = 0.5}):Play()
-    TweenService:Create(Shadow, TweenInfo.new(0.3), {ImageTransparency = 0.6}):Play()
-end
-
-local function hideButton()
-    TweenService:Create(DragButton, TweenInfo.new(0.3), {
+    Luna:Notification({
+        Title = "loaded!",
+        Icon = "check_circle",
+        ImageSource = "Material",
+        Content = "the script is loaded now enjoy :)"
+    })
+    
+    TweenService:Create(DragButton, TweenInfo.new(0.5), {
         ImageTransparency = 1,
         BackgroundTransparency = 1
     }):Play()
-    TweenService:Create(Stroke, TweenInfo.new(0.3), {Transparency = 1}):Play()
-    TweenService:Create(Shadow, TweenInfo.new(0.3), {ImageTransparency = 1}):Play()
-    task.wait(0.3)
+    TweenService:Create(Stroke, TweenInfo.new(0.5), {Transparency = 1}):Play()
+    TweenService:Create(Shadow, TweenInfo.new(0.5), {ImageTransparency = 1}):Play()
+    task.wait(0.5)
     DragButton.Visible = false
 end
 
 DragButton.MouseButton1Click:Connect(function()
-    if not hasMoved then
-        local LunaUI = nil
-        if gethui then
-            LunaUI = gethui():FindFirstChild("Luna")
-        end
-        if not LunaUI then
-            LunaUI = game:GetService("CoreGui"):FindFirstChild("Luna")
-        end
-        
-        if LunaUI then
-            isUIVisible = not isUIVisible
-            LunaUI.Enabled = isUIVisible
-            
-            if isUIVisible then
-                hideButton()
-            else
-                showButton()
-            end
-        end
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        local LunaUI = nil
-        if gethui then
-            LunaUI = gethui():FindFirstChild("Luna")
-        end
-        if not LunaUI then
-            LunaUI = game:GetService("CoreGui"):FindFirstChild("Luna")
-        end
-        
-        if LunaUI then
-            if LunaUI.Enabled and DragButton.Visible then
-                hideButton()
-                isUIVisible = true
-            elseif not LunaUI.Enabled and not DragButton.Visible then
-                showButton()
-                isUIVisible = false
-            end
-        end
+    if not hasMoved and not isLunaLoaded then
+        loadLunaUI()
     end
 end)
 
