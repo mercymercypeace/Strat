@@ -608,152 +608,157 @@ function HalloweenLib:CreateWindow(config)
             return toggle
         end
 
-        function tab:AddSlider(id, config)
-            local sliderFrame = Instance.new("Frame")
-            sliderFrame.Size = UDim2.new(1, -10, 0, 50)
-            sliderFrame.BackgroundColor3 = theme.bg2
-            sliderFrame.BorderSizePixel = 0
-            sliderFrame.Parent = tabContent
+function tab:AddSlider(id, config)
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(1, -10, 0, 50)
+    sliderFrame.BackgroundColor3 = theme.bg2
+    sliderFrame.BorderSizePixel = 0
+    sliderFrame.Parent = tabContent
 
-            local sCorner = Instance.new("UICorner")
-            sCorner.CornerRadius = UDim.new(0, 8)
-            sCorner.Parent = sliderFrame
+    local sCorner = Instance.new("UICorner")
+    sCorner.CornerRadius = UDim.new(0, 8)
+    sCorner.Parent = sliderFrame
 
-            local label = Instance.new("TextLabel")
-            label.Size = UDim2.new(0.7, 0, 0, 18)
-            label.Position = UDim2.new(0, 10, 0, 6)
-            label.BackgroundTransparency = 1
-            label.Text = config.Title or "slider"
-            label.TextSize = 13
-            label.Font = Enum.Font.GothamSemibold
-            label.TextColor3 = theme.white
-            label.TextXAlignment = Enum.TextXAlignment.Left
-            label.Parent = sliderFrame
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.7, 0, 0, 18)
+    label.Position = UDim2.new(0, 10, 0, 6)
+    label.BackgroundTransparency = 1
+    label.Text = config.Title or "slider"
+    label.TextSize = 13
+    label.Font = Enum.Font.GothamSemibold
+    label.TextColor3 = theme.white
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = sliderFrame
 
-            local valueLabel = Instance.new("TextLabel")
-            valueLabel.Size = UDim2.new(0.25, 0, 0, 18)
-            valueLabel.Position = UDim2.new(0.72, 0, 0, 6)
-            valueLabel.BackgroundTransparency = 1
-            valueLabel.Text = tostring(config.Default or 0)
-            valueLabel.TextSize = 13
-            valueLabel.Font = Enum.Font.GothamBold
-            valueLabel.TextColor3 = theme.orange
-            valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-            valueLabel.Parent = sliderFrame
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Size = UDim2.new(0.25, 0, 0, 18)
+    valueLabel.Position = UDim2.new(0.72, 0, 0, 6)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Text = tostring(config.Default or 0)
+    valueLabel.TextSize = 13
+    valueLabel.Font = Enum.Font.GothamBold
+    valueLabel.TextColor3 = theme.orange
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    valueLabel.Parent = sliderFrame
 
-            local bar = Instance.new("Frame")
-            bar.Size = UDim2.new(1, -20, 0, 6)
-            bar.Position = UDim2.new(0, 10, 1, -12)
-            bar.BackgroundColor3 = theme.bg
-            bar.BorderSizePixel = 0
-            bar.Parent = sliderFrame
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(1, -20, 0, 6)
+    bar.Position = UDim2.new(0, 10, 1, -12)
+    bar.BackgroundColor3 = theme.bg
+    bar.BorderSizePixel = 0
+    bar.Parent = sliderFrame
 
-            local barCorner = Instance.new("UICorner")
-            barCorner.CornerRadius = UDim.new(1, 0)
-            barCorner.Parent = bar
+    local barCorner = Instance.new("UICorner")
+    barCorner.CornerRadius = UDim.new(1, 0)
+    barCorner.Parent = bar
 
-            local fill = Instance.new("Frame")
-            fill.Size = UDim2.new(0, 0, 1, 0)
-            fill.BackgroundColor3 = theme.orange
-            fill.BorderSizePixel = 0
-            fill.Parent = bar
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new(0, 0, 1, 0)
+    fill.BackgroundColor3 = theme.orange
+    fill.BorderSizePixel = 0
+    fill.Parent = bar
 
-            local fillCorner = Instance.new("UICorner")
-            fillCorner.CornerRadius = UDim.new(1, 0)
-            fillCorner.Parent = fill
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(1, 0)
+    fillCorner.Parent = fill
 
-            local circle = Instance.new("Frame")
-            circle.Size = UDim2.new(0, 14, 0, 14)
-            circle.Position = UDim2.new(0, -7, 0.5, -7)
-            circle.BackgroundColor3 = theme.white
-            circle.BorderSizePixel = 0
-            circle.Parent = fill
+    local circle = Instance.new("Frame")
+    circle.Size = UDim2.new(0, 14, 0, 14)
+    circle.Position = UDim2.new(1, -7, 0.5, -7)
+    circle.BackgroundColor3 = theme.white
+    circle.BorderSizePixel = 0
+    circle.Parent = bar
 
-            local circleCorner = Instance.new("UICorner")
-            circleCorner.CornerRadius = UDim.new(1, 0)
-            circleCorner.Parent = circle
+    local circleCorner = Instance.new("UICorner")
+    circleCorner.CornerRadius = UDim.new(1, 0)
+    circleCorner.Parent = circle
 
-            local circleGlow = Instance.new("UIStroke")
-            circleGlow.Color = theme.orange
-            circleGlow.Thickness = 2
-            circleGlow.Transparency = 0.5
-            circleGlow.Parent = circle
+    local circleGlow = Instance.new("UIStroke")
+    circleGlow.Color = theme.orange
+    circleGlow.Thickness = 2
+    circleGlow.Transparency = 0.5
+    circleGlow.Parent = circle
 
-            local dragging = false
-            local val = config.Default or config.Min or 0
+    local dragging = false
+    local val = config.Default or config.Min or 0
 
-            local slider = {
-                Value = val,
-                Changed = {},
-            }
+    local slider = {
+        Value = val,
+        Changed = {},
+    }
 
-            HalloweenLib.Options[id] = slider
+    HalloweenLib.Options[id] = slider
 
-            local function update(input)
-                local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-                local newVal = config.Min + ((config.Max - config.Min) * pos)
-                
-                if config.Rounding then
-                    newVal = math.floor(newVal / config.Rounding + 0.5) * config.Rounding
-                else
-                    newVal = math.floor(newVal)
-                end
+    local function updateVisuals(pos)
+        tween(fill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.1)
+        
+        local circleX = (bar.AbsoluteSize.X * pos) - 7
+        tween(circle, {Position = UDim2.new(0, circleX, 0.5, -7)}, 0.1)
+    end
 
-                val = newVal
-                slider.Value = newVal
-                valueLabel.Text = tostring(newVal)
-
-                tween(fill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.1)
-
-                if config.Callback then
-                    config.Callback(newVal)
-                end
-
-                for _, callback in pairs(slider.Changed) do
-                    task.spawn(callback, newVal)
-                end
-            end
-
-            function slider:SetValue(newVal)
-                val = math.clamp(newVal, config.Min, config.Max)
-                self.Value = val
-                valueLabel.Text = tostring(val)
-                
-                local pos = (val - config.Min) / (config.Max - config.Min)
-                tween(fill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.2)
-            end
-
-            function slider:OnChanged(callback)
-                table.insert(self.Changed, callback)
-            end
-
-            bar.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    dragging = true
-                    update(input)
-                    tween(circle, {Size = UDim2.new(0, 18, 0, 18)}, 0.2)
-                    tween(circle, {Position = UDim2.new(0, -9, 0.5, -9)}, 0.2)
-                end
-            end)
-
-            bar.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    dragging = false
-                    tween(circle, {Size = UDim2.new(0, 14, 0, 14)}, 0.2)
-                    tween(circle, {Position = UDim2.new(0, -7, 0.5, -7)}, 0.2)
-                end
-            end)
-
-            UserInputService.InputChanged:Connect(function(input)
-                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                    update(input)
-                end
-            end)
-
-            slider:SetValue(val)
-
-            return slider
+    local function update(input)
+        local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        local newVal = config.Min + ((config.Max - config.Min) * pos)
+        
+        if config.Rounding then
+            newVal = math.floor(newVal / config.Rounding + 0.5) * config.Rounding
+        else
+            newVal = math.floor(newVal)
         end
+
+        val = newVal
+        slider.Value = newVal
+        valueLabel.Text = tostring(newVal)
+
+        updateVisuals(pos)
+
+        if config.Callback then
+            config.Callback(newVal)
+        end
+
+        for _, callback in pairs(slider.Changed) do
+            task.spawn(callback, newVal)
+        end
+    end
+
+    function slider:SetValue(newVal)
+        val = math.clamp(newVal, config.Min, config.Max)
+        self.Value = val
+        valueLabel.Text = tostring(val)
+        
+        local pos = (val - config.Min) / (config.Max - config.Min)
+        updateVisuals(pos)
+    end
+
+    function slider:OnChanged(callback)
+        table.insert(self.Changed, callback)
+    end
+
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            update(input)
+            tween(circle, {Size = UDim2.new(0, 18, 0, 18)}, 0.2)
+        end
+    end)
+
+    bar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+            tween(circle, {Size = UDim2.new(0, 14, 0, 14)}, 0.2)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            update(input)
+        end
+    end)
+
+    slider:SetValue(val)
+
+    return slider
+end
 
         function tab:AddDropdown(id, config)
             local dropFrame = Instance.new("Frame")
