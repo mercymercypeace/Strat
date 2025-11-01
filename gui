@@ -143,7 +143,7 @@ MainButton.MouseButton1Click:Connect(function()
         wait(0.4)
         ScreenGui:Destroy()
         
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/LunarisXOffical/Luna-Interface-Suite/refs/heads/master/source.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/mercymercypeace/Strat/refs/heads/main/custom%20gui"))()
     end
 end)
 
