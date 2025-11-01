@@ -32,7 +32,7 @@ local function drag(frame, handler)
     local dragging, dragInput, startPos, mouseStart
 
     handler.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             mouseStart = input.Position
             startPos = frame.Position
@@ -46,7 +46,7 @@ local function drag(frame, handler)
     end)
 
     handler.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
@@ -260,7 +260,7 @@ function HalloweenLib:CreateWindow(config)
     local minimized = false
     local oldSize = main.Size
 
-    minimize.MouseButton1Click:Connect(function()
+    local function toggleMinimize()
         minimized = not minimized
         if minimized then
             oldSize = main.Size
@@ -270,7 +270,9 @@ function HalloweenLib:CreateWindow(config)
             tween(main, {Size = oldSize}, 0.3)
             minimize.Text = "−"
         end
-    end)
+    end
+
+    minimize.MouseButton1Click:Connect(toggleMinimize)
 
     minimize.MouseEnter:Connect(function()
         tween(minimize, {BackgroundColor3 = theme.orange}, 0.2)
@@ -333,6 +335,8 @@ function HalloweenLib:CreateWindow(config)
         CurrentTab = nil,
         MainFrame = main,
         ScreenGui = screen,
+        ToggleMinimize = toggleMinimize,
+        Minimized = function() return minimized end,
     }
 
     function window:AddTab(tabConfig)
@@ -724,7 +728,7 @@ function HalloweenLib:CreateWindow(config)
             end
 
             bar.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = true
                     update(input)
                     tween(circle, {Size = UDim2.new(0, 18, 0, 18)}, 0.2)
@@ -733,7 +737,7 @@ function HalloweenLib:CreateWindow(config)
             end)
 
             bar.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = false
                     tween(circle, {Size = UDim2.new(0, 14, 0, 14)}, 0.2)
                     tween(circle, {Position = UDim2.new(0, -7, 0.5, -7)}, 0.2)
@@ -741,7 +745,7 @@ function HalloweenLib:CreateWindow(config)
             end)
 
             UserInputService.InputChanged:Connect(function(input)
-                if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                     update(input)
                 end
             end)
@@ -968,8 +972,8 @@ function HalloweenLib:CreateWindow(config)
             label.Parent = kbFrame
 
             local keyBtn = Instance.new("TextButton")
-            keyBtn.Size = UDim2.new(0.35, 0, 0, 28)
-            keyBtn.Position = UDim2.new(0.63, 0, 0.5, -14)
+            keyBtn.Size = UDim2.new(0, 80, 0, 28)
+            keyBtn.Position = UDim2.new(1, -90, 0.5, -14)
             keyBtn.BackgroundColor3 = theme.bg
             keyBtn.BorderSizePixel = 0
             keyBtn.Text = config.Default or "..."
