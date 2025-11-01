@@ -11,6 +11,8 @@ local gui = plr:WaitForChild("PlayerGui")
 HalloweenLib.Version = "v1.0"
 HalloweenLib.Options = {}
 
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
 local theme = {
     bg = Color3.fromRGB(15, 15, 20),
     bg2 = Color3.fromRGB(25, 25, 30),
@@ -62,6 +64,42 @@ local function drag(frame, handler)
                     startPos.Y.Offset + delta.Y
                 )
             }, 0.15)
+        end
+    end)
+end
+
+local function resize(frame, handler)
+    local resizing, resizeInput, startSize, mouseStart
+
+    handler.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            resizing = true
+            mouseStart = input.Position
+            startSize = frame.Size
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    resizing = false
+                end
+            end)
+        end
+    end)
+
+    handler.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            resizeInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == resizeInput and resizing then
+            local delta = input.Position - mouseStart
+            local newX = math.max(400, startSize.X.Offset + delta.X)
+            local newY = math.max(300, startSize.Y.Offset + delta.Y)
+            
+            tween(frame, {
+                Size = UDim2.new(0, newX, 0, newY)
+            }, 0.1)
         end
     end)
 end
@@ -155,9 +193,11 @@ function HalloweenLib:CreateWindow(config)
     screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screen.ResetOnSpawn = false
 
+    local defaultSize = isMobile and UDim2.fromOffset(380, 350) or (config.Size or UDim2.fromOffset(580, 460))
+
     local main = Instance.new("Frame")
-    main.Size = config.Size or UDim2.fromOffset(580, 460)
-    main.Position = UDim2.new(0.5, -(config.Size and config.Size.X.Offset/2 or 290), 0.5, -(config.Size and config.Size.Y.Offset/2 or 230))
+    main.Size = defaultSize
+    main.Position = UDim2.new(0.5, -(defaultSize.X.Offset/2), 0.5, -(defaultSize.Y.Offset/2))
     main.BackgroundColor3 = theme.bg
     main.BorderSizePixel = 0
     main.ClipsDescendants = true
@@ -311,8 +351,28 @@ function HalloweenLib:CreateWindow(config)
         tween(close, {BackgroundColor3 = theme.bg3}, 0.2)
     end)
 
+    local resizeHandle = Instance.new("TextButton")
+    resizeHandle.Size = UDim2.new(0, 20, 0, 20)
+    resizeHandle.Position = UDim2.new(1, -20, 1, -20)
+    resizeHandle.BackgroundColor3 = theme.orange
+    resizeHandle.BorderSizePixel = 0
+    resizeHandle.Text = "⋰"
+    resizeHandle.TextSize = 14
+    resizeHandle.Font = Enum.Font.GothamBold
+    resizeHandle.TextColor3 = theme.white
+    resizeHandle.ZIndex = 5
+    resizeHandle.Parent = main
+
+    local resizeCorner = Instance.new("UICorner")
+    resizeCorner.CornerRadius = UDim.new(0, 6)
+    resizeCorner.Parent = resizeHandle
+
+    resize(main, resizeHandle)
+
+    local tabWidth = isMobile and 120 or (config.TabWidth or 160)
+
     local tabHolder = Instance.new("Frame")
-    tabHolder.Size = UDim2.new(0, config.TabWidth or 160, 1, -60)
+    tabHolder.Size = UDim2.new(0, tabWidth, 1, -60)
     tabHolder.Position = UDim2.new(0, 10, 0, 55)
     tabHolder.BackgroundTransparency = 1
     tabHolder.Parent = main
@@ -323,8 +383,8 @@ function HalloweenLib:CreateWindow(config)
     tabList.Parent = tabHolder
 
     local contentHolder = Instance.new("Frame")
-    contentHolder.Size = UDim2.new(1, -(config.TabWidth or 160) - 20, 1, -60)
-    contentHolder.Position = UDim2.new(0, (config.TabWidth or 160) + 15, 0, 55)
+    contentHolder.Size = UDim2.new(1, -tabWidth - 20, 1, -60)
+    contentHolder.Position = UDim2.new(0, tabWidth + 15, 0, 55)
     contentHolder.BackgroundTransparency = 1
     contentHolder.Parent = main
 
@@ -394,8 +454,10 @@ function HalloweenLib:CreateWindow(config)
             Title = tabConfig.Title,
         }
 
+        table.insert(window.Tabs, tab)
+
         tabBtn.MouseButton1Click:Connect(function()
-            window:SelectTab(#window.Tabs + 1)
+            window:SelectTab(#window.Tabs)
         end)
 
         tabBtn.MouseEnter:Connect(function()
@@ -608,157 +670,157 @@ function HalloweenLib:CreateWindow(config)
             return toggle
         end
 
-function tab:AddSlider(id, config)
-    local sliderFrame = Instance.new("Frame")
-    sliderFrame.Size = UDim2.new(1, -10, 0, 50)
-    sliderFrame.BackgroundColor3 = theme.bg2
-    sliderFrame.BorderSizePixel = 0
-    sliderFrame.Parent = tabContent
+        function tab:AddSlider(id, config)
+            local sliderFrame = Instance.new("Frame")
+            sliderFrame.Size = UDim2.new(1, -10, 0, 50)
+            sliderFrame.BackgroundColor3 = theme.bg2
+            sliderFrame.BorderSizePixel = 0
+            sliderFrame.Parent = tabContent
 
-    local sCorner = Instance.new("UICorner")
-    sCorner.CornerRadius = UDim.new(0, 8)
-    sCorner.Parent = sliderFrame
+            local sCorner = Instance.new("UICorner")
+            sCorner.CornerRadius = UDim.new(0, 8)
+            sCorner.Parent = sliderFrame
 
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.7, 0, 0, 18)
-    label.Position = UDim2.new(0, 10, 0, 6)
-    label.BackgroundTransparency = 1
-    label.Text = config.Title or "slider"
-    label.TextSize = 13
-    label.Font = Enum.Font.GothamSemibold
-    label.TextColor3 = theme.white
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = sliderFrame
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0.7, 0, 0, 18)
+            label.Position = UDim2.new(0, 10, 0, 6)
+            label.BackgroundTransparency = 1
+            label.Text = config.Title or "slider"
+            label.TextSize = 13
+            label.Font = Enum.Font.GothamSemibold
+            label.TextColor3 = theme.white
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.Parent = sliderFrame
 
-    local valueLabel = Instance.new("TextLabel")
-    valueLabel.Size = UDim2.new(0.25, 0, 0, 18)
-    valueLabel.Position = UDim2.new(0.72, 0, 0, 6)
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.Text = tostring(config.Default or 0)
-    valueLabel.TextSize = 13
-    valueLabel.Font = Enum.Font.GothamBold
-    valueLabel.TextColor3 = theme.orange
-    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-    valueLabel.Parent = sliderFrame
+            local valueLabel = Instance.new("TextLabel")
+            valueLabel.Size = UDim2.new(0.25, 0, 0, 18)
+            valueLabel.Position = UDim2.new(0.72, 0, 0, 6)
+            valueLabel.BackgroundTransparency = 1
+            valueLabel.Text = tostring(config.Default or 0)
+            valueLabel.TextSize = 13
+            valueLabel.Font = Enum.Font.GothamBold
+            valueLabel.TextColor3 = theme.orange
+            valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+            valueLabel.Parent = sliderFrame
 
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(1, -20, 0, 6)
-    bar.Position = UDim2.new(0, 10, 1, -12)
-    bar.BackgroundColor3 = theme.bg
-    bar.BorderSizePixel = 0
-    bar.Parent = sliderFrame
+            local bar = Instance.new("Frame")
+            bar.Size = UDim2.new(1, -20, 0, 6)
+            bar.Position = UDim2.new(0, 10, 1, -12)
+            bar.BackgroundColor3 = theme.bg
+            bar.BorderSizePixel = 0
+            bar.Parent = sliderFrame
 
-    local barCorner = Instance.new("UICorner")
-    barCorner.CornerRadius = UDim.new(1, 0)
-    barCorner.Parent = bar
+            local barCorner = Instance.new("UICorner")
+            barCorner.CornerRadius = UDim.new(1, 0)
+            barCorner.Parent = bar
 
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new(0, 0, 1, 0)
-    fill.BackgroundColor3 = theme.orange
-    fill.BorderSizePixel = 0
-    fill.Parent = bar
+            local fill = Instance.new("Frame")
+            fill.Size = UDim2.new(0, 0, 1, 0)
+            fill.BackgroundColor3 = theme.orange
+            fill.BorderSizePixel = 0
+            fill.Parent = bar
 
-    local fillCorner = Instance.new("UICorner")
-    fillCorner.CornerRadius = UDim.new(1, 0)
-    fillCorner.Parent = fill
+            local fillCorner = Instance.new("UICorner")
+            fillCorner.CornerRadius = UDim.new(1, 0)
+            fillCorner.Parent = fill
 
-    local circle = Instance.new("Frame")
-    circle.Size = UDim2.new(0, 14, 0, 14)
-    circle.Position = UDim2.new(1, -7, 0.5, -7)
-    circle.BackgroundColor3 = theme.white
-    circle.BorderSizePixel = 0
-    circle.Parent = bar
+            local circle = Instance.new("Frame")
+            circle.Size = UDim2.new(0, 14, 0, 14)
+            circle.Position = UDim2.new(0, -7, 0.5, -7)
+            circle.BackgroundColor3 = theme.white
+            circle.BorderSizePixel = 0
+            circle.Parent = bar
 
-    local circleCorner = Instance.new("UICorner")
-    circleCorner.CornerRadius = UDim.new(1, 0)
-    circleCorner.Parent = circle
+            local circleCorner = Instance.new("UICorner")
+            circleCorner.CornerRadius = UDim.new(1, 0)
+            circleCorner.Parent = circle
 
-    local circleGlow = Instance.new("UIStroke")
-    circleGlow.Color = theme.orange
-    circleGlow.Thickness = 2
-    circleGlow.Transparency = 0.5
-    circleGlow.Parent = circle
+            local circleGlow = Instance.new("UIStroke")
+            circleGlow.Color = theme.orange
+            circleGlow.Thickness = 2
+            circleGlow.Transparency = 0.5
+            circleGlow.Parent = circle
 
-    local dragging = false
-    local val = config.Default or config.Min or 0
+            local dragging = false
+            local val = config.Default or config.Min or 0
 
-    local slider = {
-        Value = val,
-        Changed = {},
-    }
+            local slider = {
+                Value = val,
+                Changed = {},
+            }
 
-    HalloweenLib.Options[id] = slider
+            HalloweenLib.Options[id] = slider
 
-    local function updateVisuals(pos)
-        tween(fill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.1)
-        
-        local circleX = (bar.AbsoluteSize.X * pos) - 7
-        tween(circle, {Position = UDim2.new(0, circleX, 0.5, -7)}, 0.1)
-    end
+            local function updateVisuals(pos)
+                tween(fill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.1)
+                
+                local circleX = (bar.AbsoluteSize.X * pos) - 7
+                tween(circle, {Position = UDim2.new(0, circleX, 0.5, -7)}, 0.1)
+            end
 
-    local function update(input)
-        local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-        local newVal = config.Min + ((config.Max - config.Min) * pos)
-        
-        if config.Rounding then
-            newVal = math.floor(newVal / config.Rounding + 0.5) * config.Rounding
-        else
-            newVal = math.floor(newVal)
+            local function update(input)
+                local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+                local newVal = config.Min + ((config.Max - config.Min) * pos)
+                
+                if config.Rounding then
+                    newVal = math.floor(newVal / config.Rounding + 0.5) * config.Rounding
+                else
+                    newVal = math.floor(newVal)
+                end
+
+                val = newVal
+                slider.Value = newVal
+                valueLabel.Text = tostring(newVal)
+
+                updateVisuals(pos)
+
+                if config.Callback then
+                    config.Callback(newVal)
+                end
+
+                for _, callback in pairs(slider.Changed) do
+                    task.spawn(callback, newVal)
+                end
+            end
+
+            function slider:SetValue(newVal)
+                val = math.clamp(newVal, config.Min, config.Max)
+                self.Value = val
+                valueLabel.Text = tostring(val)
+                
+                local pos = (val - config.Min) / (config.Max - config.Min)
+                updateVisuals(pos)
+            end
+
+            function slider:OnChanged(callback)
+                table.insert(self.Changed, callback)
+            end
+
+            bar.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    update(input)
+                    tween(circle, {Size = UDim2.new(0, 18, 0, 18)}, 0.2)
+                end
+            end)
+
+            bar.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
+                    tween(circle, {Size = UDim2.new(0, 14, 0, 14)}, 0.2)
+                end
+            end)
+
+            UserInputService.InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    update(input)
+                end
+            end)
+
+            slider:SetValue(val)
+
+            return slider
         end
-
-        val = newVal
-        slider.Value = newVal
-        valueLabel.Text = tostring(newVal)
-
-        updateVisuals(pos)
-
-        if config.Callback then
-            config.Callback(newVal)
-        end
-
-        for _, callback in pairs(slider.Changed) do
-            task.spawn(callback, newVal)
-        end
-    end
-
-    function slider:SetValue(newVal)
-        val = math.clamp(newVal, config.Min, config.Max)
-        self.Value = val
-        valueLabel.Text = tostring(val)
-        
-        local pos = (val - config.Min) / (config.Max - config.Min)
-        updateVisuals(pos)
-    end
-
-    function slider:OnChanged(callback)
-        table.insert(self.Changed, callback)
-    end
-
-    bar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            update(input)
-            tween(circle, {Size = UDim2.new(0, 18, 0, 18)}, 0.2)
-        end
-    end)
-
-    bar.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-            tween(circle, {Size = UDim2.new(0, 14, 0, 14)}, 0.2)
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            update(input)
-        end
-    end)
-
-    slider:SetValue(val)
-
-    return slider
-end
 
         function tab:AddDropdown(id, config)
             local dropFrame = Instance.new("Frame")
@@ -1269,7 +1331,6 @@ end
             return colorpicker
         end
 
-        table.insert(window.Tabs, tab)
         return tab
     end
 
