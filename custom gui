@@ -1,0 +1,470 @@
+local HalloweenLib = {}
+
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local plr = Players.LocalPlayer
+local gui = plr:WaitForChild("PlayerGui")
+
+local colors = {
+    bg = Color3.fromRGB(20, 20, 25),
+    bg2 = Color3.fromRGB(30, 30, 35),
+    orange = Color3.fromRGB(255, 140, 0), 
+    darkorange = Color3.fromRGB(180, 90, 0),
+    purple = Color3.fromRGB(138, 43, 226),
+    white = Color3.fromRGB(255, 255, 255),
+    gray = Color3.fromRGB(200, 200, 200),
+    border = Color3.fromRGB(255, 140, 0),
+}
+
+local function tween(obj, props, time)
+    local info = TweenInfo.new(time or 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    local t = TweenService:Create(obj, info, props)
+    t:Play()
+    return t
+end
+
+local function makeDrag(frame, dragframe)
+    local drag = false
+    local dragInput, mousePos, framePos
+
+    dragframe = dragframe or frame
+
+    dragframe.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            drag = true
+            mousePos = input.Position
+            framePos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    drag = false
+                end
+            end)
+        end
+    end)
+
+    dragframe.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and drag then
+            local delta = input.Position - mousePos
+            tween(frame, {
+                Position = UDim2.new(
+                    framePos.X.Scale,
+                    framePos.X.Offset + delta.X,
+                    framePos.Y.Scale,
+                    framePos.Y.Offset + delta.Y
+                )
+            }, 0.1)
+        end
+    end)
+end
+
+function HalloweenLib:CreateWindow(title)
+    local screen = Instance.new("ScreenGui")
+    screen.Name = "HalloweenGUI"
+    screen.Parent = gui
+    screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screen.ResetOnSpawn = false
+
+    local main = Instance.new("Frame")
+    main.Name = "MainFrame"
+    main.Size = UDim2.new(0, 450, 0, 0)
+    main.Position = UDim2.new(0.5, -225, 0.5, -200)
+    main.BackgroundColor3 = colors.bg
+    main.BorderSizePixel = 0
+    main.ClipsDescendants = true
+    main.Parent = screen
+
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.Size = UDim2.new(1, 30, 1, 30)
+    shadow.Position = UDim2.new(0, -15, 0, -15)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://5554236805"
+    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.ImageTransparency = 0.7
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(23, 23, 277, 277)
+    shadow.ZIndex = 0
+    shadow.Parent = main
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = main
+
+    local glow = Instance.new("UIStroke")
+    glow.Color = colors.border
+    glow.Thickness = 2
+    glow.Transparency = 0.5
+    glow.Parent = main
+
+    spawn(function()
+        while wait(0.05) do
+            if glow and glow.Parent then
+                local pulse = math.abs(math.sin(tick() * 2))
+                glow.Transparency = 0.3 + (pulse * 0.4)
+            else
+                break
+            end
+        end
+    end)
+
+    local titlebar = Instance.new("Frame")
+    titlebar.Name = "TitleBar"
+    titlebar.Size = UDim2.new(1, 0, 0, 45)
+    titlebar.BackgroundColor3 = colors.bg2
+    titlebar.BorderSizePixel = 0
+    titlebar.Parent = main
+
+    local tcorner = Instance.new("UICorner")
+    tcorner.CornerRadius = UDim.new(0, 10)
+    tcorner.Parent = titlebar
+
+    local fix = Instance.new("Frame")
+    fix.Size = UDim2.new(1, 0, 0, 10)
+    fix.Position = UDim2.new(0, 0, 1, -10)
+    fix.BackgroundColor3 = colors.bg2
+    fix.BorderSizePixel = 0
+    fix.Parent = titlebar
+
+    local icon = Instance.new("TextLabel")
+    icon.Name = "Icon"
+    icon.Size = UDim2.new(0, 35, 0, 35)
+    icon.Position = UDim2.new(0, 8, 0, 5)
+    icon.BackgroundTransparency = 1
+    icon.Font = Enum.Font.SourceSansBold
+    icon.Text = "🎃"
+    icon.TextSize = 28
+    icon.TextColor3 = colors.orange
+    icon.Parent = titlebar
+
+    local txt = Instance.new("TextLabel")
+    txt.Name = "TitleText"
+    txt.Size = UDim2.new(1, -100, 1, 0)
+    txt.Position = UDim2.new(0, 45, 0, 0)
+    txt.BackgroundTransparency = 1
+    txt.Font = Enum.Font.GothamBold
+    txt.Text = title or "🎃 Halloween GUI"
+    txt.TextSize = 18
+    txt.TextColor3 = colors.white
+    txt.TextXAlignment = Enum.TextXAlignment.Left
+    txt.Parent = titlebar
+
+    local close = Instance.new("TextButton")
+    close.Name = "CloseButton"
+    close.Size = UDim2.new(0, 35, 0, 35)
+    close.Position = UDim2.new(1, -40, 0, 5)
+    close.BackgroundColor3 = colors.bg
+    close.BorderSizePixel = 0
+    close.Font = Enum.Font.GothamBold
+    close.Text = "×"
+    close.TextSize = 24
+    close.TextColor3 = colors.white
+    close.Parent = titlebar
+
+    local cc = Instance.new("UICorner")
+    cc.CornerRadius = UDim.new(0, 8)
+    cc.Parent = close
+
+    close.MouseButton1Click:Connect(function()
+        tween(main, {Size = UDim2.new(0, 450, 0, 0)}, 0.3)
+        wait(0.3)
+        screen:Destroy()
+    end)
+
+    close.MouseEnter:Connect(function()
+        tween(close, {BackgroundColor3 = Color3.fromRGB(220, 50, 50)}, 0.2)
+    end)
+
+    close.MouseLeave:Connect(function()
+        tween(close, {BackgroundColor3 = colors.bg}, 0.2)
+    end)
+
+    local container = Instance.new("ScrollingFrame")
+    container.Name = "Container"
+    container.Size = UDim2.new(1, -20, 1, -60)
+    container.Position = UDim2.new(0, 10, 0, 50)
+    container.BackgroundTransparency = 1
+    container.BorderSizePixel = 0
+    container.ScrollBarThickness = 4
+    container.ScrollBarImageColor3 = colors.orange
+    container.CanvasSize = UDim2.new(0, 0, 0, 0)
+    container.Parent = main
+
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 10)
+    layout.Parent = container
+
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        container.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+    end)
+
+    makeDrag(main, titlebar)
+
+    tween(main, {Size = UDim2.new(0, 450, 0, 400)}, 0.5)
+
+    local window = {
+        MainFrame = main,
+        Container = container,
+    }
+
+    function window:CreateButton(text, callback)
+        local btn = Instance.new("TextButton")
+        btn.Name = "Button"
+        btn.Size = UDim2.new(1, 0, 0, 40)
+        btn.BackgroundColor3 = colors.bg2
+        btn.BorderSizePixel = 0
+        btn.Font = Enum.Font.GothamSemibold
+        btn.Text = text
+        btn.TextSize = 14
+        btn.TextColor3 = colors.white
+        btn.AutoButtonColor = false
+        btn.Parent = container
+
+        local bc = Instance.new("UICorner")
+        bc.CornerRadius = UDim.new(0, 8)
+        bc.Parent = btn
+
+        local bs = Instance.new("UIStroke")
+        bs.Color = colors.orange
+        bs.Thickness = 1
+        bs.Transparency = 0.8
+        bs.Parent = btn
+
+        btn.MouseButton1Click:Connect(function()
+            tween(btn, {BackgroundColor3 = colors.orange}, 0.1)
+            wait(0.1)
+            tween(btn, {BackgroundColor3 = colors.bg2}, 0.1)
+            callback()
+        end)
+
+        btn.MouseEnter:Connect(function()
+            tween(bs, {Transparency = 0.3}, 0.2)
+            tween(btn, {BackgroundColor3 = Color3.fromRGB(40, 40, 45)}, 0.2)
+        end)
+
+        btn.MouseLeave:Connect(function()
+            tween(bs, {Transparency = 0.8}, 0.2)
+            tween(btn, {BackgroundColor3 = colors.bg2}, 0.2)
+        end)
+
+        return btn
+    end
+
+    function window:CreateKeybind(text, key, callback)
+        local kbframe = Instance.new("Frame")
+        kbframe.Name = "KeybindFrame"
+        kbframe.Size = UDim2.new(1, 0, 0, 40)
+        kbframe.BackgroundColor3 = colors.bg2
+        kbframe.BorderSizePixel = 0
+        kbframe.Parent = container
+
+        local kfc = Instance.new("UICorner")
+        kfc.CornerRadius = UDim.new(0, 8)
+        kfc.Parent = kbframe
+
+        local kfs = Instance.new("UIStroke")
+        kfs.Color = colors.purple
+        kfs.Thickness = 1
+        kfs.Transparency = 0.8
+        kfs.Parent = kbframe
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0.6, -10, 1, 0)
+        label.Position = UDim2.new(0, 10, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Font = Enum.Font.GothamSemibold
+        label.Text = text
+        label.TextSize = 14
+        label.TextColor3 = colors.white
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = kbframe
+
+        local keybtn = Instance.new("TextButton")
+        keybtn.Name = "KeyButton"
+        keybtn.Size = UDim2.new(0.35, 0, 0, 30)
+        keybtn.Position = UDim2.new(0.63, 0, 0.5, -15)
+        keybtn.BackgroundColor3 = colors.bg
+        keybtn.BorderSizePixel = 0
+        keybtn.Font = Enum.Font.GothamBold
+        keybtn.Text = key or "..."
+        keybtn.TextSize = 12
+        keybtn.TextColor3 = colors.orange
+        keybtn.AutoButtonColor = false
+        keybtn.Parent = kbframe
+
+        local kc = Instance.new("UICorner")
+        kc.CornerRadius = UDim.new(0, 6)
+        kc.Parent = keybtn
+
+        local currKey = key
+        local listening = false
+
+        keybtn.MouseButton1Click:Connect(function()
+            listening = true
+            keybtn.Text = "..."
+            tween(keybtn, {BackgroundColor3 = colors.orange}, 0.2)
+        end)
+
+        keybtn.MouseEnter:Connect(function()
+            if not listening then
+                tween(keybtn, {BackgroundColor3 = Color3.fromRGB(30, 30, 35)}, 0.2)
+            end
+        end)
+
+        keybtn.MouseLeave:Connect(function()
+            if not listening then
+                tween(keybtn, {BackgroundColor3 = colors.bg}, 0.2)
+            end
+        end)
+
+        UserInputService.InputBegan:Connect(function(input, gp)
+            if listening then
+                if input.UserInputType == Enum.UserInputType.Keyboard then
+                    currKey = input.KeyCode.Name
+                    keybtn.Text = currKey
+                    listening = false
+                    tween(keybtn, {BackgroundColor3 = colors.bg}, 0.2)
+                end
+            elseif input.KeyCode.Name == currKey and not gp then
+                callback()
+            end
+        end)
+
+        return kbframe
+    end
+
+    function window:CreateSlider(text, min, max, default, callback)
+        local sliderframe = Instance.new("Frame")
+        sliderframe.Name = "SliderFrame"
+        sliderframe.Size = UDim2.new(1, 0, 0, 60)
+        sliderframe.BackgroundColor3 = colors.bg2
+        sliderframe.BorderSizePixel = 0
+        sliderframe.Parent = container
+
+        local sc = Instance.new("UICorner")
+        sc.CornerRadius = UDim.new(0, 8)
+        sc.Parent = sliderframe
+
+        local ss = Instance.new("UIStroke")
+        ss.Color = colors.orange
+        ss.Thickness = 1
+        ss.Transparency = 0.8
+        ss.Parent = sliderframe
+
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(0.7, 0, 0, 20)
+        lbl.Position = UDim2.new(0, 10, 0, 8)
+        lbl.BackgroundTransparency = 1
+        lbl.Font = Enum.Font.GothamSemibold
+        lbl.Text = text
+        lbl.TextSize = 14
+        lbl.TextColor3 = colors.white
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Parent = sliderframe
+
+        local vallbl = Instance.new("TextLabel")
+        vallbl.Size = UDim2.new(0.25, 0, 0, 20)
+        vallbl.Position = UDim2.new(0.72, 0, 0, 8)
+        vallbl.BackgroundTransparency = 1
+        vallbl.Font = Enum.Font.GothamBold
+        vallbl.Text = tostring(default)
+        vallbl.TextSize = 14
+        vallbl.TextColor3 = colors.orange
+        vallbl.TextXAlignment = Enum.TextXAlignment.Right
+        vallbl.Parent = sliderframe
+
+        local bar = Instance.new("Frame")
+        bar.Name = "SliderBar"
+        bar.Size = UDim2.new(1, -20, 0, 6)
+        bar.Position = UDim2.new(0, 10, 1, -18)
+        bar.BackgroundColor3 = colors.bg
+        bar.BorderSizePixel = 0
+        bar.Parent = sliderframe
+
+        local barc = Instance.new("UICorner")
+        barc.CornerRadius = UDim.new(1, 0)
+        barc.Parent = bar
+
+        local fill = Instance.new("Frame")
+        fill.Name = "SliderFill"
+        fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+        fill.BackgroundColor3 = colors.orange
+        fill.BorderSizePixel = 0
+        fill.Parent = bar
+
+        local fc = Instance.new("UICorner")
+        fc.CornerRadius = UDim.new(1, 0)
+        fc.Parent = fill
+
+        local button = Instance.new("Frame")
+        button.Name = "SliderButton"
+        button.Size = UDim2.new(0, 16, 0, 16)
+        button.Position = UDim2.new((default - min) / (max - min), -8, 0.5, -8)
+        button.BackgroundColor3 = colors.white
+        button.BorderSizePixel = 0
+        button.Parent = bar
+
+        local buttonc = Instance.new("UICorner")
+        buttonc.CornerRadius = UDim.new(1, 0)
+        buttonc.Parent = button
+
+        local btnglow = Instance.new("UIStroke")
+        btnglow.Color = colors.orange
+        btnglow.Thickness = 2
+        btnglow.Transparency = 0.5
+        btnglow.Parent = button
+
+        local dragging = false
+        local val = default
+
+        local function update(input)
+            local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+            val = math.floor(min + (max - min) * pos)
+            vallbl.Text = tostring(val)
+            
+            tween(fill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.1)
+            tween(button, {Position = UDim2.new(pos, -8, 0.5, -8)}, 0.1)
+            
+            callback(val)
+        end
+
+        bar.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+                update(input)
+                tween(button, {Size = UDim2.new(0, 20, 0, 20)}, 0.2)
+                tween(button, {Position = UDim2.new(button.Position.X.Scale, -10, 0.5, -10)}, 0.2)
+            end
+        end)
+
+        bar.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+                tween(button, {Size = UDim2.new(0, 16, 0, 16)}, 0.2)
+                tween(button, {Position = UDim2.new(button.Position.X.Scale, -8, 0.5, -8)}, 0.2)
+            end
+        end)
+
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                update(input)
+            end
+        end)
+
+        return sliderframe, function() return val end
+    end
+
+    return window
+end
+
+return HalloweenLib
