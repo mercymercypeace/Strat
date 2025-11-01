@@ -1,0 +1,160 @@
+local Halloween = loadstring(game:HttpGet("https://raw.githubusercontent.com/mercymercypeace/Strat/refs/heads/main/custom%20gui"))()
+
+local win = Halloween:CreateWindow({
+    Title = "halloween gui " .. Halloween.Version,
+    SubTitle = "made by me lol",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+})
+
+local tabs = {
+    main = win:AddTab({Title = "main", Icon = ""}),
+    settings = win:AddTab({Title = "settings", Icon = ""})
+}
+
+Halloween:Notify({
+    Title = "yoo",
+    Content = "script loaded successfully",
+    SubContent = "have fun",
+    Duration = 5
+})
+
+tabs.main:AddParagraph({
+    Title = "welcome",
+    Content = "this is a paragraph thing\nyou can put whatever here"
+})
+
+tabs.main:AddButton({
+    Title = "test button",
+    Description = "does something cool idk",
+    Callback = function()
+        win:Dialog({
+            Title = "sup",
+            Content = "this is a dialog box thing",
+            Buttons = {
+                {
+                    Title = "ok cool",
+                    Callback = function()
+                        print("clicked ok")
+                    end
+                },
+                {
+                    Title = "nah",
+                    Callback = function()
+                        print("clicked cancel")
+                    end
+                }
+            }
+        })
+    end
+})
+
+local speedToggle = tabs.main:AddToggle("speedtoggle", {
+    Title = "speed boost",
+    Default = false
+})
+
+speedToggle:OnChanged(function()
+    local char = game.Players.LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        if Halloween.Options.speedtoggle.Value then
+            char.Humanoid.WalkSpeed = 100
+        else
+            char.Humanoid.WalkSpeed = 16
+        end
+    end
+end)
+
+local speedSlider = tabs.main:AddSlider("speedslider", {
+    Title = "walk speed",
+    Description = "change ur speed",
+    Default = 16,
+    Min = 16,
+    Max = 200,
+    Rounding = 1,
+    Callback = function(val)
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = val
+        end
+    end
+})
+
+speedSlider:OnChanged(function(val)
+    print("speed changed to:", val)
+end)
+
+local dropdown = tabs.main:AddDropdown("dropdown1", {
+    Title = "select option",
+    Values = {"option 1", "option 2", "option 3", "option 4"},
+    Multi = false,
+    Default = 1,
+})
+
+dropdown:OnChanged(function(val)
+    print("selected:", val)
+end)
+
+local multiDrop = tabs.main:AddDropdown("multidrop", {
+    Title = "multi select",
+    Description = "pick multiple things",
+    Values = {"thing 1", "thing 2", "thing 3", "thing 4"},
+    Multi = true,
+    Default = {"thing 1"},
+})
+
+multiDrop:OnChanged(function(val)
+    local stuff = {}
+    for k, v in pairs(val) do
+        if v then table.insert(stuff, k) end
+    end
+    print("selected:", table.concat(stuff, ", "))
+end)
+
+local keybind = tabs.main:AddKeybind("mainkey", {
+    Title = "toggle ui",
+    Mode = "Toggle",
+    Default = "LeftControl",
+    Callback = function(val)
+        win.MainFrame.Visible = val
+    end,
+    ChangedCallback = function(new)
+        print("keybind changed to:", new)
+    end
+})
+
+keybind:OnClick(function()
+    print("keybind pressed, state:", keybind:GetState())
+end)
+
+local input = tabs.main:AddInput("inputbox", {
+    Title = "username",
+    Default = "roblox",
+    Placeholder = "type here...",
+    Numeric = false,
+    Finished = false,
+    Callback = function(val)
+        print("input:", val)
+    end
+})
+
+input:OnChanged(function()
+    print("updated:", input.Value)
+end)
+
+local color = tabs.main:AddColorpicker("colorpick", {
+    Title = "theme color",
+    Default = Color3.fromRGB(255, 140, 0)
+})
+
+color:OnChanged(function()
+    print("color:", color.Value)
+end)
+
+win:SelectTab(1)
+
+Halloween:Notify({
+    Title = "done",
+    Content = "everything loaded",
+    Duration = 3
+})
