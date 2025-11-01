@@ -1,274 +1,156 @@
-local Halloween = loadstring(game:HttpGet("https://raw.githubusercontent.com/mercymercypeace/Strat/refs/heads/main/custom%20gui"))()
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
-local players = game:GetService("Players")
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LunaButton"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = game.CoreGui
 
-getgenv().Speed = 16
-getgenv().Enabled = false
+local MainButton = Instance.new("ImageButton")
+MainButton.Name = "FloatingButton"
+MainButton.Size = UDim2.new(0, 70, 0, 70)
+MainButton.Position = UDim2.new(0, 20, 0.5, -35)
+MainButton.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainButton.BorderSizePixel = 0
+MainButton.Image = "rbxassetid://83759238826509"
+MainButton.ImageTransparency = 0.1
+MainButton.ScaleType = Enum.ScaleType.Fit
+MainButton.Parent = ScreenGui
 
-local function bypassWalkSpeed()
-    if getgenv().executed then
-        if not getgenv().Enabled then
-            return
-        end
-    else
-        getgenv().executed = true
-        print("walkspeed bypassed lol")
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 16)
+Corner.Parent = MainButton
 
-        local mt = getrawmetatable(game)
-        setreadonly(mt, false)
+local Gradient = Instance.new("UIGradient")
+Gradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 60)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
+}
+Gradient.Rotation = 45
+Gradient.Parent = MainButton
 
-        local oldindex = mt.__index
-        mt.__index = newcclosure(function(self, b)
-            if b == 'WalkSpeed' then
-                return 16
-            end
-            return oldindex(self, b)
-        end)
-    end
+local Glow = Instance.new("ImageLabel")
+Glow.Name = "Glow"
+Glow.Size = UDim2.new(1, 20, 1, 20)
+Glow.Position = UDim2.new(0.5, 0, 0.5, 0)
+Glow.AnchorPoint = Vector2.new(0.5, 0.5)
+Glow.BackgroundTransparency = 1
+Glow.Image = "rbxassetid://16300778179"
+Glow.ImageColor3 = Color3.fromRGB(138, 43, 226)
+Glow.ImageTransparency = 0.5
+Glow.ZIndex = 0
+Glow.Parent = MainButton
+
+local Stroke = Instance.new("UIStroke")
+Stroke.Color = Color3.fromRGB(138, 43, 226)
+Stroke.Thickness = 2.5
+Stroke.Transparency = 0.3
+Stroke.Parent = MainButton
+
+local Shadow = Instance.new("ImageLabel")
+Shadow.Name = "Shadow"
+Shadow.Size = UDim2.new(1, 30, 1, 30)
+Shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+Shadow.BackgroundTransparency = 1
+Shadow.Image = "rbxassetid://16300778179"
+Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+Shadow.ImageTransparency = 0.7
+Shadow.ZIndex = -1
+Shadow.Parent = MainButton
+
+local isDragging = false
+local dragInput
+local dragStart
+local startPos
+local clickStart
+
+local function Tween(object, props, time)
+    TweenService:Create(object, TweenInfo.new(time or 0.3, Enum.EasingStyle.Quint), props):Play()
 end
 
-local win = Halloween:CreateWindow({
-    Title = "halloween gui " .. Halloween.Version,
-    SubTitle = "made by me lol",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
-})
+local function updatePos(input)
+    local delta = input.Position - dragStart
+    MainButton.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
 
-local tabs = {
-    main = win:AddTab({Title = "main", Icon = ""}),
-    settings = win:AddTab({Title = "settings", Icon = ""})
-}
-
-Halloween:Notify({
-    Title = "yoo",
-    Content = "script loaded successfully",
-    SubContent = "mobile support added",
-    Duration = 5
-})
-
-tabs.main:AddParagraph({
-    Title = "welcome",
-    Content = "drag the titlebar to move\ndrag bottom right corner to resize\nworks on mobile too lmao"
-})
-
-tabs.main:AddButton({
-    Title = "test button",
-    Description = "opens a dialog thing",
-    Callback = function()
-        win:Dialog({
-            Title = "hey",
-            Content = "this is a test dialog or whatever",
-            Buttons = {
-                {
-                    Title = "ok cool",
-                    Callback = function()
-                        print("clicked ok")
-                    end
-                },
-                {
-                    Title = "nah",
-                    Callback = function()
-                        print("clicked nah")
-                    end
-                }
-            }
-        })
-    end
-})
-
-local speedToggle = tabs.main:AddToggle("speedtoggle", {
-    Title = "enable speed hack",
-    Default = false
-})
-
-speedToggle:OnChanged(function(val)
-    getgenv().Enabled = val
-    
-    if val then
-        bypassWalkSpeed()
+MainButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isDragging = true
+        dragStart = input.Position
+        clickStart = input.Position
+        startPos = MainButton.Position
         
-        task.spawn(function()
-            while getgenv().Enabled and task.wait() do
-                local char = players.LocalPlayer.Character
-                if char and char:FindFirstChild("Humanoid") then
-                    char.Humanoid.WalkSpeed = getgenv().Speed
-                end
+        Tween(MainButton, {Size = UDim2.new(0, 65, 0, 65)}, 0.2)
+        Tween(Glow, {ImageTransparency = 0.2}, 0.2)
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                isDragging = false
+                Tween(MainButton, {Size = UDim2.new(0, 70, 0, 70)}, 0.2)
+                Tween(Glow, {ImageTransparency = 0.5}, 0.2)
             end
         end)
+    end
+end)
+
+MainButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and isDragging then
+        updatePos(input)
+    end
+end)
+
+MainButton.MouseEnter:Connect(function()
+    if not isDragging then
+        Tween(MainButton, {Size = UDim2.new(0, 75, 0, 75)}, 0.2)
+        Tween(Stroke, {Thickness = 3}, 0.2)
+        Tween(Glow, {ImageTransparency = 0.3}, 0.2)
+    end
+end)
+
+MainButton.MouseLeave:Connect(function()
+    if not isDragging then
+        Tween(MainButton, {Size = UDim2.new(0, 70, 0, 70)}, 0.2)
+        Tween(Stroke, {Thickness = 2.5}, 0.2)
+        Tween(Glow, {ImageTransparency = 0.5}, 0.2)
+    end
+end)
+
+MainButton.MouseButton1Click:Connect(function()
+    local dragDistance = (UserInputService:GetMouseLocation() - clickStart).Magnitude
+    
+    if dragDistance < 5 then
+        Tween(MainButton, {
+            Size = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            ImageTransparency = 1
+        }, 0.4)
+        Tween(Glow, {ImageTransparency = 1}, 0.4)
+        Tween(Stroke, {Transparency = 1}, 0.4)
         
-        print("speed hack on")
-    else
-        local char = players.LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = 16
-        end
-        print("speed hack off")
-    end
-end)
-
-local speedSlider = tabs.main:AddSlider("speedslider", {
-    Title = "walk speed",
-    Description = "set ur speed",
-    Default = 16,
-    Min = 16,
-    Max = 200,
-    Rounding = 1,
-    Callback = function(val)
-        getgenv().Speed = val
+        wait(0.4)
+        ScreenGui:Destroy()
         
-        if getgenv().Enabled then
-            local char = players.LocalPlayer.Character
-            if char and char:FindFirstChild("Humanoid") then
-                char.Humanoid.WalkSpeed = val
-            end
-        end
-    end
-})
-
-speedSlider:OnChanged(function(val)
-    print("speed:", val)
-end)
-
-players.LocalPlayer.CharacterAdded:Connect(function(char)
-    if getgenv().Enabled then
-        bypassWalkSpeed()
-        local hum = char:WaitForChild("Humanoid")
-        task.wait(0.1)
-        hum.WalkSpeed = getgenv().Speed
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/LunarisXOffical/Luna-Interface-Suite/refs/heads/master/source.lua"))()
     end
 end)
 
-tabs.main:AddButton({
-    Title = "🎃 reset speed",
-    Description = "back to normal",
-    Callback = function()
-        getgenv().Speed = 16
-        getgenv().Enabled = false
-        Halloween.Options.speedslider:SetValue(16)
-        Halloween.Options.speedtoggle:SetValue(false)
-        local char = players.LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = 16
-        end
-        print("reset")
+spawn(function()
+    while MainButton and MainButton.Parent do
+        Tween(Glow, {Rotation = 360}, 3)
+        wait(3)
+        Glow.Rotation = 0
     end
-})
-
-local dropdown = tabs.main:AddDropdown("dropdown1", {
-    Title = "pick something",
-    Values = {"option 1", "option 2", "option 3", "option 4"},
-    Multi = false,
-    Default = 1,
-})
-
-dropdown:OnChanged(function(val)
-    print("picked:", val)
 end)
-
-local input = tabs.main:AddInput("inputbox", {
-    Title = "username",
-    Default = "roblox",
-    Placeholder = "type here...",
-    Numeric = false,
-    Finished = false,
-    Callback = function(val)
-        print("typed:", val)
-    end
-})
-
-input:OnChanged(function()
-    print("updated:", input.Value)
-end)
-
-local color = tabs.main:AddColorpicker("colorpick", {
-    Title = "theme color",
-    Default = Color3.fromRGB(255, 140, 0)
-})
-
-color:OnChanged(function()
-    print("color changed")
-end)
-
-tabs.settings:AddParagraph({
-    Title = "settings",
-    Content = "change ur keybinds and stuff here"
-})
-
-local minimizeKey = tabs.settings:AddKeybind("minimizekey", {
-    Title = "🎃 minimize gui",
-    Mode = "Toggle",
-    Default = "RightShift",
-    Callback = function()
-        win.ToggleMinimize()
-    end,
-    ChangedCallback = function(new)
-        print("minimize key:", new)
-    end
-})
-
-minimizeKey:OnClick(function()
-    print("minimized:", win.Minimized())
-end)
-
-local toggleKey = tabs.settings:AddKeybind("toggleui", {
-    Title = "👻 toggle ui",
-    Mode = "Toggle",
-    Default = "LeftControl",
-    Callback = function(val)
-        win.MainFrame.Visible = val
-    end,
-    ChangedCallback = function(new)
-        print("toggle key:", new)
-    end
-})
-
-toggleKey:OnClick(function()
-    print("toggled:", toggleKey:GetState())
-end)
-
-tabs.settings:AddButton({
-    Title = "🎃 minimize",
-    Description = "minimize the gui",
-    Callback = function()
-        win.ToggleMinimize()
-    end
-})
-
-tabs.settings:AddToggle("notifs", {
-    Title = "notifications",
-    Default = true
-})
-
-tabs.settings:AddButton({
-    Title = "test notif",
-    Description = "sends test notification",
-    Callback = function()
-        if Halloween.Options.notifs.Value then
-            Halloween:Notify({
-                Title = "test",
-                Content = "this is a test",
-                Duration = 3
-            })
-        else
-            print("notifs off")
-        end
-    end
-})
-
-tabs.settings:AddButton({
-    Title = "💀 destroy gui",
-    Description = "removes gui",
-    Callback = function()
-        win.ScreenGui:Destroy()
-        print("destroyed")
-    end
-})
-
-win:SelectTab(1)
-
-Halloween:Notify({
-    Title = "ready",
-    Content = "loaded successfully",
-    SubContent = "have fun lol",
-    Duration = 3
-})
