@@ -15,13 +15,13 @@ local tabs = {
 Halloween:Notify({
     Title = "yoo",
     Content = "script loaded successfully",
-    SubContent = "have fun",
+    SubContent = "mobile + pc support",
     Duration = 5
 })
 
 tabs.main:AddParagraph({
     Title = "welcome",
-    Content = "this is a paragraph thing\nyou can put whatever here"
+    Content = "this is a paragraph thing\nyou can put whatever here\nworks on mobile too!"
 })
 
 tabs.main:AddButton({
@@ -49,21 +49,7 @@ tabs.main:AddButton({
     end
 })
 
-local speedToggle = tabs.main:AddToggle("speedtoggle", {
-    Title = "speed boost",
-    Default = false
-})
-
-speedToggle:OnChanged(function()
-    local char = game.Players.LocalPlayer.Character
-    if char and char:FindFirstChild("Humanoid") then
-        if Halloween.Options.speedtoggle.Value then
-            char.Humanoid.WalkSpeed = 100
-        else
-            char.Humanoid.WalkSpeed = 16
-        end
-    end
-end)
+local currentSpeed = 16
 
 local speedSlider = tabs.main:AddSlider("speedslider", {
     Title = "walk speed",
@@ -73,6 +59,7 @@ local speedSlider = tabs.main:AddSlider("speedslider", {
     Max = 200,
     Rounding = 1,
     Callback = function(val)
+        currentSpeed = val
         local char = game.Players.LocalPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid.WalkSpeed = val
@@ -81,8 +68,49 @@ local speedSlider = tabs.main:AddSlider("speedslider", {
 })
 
 speedSlider:OnChanged(function(val)
-    print("speed changed to:", val)
+    print("speed set to:", val)
 end)
+
+local speedToggle = tabs.main:AddToggle("speedtoggle", {
+    Title = "speed boost (100)",
+    Default = false
+})
+
+speedToggle:OnChanged(function(val)
+    local char = game.Players.LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        if val then
+            currentSpeed = 100
+            char.Humanoid.WalkSpeed = 100
+            Halloween.Options.speedslider:SetValue(100)
+        else
+            currentSpeed = 16
+            char.Humanoid.WalkSpeed = 16
+            Halloween.Options.speedslider:SetValue(16)
+        end
+    end
+end)
+
+game.Players.LocalPlayer.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid")
+    task.wait(0.1)
+    hum.WalkSpeed = currentSpeed
+end)
+
+tabs.main:AddButton({
+    Title = "🎃 reset speed",
+    Description = "sets speed back to 16",
+    Callback = function()
+        currentSpeed = 16
+        Halloween.Options.speedslider:SetValue(16)
+        Halloween.Options.speedtoggle:SetValue(false)
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = 16
+        end
+        print("speed reset")
+    end
+})
 
 local dropdown = tabs.main:AddDropdown("dropdown1", {
     Title = "select option",
@@ -93,38 +121,6 @@ local dropdown = tabs.main:AddDropdown("dropdown1", {
 
 dropdown:OnChanged(function(val)
     print("selected:", val)
-end)
-
-local multiDrop = tabs.main:AddDropdown("multidrop", {
-    Title = "multi select",
-    Description = "pick multiple things",
-    Values = {"thing 1", "thing 2", "thing 3", "thing 4"},
-    Multi = true,
-    Default = {"thing 1"},
-})
-
-multiDrop:OnChanged(function(val)
-    local stuff = {}
-    for k, v in pairs(val) do
-        if v then table.insert(stuff, k) end
-    end
-    print("selected:", table.concat(stuff, ", "))
-end)
-
-local keybind = tabs.main:AddKeybind("mainkey", {
-    Title = "toggle ui",
-    Mode = "Toggle",
-    Default = "LeftControl",
-    Callback = function(val)
-        win.MainFrame.Visible = val
-    end,
-    ChangedCallback = function(new)
-        print("keybind changed to:", new)
-    end
-})
-
-keybind:OnClick(function()
-    print("keybind pressed, state:", keybind:GetState())
 end)
 
 local input = tabs.main:AddInput("inputbox", {
@@ -151,10 +147,86 @@ color:OnChanged(function()
     print("color:", color.Value)
 end)
 
+tabs.settings:AddParagraph({
+    Title = "settings",
+    Content = "configure your gui here\nchange keybinds and stuff\ndrag titlebar to move gui"
+})
+
+local minimizeKey = tabs.settings:AddKeybind("minimizekey", {
+    Title = "🎃 minimize gui",
+    Mode = "Toggle",
+    Default = "RightShift",
+    Callback = function()
+        win.ToggleMinimize()
+    end,
+    ChangedCallback = function(new)
+        print("minimize key changed to:", new)
+    end
+})
+
+minimizeKey:OnClick(function()
+    print("gui minimized:", win.Minimized())
+end)
+
+local toggleKey = tabs.settings:AddKeybind("toggleui", {
+    Title = "👻 toggle ui",
+    Mode = "Toggle",
+    Default = "LeftControl",
+    Callback = function(val)
+        win.MainFrame.Visible = val
+    end,
+    ChangedCallback = function(new)
+        print("toggle key changed to:", new)
+    end
+})
+
+toggleKey:OnClick(function()
+    print("ui toggled, visible:", toggleKey:GetState())
+end)
+
+tabs.settings:AddButton({
+    Title = "🎃 minimize now",
+    Description = "minimizes the gui instantly",
+    Callback = function()
+        win.ToggleMinimize()
+    end
+})
+
+tabs.settings:AddToggle("notifs", {
+    Title = "notifications",
+    Default = true
+})
+
+tabs.settings:AddButton({
+    Title = "test notification",
+    Description = "sends a test notif",
+    Callback = function()
+        if Halloween.Options.notifs.Value then
+            Halloween:Notify({
+                Title = "test",
+                Content = "this is a test notification",
+                Duration = 3
+            })
+        else
+            print("notifications disabled")
+        end
+    end
+})
+
+tabs.settings:AddButton({
+    Title = "💀 destroy gui",
+    Description = "removes the gui completely",
+    Callback = function()
+        win.ScreenGui:Destroy()
+        print("gui destroyed")
+    end
+})
+
 win:SelectTab(1)
 
 Halloween:Notify({
-    Title = "done",
-    Content = "everything loaded",
+    Title = "ready",
+    Content = "everything loaded successfully",
+    SubContent = "have fun!",
     Duration = 3
 })
