@@ -439,19 +439,81 @@ Luna:Notification({
 })
 
 local isUIVisible = true
-local LunaUI = game:GetService("CoreGui"):FindFirstChild("Luna") or (gethui and gethui():FindFirstChild("Luna"))
+
+task.wait(0.5)
+TweenService:Create(DragButton, TweenInfo.new(0.5), {
+    ImageTransparency = 1,
+    BackgroundTransparency = 1
+}):Play()
+TweenService:Create(Stroke, TweenInfo.new(0.5), {Transparency = 1}):Play()
+TweenService:Create(Shadow, TweenInfo.new(0.5), {ImageTransparency = 1}):Play()
+task.wait(0.5)
+DragButton.Visible = false
+
+local function showButton()
+    DragButton.Visible = true
+    TweenService:Create(DragButton, TweenInfo.new(0.3), {
+        ImageTransparency = 0,
+        BackgroundTransparency = 0
+    }):Play()
+    TweenService:Create(Stroke, TweenInfo.new(0.3), {Transparency = 0.5}):Play()
+    TweenService:Create(Shadow, TweenInfo.new(0.3), {ImageTransparency = 0.6}):Play()
+end
+
+local function hideButton()
+    TweenService:Create(DragButton, TweenInfo.new(0.3), {
+        ImageTransparency = 1,
+        BackgroundTransparency = 1
+    }):Play()
+    TweenService:Create(Stroke, TweenInfo.new(0.3), {Transparency = 1}):Play()
+    TweenService:Create(Shadow, TweenInfo.new(0.3), {ImageTransparency = 1}):Play()
+    task.wait(0.3)
+    DragButton.Visible = false
+end
 
 DragButton.MouseButton1Click:Connect(function()
-    if not hasMoved and LunaUI then
-        isUIVisible = not isUIVisible
-        LunaUI.Enabled = isUIVisible
+    if not hasMoved then
+        local LunaUI = nil
+        if gethui then
+            LunaUI = gethui():FindFirstChild("Luna")
+        end
+        if not LunaUI then
+            LunaUI = game:GetService("CoreGui"):FindFirstChild("Luna")
+        end
         
-        local targetColor = isUIVisible and Color3.fromRGB(100, 100, 255) or Color3.fromRGB(255, 100, 100)
-        TweenService:Create(Stroke, TweenInfo.new(0.3), {Color = targetColor}):Play()
+        if LunaUI then
+            isUIVisible = not isUIVisible
+            LunaUI.Enabled = isUIVisible
+            
+            if isUIVisible then
+                hideButton()
+            else
+                showButton()
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        local LunaUI = nil
+        if gethui then
+            LunaUI = gethui():FindFirstChild("Luna")
+        end
+        if not LunaUI then
+            LunaUI = game:GetService("CoreGui"):FindFirstChild("Luna")
+        end
         
-        TweenService:Create(DragButton, TweenInfo.new(0.15), {Rotation = 360}):Play()
-        wait(0.15)
-        DragButton.Rotation = 0
+        if LunaUI then
+            if LunaUI.Enabled and DragButton.Visible then
+                hideButton()
+                isUIVisible = true
+            elseif not LunaUI.Enabled and not DragButton.Visible then
+                showButton()
+                isUIVisible = false
+            end
+        end
     end
 end)
 
