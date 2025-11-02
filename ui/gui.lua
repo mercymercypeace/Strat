@@ -1236,35 +1236,51 @@ function Library:Window(p)
 	ChSize_1.Image = "rbxassetid://15082210525"
 	ChSize_1.ImageTransparency = 0.5
 
-	local DiscordButton = nil
-	if DiscordLink then
-		DiscordButton = Instance.new("ImageButton")
-		DiscordButton.Name = "Discord"
-		DiscordButton.Parent = Ct_1
-		DiscordButton.Active = true
-		DiscordButton.BackgroundColor3 = Color3.fromRGB(255,255,255)
-		DiscordButton.BackgroundTransparency = 1
-		DiscordButton.BorderColor3 = Color3.fromRGB(0,0,0)
-		DiscordButton.BorderSizePixel = 0
-		DiscordButton.AnchorPoint = Vector2.new(1, 0.5)
-		DiscordButton.Position = UDim2.new(1, -125,0.5, 0)
-		DiscordButton.Size = UDim2.new(0, 16,0, 16)
-		DiscordButton.Image = "rbxassetid://11339969197"
-		DiscordButton.ImageTransparency = 0
-		DiscordButton.Visible = true
-
-		addToTheme('Text & Icon', DiscordButton)
-	end
-
 	DropdownValue_1.Name = "DropdownValue"
 	DropdownValue_1.Parent = Ct_1
 	DropdownValue_1.AnchorPoint = Vector2.new(1, 0.5)
 	DropdownValue_1.BackgroundColor3 = Color3.fromRGB(24,24,31)
 	DropdownValue_1.BorderColor3 = Color3.fromRGB(0,0,0)
 	DropdownValue_1.BorderSizePixel = 0
-	DropdownValue_1.Position = UDim2.new(1, 0,0.5, 0)
+	DropdownValue_1.Position = UDim2.new(1, DiscordLink and -140 or 0,0.5, 0)
 	DropdownValue_1.Size = UDim2.new(0, 120,0, 20)
 	DropdownValue_1.Transparency = 1
+
+	local DiscordButton = nil
+	if DiscordLink then
+		DiscordButton = Instance.new("TextButton")
+		DiscordButton.Name = "DiscordButton"
+		DiscordButton.Parent = Ct_1
+		DiscordButton.Active = true
+		DiscordButton.AnchorPoint = Vector2.new(1, 0.5)
+		DiscordButton.BackgroundColor3 = Color3.fromRGB(24,24,31)
+		DiscordButton.BorderColor3 = Color3.fromRGB(0,0,0)
+		DiscordButton.BorderSizePixel = 0
+		DiscordButton.Position = UDim2.new(1, -125,0.5, 0)
+		DiscordButton.Size = UDim2.new(0, 20,0, 20)
+		DiscordButton.Font = Enum.Font.SourceSans
+		DiscordButton.Text = ""
+		DiscordButton.TextColor3 = Color3.fromRGB(0,0,0)
+		DiscordButton.TextSize = 14
+
+		local DiscordButtonCorner = Instance.new("UICorner")
+		DiscordButtonCorner.Parent = DiscordButton
+		DiscordButtonCorner.CornerRadius = UDim.new(0, 4)
+
+		local DiscordIcon = Instance.new("ImageLabel")
+		DiscordIcon.Name = "DiscordIcon"
+		DiscordIcon.Parent = DiscordButton
+		DiscordIcon.BackgroundColor3 = Color3.fromRGB(255,255,255)
+		DiscordIcon.BackgroundTransparency = 1
+		DiscordIcon.BorderColor3 = Color3.fromRGB(0,0,0)
+		DiscordIcon.BorderSizePixel = 0
+		DiscordIcon.Size = UDim2.new(1, 0,1, 0)
+		DiscordIcon.Image = "rbxassetid://11339969197"
+		DiscordIcon.ImageTransparency = 0
+
+		addToTheme('Main', DiscordButton)
+		addToTheme('Text & Icon', DiscordIcon)
+	end
 
 	Td_1.Name = "Td"
 	Td_1.Parent = Topbar_1
