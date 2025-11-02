@@ -4621,24 +4621,6 @@ function Library:Window(p)
 		local normalPosition = Shadow_1.Position
 
 		ChSize_1.MouseButton1Click:Connect(function()
-			if not isMaximized then
-				normalSize = Shadow_1.Size
-				normalPosition = Shadow_1.Position
-				tw({v = Shadow_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
-					Size = UDim2.new(1, 0, 1, 0),
-					Position = UDim2.new(0, 0, 0, 0)
-				}}):Play()
-				isMaximized = true
-			else
-				tw({v = Shadow_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
-					Size = normalSize,
-					Position = normalPosition
-				}}):Play()
-				isMaximized = false
-			end
-		end)
-
-		Minisize_1.MouseButton1Click:Connect(function()
 			if not CloseUIShadowRef then
 				CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
 			end
@@ -4649,7 +4631,6 @@ function Library:Window(p)
 				tw({v = Page_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
 					Size = UDim2.new(1, 0, 0, 0)
 				}}):Play()
-				Minisize_1.Image = "rbxassetid://13857981896"
 				task.wait(0.15)
 				Page_1.Visible = false
 				if not CloseUIShadowRef then
@@ -4670,11 +4651,24 @@ function Library:Window(p)
 				tw({v = Page_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
 					Size = UDim2.new(1, 0, 1, 0)
 				}}):Play()
-				Minisize_1.Image = "rbxassetid://13857987062"
 				if CloseUIShadowRef then
 					CloseUIShadowRef.Visible = false
 				end
 				isMinimized = false
+			end
+		end)
+
+		Minisize_1.MouseButton1Click:Connect(function()
+			if not CloseUIShadowRef then
+				CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
+			end
+			pcall(function() closeui(false) end)
+			task.wait(0.15)
+			if CloseUIShadowRef then
+				CloseUIShadowRef.Visible = true
+				tw({v = CloseUIShadowRef, t = 0.2, s = Enum.EasingStyle.Linear, d = "Out", g = {
+					ImageTransparency = 0.5
+				}}):Play()
 			end
 		end)
 
@@ -4719,7 +4713,7 @@ function Library:Window(p)
 		local isopen = false
 		local firsttime = false
 		local oSize
-		local function closeui()
+		local function closeui(hideDraggable)
 			isopen = not isopen
 			if isopen then
 				oSize = Background_1.Size
@@ -4736,9 +4730,11 @@ function Library:Window(p)
 				close:Play()
 				close.Completed:Wait()
 				Shadow_1.Visible = false
-				local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
-				if closeUIButton then
-					closeUIButton.Visible = false
+				if hideDraggable ~= false then
+					local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
+					if closeUIButton then
+						closeUIButton.Visible = false
+					end
 				end
 			else
 				Shadow_1.Visible = true  
@@ -4753,9 +4749,11 @@ function Library:Window(p)
 					}
 				})
 				open:Play()
-				local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
-				if closeUIButton then
-					closeUIButton.Visible = false
+				if hideDraggable ~= false then
+					local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
+					if closeUIButton then
+						closeUIButton.Visible = false
+					end
 				end
 			end
 
