@@ -167,7 +167,7 @@ end
 Window:Line()
 
 local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
-    local webhookUrl = ""
+    local url = "" -- Local URL variable for webhook
     
     WebhookTab:Section({Title = "Webhook Configuration"})
     local WebhookUrlInput = WebhookTab:Textbox({
@@ -177,7 +177,7 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
         Value = "",
         ClearTextOnFocus = false,
         Callback = function(text)
-            webhookUrl = text
+            url = text
             if text ~= "" then
                 Window:Notify({
                     Title = "Webhook URL",
@@ -197,7 +197,7 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
         Value = "",
         ClearTextOnFocus = false,
         Callback = function(testMessage)
-            if webhookUrl == "" then
+            if url == "" then
                 Window:Notify({
                     Title = "Error",
                     Desc = "Please enter a webhook URL first!",
@@ -218,6 +218,18 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
             end
             
             local HttpService = game:GetService("HttpService")
+            
+            -- Check if HTTP services are enabled
+            if not HttpService.HttpEnabled then
+                Window:Notify({
+                    Title = "HTTP Disabled",
+                    Desc = "HTTP services are disabled in this game. Webhooks require HTTP to be enabled.",
+                    Time = 5,
+                    Type = "error"
+                })
+                return
+            end
+            
             local success, result = pcall(function()
                 local data = {
                     content = testMessage,
@@ -225,44 +237,48 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
                 }
                 local json = HttpService:JSONEncode(data)
                 
-                -- Use RequestAsync instead of PostAsync for security compliance
-                local response = HttpService:RequestAsync({
-                    Url = webhookUrl,
-                    Method = "POST",
-                    Headers = {
-                        ["Content-Type"] = "application/json"
-                    },
-                    Body = json
-                })
+                -- Use local url variable
+                local link = url
                 
-                return response
+                -- Try HttpPost method (older, might still work even if newer methods are disabled)
+                local postSuccess, postResult = pcall(function()
+                    return HttpService:HttpPost(link, json, Enum.HttpContentType.ApplicationJson, false)
+                end)
+                
+                if postSuccess and postResult then
+                    return {Success = true, StatusCode = 200, Body = postResult}
+                end
+                
+                -- If HttpPost fails, all HTTP POST methods are likely disabled
+                error("HttpPost failed: " .. tostring(postResult))
             end)
             
             if success then
-                -- Check if the response was successful (200-299 status codes)
-                if result and result.Success and result.StatusCode >= 200 and result.StatusCode < 300 then
+                -- Successfully sent webhook
+                Window:Notify({
+                    Title = "Success",
+                    Desc = "Webhook test sent successfully!",
+                    Time = 3,
+                    Type = "normal"
+                })
+            else
+                -- Check error type
+                local errorMsg = tostring(result)
+                if errorMsg:find("disabled") or errorMsg:find("security") or errorMsg:find("PostAsync") or errorMsg:find("RequestAsync") or errorMsg:find("GetAsync") or errorMsg:find("HttpPost") then
                     Window:Notify({
-                        Title = "Success",
-                        Desc = "Webhook test sent successfully!",
-                        Time = 3,
-                        Type = "normal"
+                        Title = "HTTP Methods Disabled",
+                        Desc = "All HTTP POST methods are disabled for security. Webhooks cannot be sent from client-side scripts. Use a server-side script instead.",
+                        Time = 6,
+                        Type = "error"
                     })
                 else
-                    local statusCode = result and result.StatusCode or "Unknown"
                     Window:Notify({
                         Title = "Error",
-                        Desc = "Webhook returned status: " .. tostring(statusCode),
+                        Desc = "Failed to send webhook: " .. errorMsg,
                         Time = 5,
                         Type = "error"
                     })
                 end
-            else
-                Window:Notify({
-                    Title = "Error",
-                    Desc = "Failed to send webhook: " .. tostring(result),
-                    Time = 5,
-                    Type = "error"
-                })
             end
         end
     })
