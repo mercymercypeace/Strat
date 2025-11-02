@@ -1099,6 +1099,7 @@ function Library:Window(p)
 	Background_1.GroupTransparency = 1
 
 	Shadow_1.Visible = true  
+	local CloseUIShadowRef = nil
 	local org = Background_1.Size
 	Background_1.Size = org - UDim2.fromOffset(5, 5)
 	tw({
@@ -4618,7 +4619,9 @@ function Library:Window(p)
 		local originalSize, originalPosition
 
 		Minisize_1.MouseButton1Click:Connect(function()
-			local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
+			if not CloseUIShadowRef then
+				CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
+			end
 			if not isZ then
 				originalSize = Shadow_1.Size
 				originalPosition = Shadow_1.Position
@@ -4632,8 +4635,14 @@ function Library:Window(p)
 				Minisize_1.Image = "rbxassetid://13857981896"
 				task.wait(0.15)
 				Background_1.Visible = false
-				if closeUIButton then
-					closeUIButton.Visible = true
+				if not CloseUIShadowRef then
+					CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
+				end
+				if CloseUIShadowRef then
+					CloseUIShadowRef.Visible = true
+					tw({v = CloseUIShadowRef, t = 0.2, s = Enum.EasingStyle.Linear, d = "Out", g = {
+						ImageTransparency = 0.5
+					}}):Play()
 				end
 			else
 				Background_1.Visible = true
@@ -4645,8 +4654,8 @@ function Library:Window(p)
 					Size = originalSize,
 					Position = originalPosition
 				}}):Play()
-				if closeUIButton then
-					closeUIButton.Visible = false
+				if CloseUIShadowRef then
+					CloseUIShadowRef.Visible = false
 				end
 			end
 			isZ = not isZ
@@ -4888,6 +4897,8 @@ function Library:Window(p)
 		CloseUIShadow.ScaleType = Enum.ScaleType.Slice
 		CloseUIShadow.SliceCenter = Rect.new(10, 10, 118, 118)
 		CloseUIShadow.Visible = false
+		
+		CloseUIShadowRef = CloseUIShadow
 
 			addToTheme('Shadow', CloseUIShadow)
 
