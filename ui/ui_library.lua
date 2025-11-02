@@ -4615,16 +4615,34 @@ function Library:Window(p)
 			R = true
 		end)
 
-		local isZ = false
-		local originalSize, originalPosition
+		local isMinimized = false
+		local isMaximized = false
+		local normalSize = Shadow_1.Size
+		local normalPosition = Shadow_1.Position
+
+		ChSize_1.MouseButton1Click:Connect(function()
+			if not isMaximized then
+				normalSize = Shadow_1.Size
+				normalPosition = Shadow_1.Position
+				tw({v = Shadow_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
+					Size = UDim2.new(1, 0, 1, 0),
+					Position = UDim2.new(0, 0, 0, 0)
+				}}):Play()
+				isMaximized = true
+			else
+				tw({v = Shadow_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
+					Size = normalSize,
+					Position = normalPosition
+				}}):Play()
+				isMaximized = false
+			end
+		end)
 
 		Minisize_1.MouseButton1Click:Connect(function()
 			if not CloseUIShadowRef then
 				CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
 			end
-			if not isZ then
-				originalSize = Shadow_1.Size
-				originalPosition = Shadow_1.Position
+			if not isMinimized then
 				tw({v = Page_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
 					BackgroundTransparency = 1
 				}}):Play()
@@ -4643,6 +4661,7 @@ function Library:Window(p)
 						ImageTransparency = 0.5
 					}}):Play()
 				end
+				isMinimized = true
 			else
 				Page_1.Visible = true
 				tw({v = Page_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
@@ -4655,8 +4674,8 @@ function Library:Window(p)
 				if CloseUIShadowRef then
 					CloseUIShadowRef.Visible = false
 				end
+				isMinimized = false
 			end
-			isZ = not isZ
 		end)
 
 		if not HAA then
@@ -4680,7 +4699,7 @@ function Library:Window(p)
 		end)
 
 		U.InputChanged:Connect(function(i)
-			if not isZ and R and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+			if not isMinimized and R and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
 				local nW = math.max(450, i.Position.X - Shadow_1.AbsolutePosition.X)
 				local nH = math.max(220, i.Position.Y - Shadow_1.AbsolutePosition.Y)
 				local nZ = UDim2.new(0, nW, 0, nH)
@@ -4688,7 +4707,7 @@ function Library:Window(p)
 				tw({v = SizeFrame, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {BackgroundTransparency = 0.6}}):Play()
 				tw({v = ImageLabel_1, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {ImageTransparency = 0}}):Play()
 				ImageLabel_1.Image = 'rbxassetid://13857987062'	
-			elseif isZ and R and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+			elseif isMinimized and R and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
 				tw({v = SizeFrame, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {BackgroundTransparency = 0.6}}):Play()
 				tw({v = ImageLabel_1, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {ImageTransparency = 0}}):Play()
 				ImageLabel_1.Image = 'rbxassetid://14906268026'
@@ -4750,7 +4769,6 @@ function Library:Window(p)
 			end
 		end
 
-		ChSize_1.MouseButton1Click:Connect(closeui)
 
 		U.InputBegan:Connect(function(i)
 			if i.KeyCode == Keybind then
