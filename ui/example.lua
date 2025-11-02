@@ -248,16 +248,38 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
                     username = "LunarisX Test"
                 }
                 local json = HttpService:JSONEncode(data)
-                return HttpService:PostAsync(webhookUrl, json, Enum.HttpContentType.ApplicationJson)
+                
+                -- Use RequestAsync instead of PostAsync for security compliance
+                local response = HttpService:RequestAsync({
+                    Url = webhookUrl,
+                    Method = "POST",
+                    Headers = {
+                        ["Content-Type"] = "application/json"
+                    },
+                    Body = json
+                })
+                
+                return response
             end)
             
             if success then
-                Window:Notify({
-                    Title = "Success",
-                    Desc = "Webhook test sent successfully!",
-                    Time = 3,
-                    Type = "normal"
-                })
+                -- Check if the response was successful (200-299 status codes)
+                if result and result.Success and result.StatusCode >= 200 and result.StatusCode < 300 then
+                    Window:Notify({
+                        Title = "Success",
+                        Desc = "Webhook test sent successfully!",
+                        Time = 3,
+                        Type = "normal"
+                    })
+                else
+                    local statusCode = result and result.StatusCode or "Unknown"
+                    Window:Notify({
+                        Title = "Error",
+                        Desc = "Webhook returned status: " .. tostring(statusCode),
+                        Time = 5,
+                        Type = "error"
+                    })
+                end
             else
                 Window:Notify({
                     Title = "Error",

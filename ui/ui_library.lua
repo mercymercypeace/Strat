@@ -157,75 +157,75 @@ local themes = {
 	},
 	['Dark Glass'] = {
 		['Shadow'] = Color3.fromRGB(0, 0, 0),
-		['Background'] = Color3.fromRGB(10, 10, 15),
-		['Page'] = Color3.fromRGB(5, 5, 10),
-		['Main'] = Color3.fromRGB(100, 150, 255),
+		['Background'] = Color3.fromRGB(5, 5, 10),
+		['Page'] = Color3.fromRGB(3, 3, 8),
+		['Main'] = Color3.fromRGB(80, 140, 255),
 		['Text & Icon'] = Color3.fromRGB(255, 255, 255),
 		['Function'] = {
 			['Toggle'] = {
-				['Background'] = Color3.fromRGB(15, 15, 20),
+				['Background'] = Color3.fromRGB(10, 10, 15),
 				['True'] = {
-					['Toggle Background'] = Color3.fromRGB(30, 40, 60),
-					['Toggle Value'] = Color3.fromRGB(100, 150, 255),
+					['Toggle Background'] = Color3.fromRGB(25, 35, 55),
+					['Toggle Value'] = Color3.fromRGB(80, 140, 255),
 				},
 				['False'] = {
-					['Toggle Background'] = Color3.fromRGB(15, 15, 20),
-					['Toggle Value'] = Color3.fromRGB(40, 40, 50),
+					['Toggle Background'] = Color3.fromRGB(10, 10, 15),
+					['Toggle Value'] = Color3.fromRGB(30, 30, 40),
 				}
 			},
 			['Label'] = {
-				['Background'] = Color3.fromRGB(15, 15, 20),
+				['Background'] = Color3.fromRGB(10, 10, 15),
 			},
 			['Dropdown'] = {
-				['Background'] = Color3.fromRGB(15, 15, 20),
-				['Value Background'] = Color3.fromRGB(10, 10, 15),
+				['Background'] = Color3.fromRGB(10, 10, 15),
+				['Value Background'] = Color3.fromRGB(5, 5, 10),
 				['Value Stroke'] = Color3.fromRGB(255, 255, 255),
 				['Dropdown Select'] = {
-					['Background'] = Color3.fromRGB(10, 10, 15),
-					['Search'] = Color3.fromRGB(20, 20, 25),
-					['Item Background'] = Color3.fromRGB(25, 25, 35),
+					['Background'] = Color3.fromRGB(5, 5, 10),
+					['Search'] = Color3.fromRGB(15, 15, 20),
+					['Item Background'] = Color3.fromRGB(20, 20, 30),
 				}
 			},
 			['Slider'] = {
-				['Background'] = Color3.fromRGB(15, 15, 20),
-				['Value Background'] = Color3.fromRGB(10, 10, 15),
+				['Background'] = Color3.fromRGB(10, 10, 15),
+				['Value Background'] = Color3.fromRGB(5, 5, 10),
 				['Value Stroke'] = Color3.fromRGB(255, 255, 255),
-				['Slider Bar'] = Color3.fromRGB(30, 40, 60),
-				['Slider Bar Value'] = Color3.fromRGB(100, 150, 255),
+				['Slider Bar'] = Color3.fromRGB(25, 35, 55),
+				['Slider Bar Value'] = Color3.fromRGB(80, 140, 255),
 				['Circle Value'] = Color3.fromRGB(255, 255, 255)
 			},
 			['Code'] = {
-				['Background'] = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 15, 20)), ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 20))},
-				['Background Code'] = Color3.fromRGB(25, 25, 35),
-				['Background Code Value'] = Color3.fromRGB(20, 20, 30),
+				['Background'] = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 10, 15)), ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 15))},
+				['Background Code'] = Color3.fromRGB(20, 20, 30),
+				['Background Code Value'] = Color3.fromRGB(15, 15, 25),
 				['ScrollingFrame Code'] = Color3.fromRGB(150, 150, 150)
 			},
 			['Button'] = {
-				['Background'] = Color3.fromRGB(15, 15, 20),
+				['Background'] = Color3.fromRGB(10, 10, 15),
 				['Click'] = Color3.fromRGB(255, 255, 255)
 			},
 			['Textbox'] = {
-				['Background'] = Color3.fromRGB(15, 15, 20),
-				['Value Background'] = Color3.fromRGB(10, 10, 15),
+				['Background'] = Color3.fromRGB(10, 10, 15),
+				['Value Background'] = Color3.fromRGB(5, 5, 10),
 				['Value Stroke'] = Color3.fromRGB(255, 255, 255),
 			},
 			['Keybind'] = {
-				['Background'] = Color3.fromRGB(15, 15, 20),
-				['Value Background'] = Color3.fromRGB(10, 10, 15),
+				['Background'] = Color3.fromRGB(10, 10, 15),
+				['Value Background'] = Color3.fromRGB(5, 5, 10),
 				['Value Stroke'] = Color3.fromRGB(255, 255, 255),
 				['True'] = {
-					['Toggle Background'] = Color3.fromRGB(30, 40, 60),
-					['Toggle Value'] = Color3.fromRGB(100, 150, 255),
+					['Toggle Background'] = Color3.fromRGB(25, 35, 55),
+					['Toggle Value'] = Color3.fromRGB(80, 140, 255),
 				},
 				['False'] = {
-					['Toggle Background'] = Color3.fromRGB(15, 15, 20),
-					['Toggle Value'] = Color3.fromRGB(40, 40, 50),
+					['Toggle Background'] = Color3.fromRGB(10, 10, 15),
+					['Toggle Value'] = Color3.fromRGB(30, 30, 40),
 				}
 			},
 			['Color Picker'] = {
-				['Background'] = Color3.fromRGB(15, 15, 20),
+				['Background'] = Color3.fromRGB(10, 10, 15),
 				['Color Select'] = {
-					['Background'] = Color3.fromRGB(10, 10, 15),
+					['Background'] = Color3.fromRGB(5, 5, 10),
 					['UIStroke'] = Color3.fromRGB(255, 255, 255),
 				}
 			}
@@ -265,10 +265,32 @@ do
 								obj.BackgroundColor3 = color
 								-- Apply glass transparency to function backgrounds for Dark Glass theme
 								if isDarkGlass and (name:find("Function") or name == "Page") then
-									if obj.Name ~= "Background" and obj.Name ~= "Shadow" and not obj.Name:find("Text") then
-										if obj.BackgroundTransparency == 0 or (obj.BackgroundTransparency < 0.2 and obj.BackgroundTransparency >= 0) then
-											obj.BackgroundTransparency = 0.25
+									if obj.Name ~= "Background" and obj.Name ~= "Shadow" and not obj.Name:find("Text") and obj.Name ~= "Topbar" then
+										local currentTrans = obj.BackgroundTransparency
+										-- Apply glass transparency - more transparent for glass morphism
+										if currentTrans == 0 or (currentTrans < 0.3 and currentTrans >= 0) then
+											obj.BackgroundTransparency = 0.4
 										end
+										
+										-- Add subtle glass border to function elements
+										local glassBorder = obj:FindFirstChild("GlassBorder")
+										if not glassBorder then
+											glassBorder = Instance.new("UIStroke")
+											glassBorder.Name = "GlassBorder"
+											glassBorder.Parent = obj
+											glassBorder.Color = Color3.fromRGB(255, 255, 255)
+											glassBorder.Transparency = 0.85
+											glassBorder.Thickness = 0.5
+										else
+											glassBorder.Transparency = 0.85
+											glassBorder.Visible = true
+										end
+									end
+								else
+									-- Remove glass borders when not Dark Glass
+									local glassBorder = obj:FindFirstChild("GlassBorder")
+									if glassBorder then
+										glassBorder.Visible = false
 									end
 								end
 							elseif obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
@@ -4704,24 +4726,24 @@ function Library:Window(p)
 
 		local isMinimized = false
 		local fullSize = Shadow_1.Size
-		local minimizedSize = UDim2.new(0, Shadow_1.Size.X.Offset, 0, 42)
+		local minimizedSize = UDim2.new(0, Shadow_1.Size.X.Offset, 0, 43) -- Topbar (42) + horizontal line (1)
 
-		-- Minimize button: Hide content, show only topbar
+		-- Minimize button: Hide content, stop at horizontal line below topbar (43 pixels)
 		ChSize_1.MouseButton1Click:Connect(function()
 			if not isMinimized then
 				-- Store full size before minimizing
 				fullSize = Shadow_1.Size
 				
-				-- Calculate minimized size (just topbar height)
+				-- Calculate minimized size (topbar 42 + horizontal line 1 = 43)
 				local currentWidth = Shadow_1.Size.X.Offset
-				minimizedSize = UDim2.new(0, currentWidth, 0, 42)
+				minimizedSize = UDim2.new(0, currentWidth, 0, 43)
 				
-				-- Hide sidebar and content
-				TabP_1.Visible = false
+				-- Hide content but keep topbar and horizontal line visible
 				Page_1.Visible = false
-				SidebarTopLine.Visible = false
+				TabP_1.Visible = false
+				-- Keep SidebarTopLine visible (it's the horizontal line)
 				
-				-- Animate to minimized size (pull up animation)
+				-- Animate to minimized size (stops at horizontal line)
 				tw({
 					v = Shadow_1,
 					t = 0.3,
@@ -4735,9 +4757,8 @@ function Library:Window(p)
 				isMinimized = true
 			else
 				-- Restore full size and show content
-				TabP_1.Visible = true
 				Page_1.Visible = true
-				SidebarTopLine.Visible = true
+				TabP_1.Visible = true
 				
 				-- Animate back to full size
 				tw({
@@ -4754,49 +4775,34 @@ function Library:Window(p)
 			end
 		end)
 
-		-- Maximize button: Toggle between minimize/restore (same as minimize button now)
+		-- Minimize button (-): Close the GUI and show draggable button
 		Minisize_1.MouseButton1Click:Connect(function()
-			if isMinimized then
-				-- Restore full size and show content
-				TabP_1.Visible = true
-				Page_1.Visible = true
-				SidebarTopLine.Visible = true
-				
-				-- Animate back to full size
-				tw({
-					v = Shadow_1,
-					t = 0.3,
-					s = Enum.EasingStyle.Exponential,
-					d = "Out",
-					g = {
-						Size = fullSize
-					}
-				}):Play()
-				
-				isMinimized = false
-			else
-				-- Minimize: store size and hide content
-				fullSize = Shadow_1.Size
-				local currentWidth = Shadow_1.Size.X.Offset
-				minimizedSize = UDim2.new(0, currentWidth, 0, 42)
-				
-				-- Hide sidebar and content
-				TabP_1.Visible = false
-				Page_1.Visible = false
-				SidebarTopLine.Visible = false
-				
-				-- Animate to minimized size
-				tw({
-					v = Shadow_1,
-					t = 0.3,
-					s = Enum.EasingStyle.Exponential,
-					d = "Out",
-					g = {
-						Size = minimizedSize
-					}
-				}):Play()
-				
-				isMinimized = true
+			if not CloseUIShadowRef then
+				CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
+			end
+			savedCloseSize = Background_1.Size
+			if not savedCloseSize then
+				savedCloseSize = Background_1.Size
+			end
+			local close = tw({
+				v = Background_1,
+				t = 0.15,
+				s = Enum.EasingStyle.Linear,
+				d = "InOut",
+				g = {
+					GroupTransparency = 1,
+					Size = savedCloseSize - UDim2.fromOffset(5, 5)
+				}
+			})
+			close:Play()
+			close.Completed:Wait()
+			Shadow_1.Visible = false
+			task.wait(0.1)
+			if CloseUIShadowRef then
+				CloseUIShadowRef.Visible = true
+				tw({v = CloseUIShadowRef, t = 0.2, s = Enum.EasingStyle.Linear, d = "Out", g = {
+					ImageTransparency = 0.5
+				}}):Play()
 			end
 		end)
 
@@ -4832,9 +4838,9 @@ function Library:Window(p)
 				tw({v = ImageLabel_1, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {ImageTransparency = 0}}):Play()
 				ImageLabel_1.Image = 'rbxassetid://13857987062'	
 			elseif isMinimized and R and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-				-- When minimized, only allow resizing width, keep height at 42
+				-- When minimized, only allow resizing width, keep height at 43 (topbar + line)
 				local nW = math.max(450, i.Position.X - Shadow_1.AbsolutePosition.X)
-				local nZ = UDim2.new(0, nW, 0, 42)
+				local nZ = UDim2.new(0, nW, 0, 43)
 				tw({v = Shadow_1, t = 0.05, s = Enum.EasingStyle.Exponential, d = "Out", g = {Size = nZ}}):Play()
 				minimizedSize = nZ
 				tw({v = SizeFrame, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {BackgroundTransparency = 0.6}}):Play()
@@ -4995,26 +5001,67 @@ function Library:Window(p)
 			
 			-- Apply glass effect for Dark Glass theme
 			if v == 'Dark Glass' then
-				-- Apply transparency to main background for glass morphism effect
-				Background_1.BackgroundTransparency = 0.3
+				-- Enable blur effect in Lighting for glass morphism
+				local Lighting = game:GetService("Lighting")
+				local existingBlur = Lighting:FindFirstChild("UIBlur_DarkGlass")
+				
+				if not existingBlur then
+					local BlurEffect = Instance.new("BlurEffect")
+					BlurEffect.Name = "UIBlur_DarkGlass"
+					BlurEffect.Size = 20
+					BlurEffect.Enabled = true
+					BlurEffect.Parent = Lighting
+				else
+					existingBlur.Size = 20
+					existingBlur.Enabled = true
+				end
+				
+				-- Apply high transparency to main background for true glass effect
+				Background_1.BackgroundTransparency = 0.5
 				Background_1.GroupTransparency = 0
 				
 				-- Apply transparency to Shadow for glass effect
-				Shadow_1.ImageTransparency = 0.2
+				Shadow_1.ImageTransparency = 0.4
 				
 				-- Apply glass transparency to Page background
 				if Page_1 then
-					Page_1.BackgroundTransparency = 0.5
+					Page_1.BackgroundTransparency = 0.6
+				end
+				
+				-- Add glass border effect to main background
+				local glassStroke = Background_1:FindFirstChild("GlassStroke")
+				if not glassStroke then
+					glassStroke = Instance.new("UIStroke")
+					glassStroke.Name = "GlassStroke"
+					glassStroke.Parent = Background_1
+					glassStroke.Color = Color3.fromRGB(255, 255, 255)
+					glassStroke.Transparency = 0.8
+					glassStroke.Thickness = 1
+				else
+					glassStroke.Transparency = 0.8
+					glassStroke.Visible = true
 				end
 				
 			else
-				-- Reset transparency for other themes
+				-- Disable blur and reset transparency for other themes
+				local Lighting = game:GetService("Lighting")
+				local existingBlur = Lighting:FindFirstChild("UIBlur_DarkGlass")
+				if existingBlur then
+					existingBlur.Enabled = false
+				end
+				
 				Background_1.BackgroundTransparency = 0
 				Shadow_1.ImageTransparency = 0.8
 				
 				-- Reset Page transparency
 				if Page_1 then
 					Page_1.BackgroundTransparency = 1
+				end
+				
+				-- Hide glass border
+				local glassStroke = Background_1:FindFirstChild("GlassStroke")
+				if glassStroke then
+					glassStroke.Visible = false
 				end
 			end
 		end
