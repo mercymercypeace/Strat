@@ -1,13 +1,6 @@
-if _G.GUILoaded then return end
-_G.GUILoaded = true
-
-local HttpService = game:GetService("HttpService")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-
 local function loadLibrary()
     local success, result = pcall(function()
-        local response = HttpService:GetAsync("https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/ui_library.lua")
+        local response = HttpService:GetAsync("https://raw.githubusercontent.com/mercymercypeace/Strat/refs/heads/main/ui/ui_library.lua")
         local lib = loadstring(response)()
         return lib
     end)
@@ -448,4 +441,5 @@ local testBtn = window:MakeButton(ButtonSectionContent, "Test Button", function(
 end)
 
 print("GUI Loaded! Click the floating button to open.")
+
 
