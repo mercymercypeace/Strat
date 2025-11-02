@@ -1832,15 +1832,24 @@ function Library:Window(p)
 			RealBackground.Size = UDim2.new(1, 0,0, 20)
 			RealBackground.ClipsDescendants = true
 
-			Section.Name = "Background"
-			Section.Parent = RealBackground
-			Section.BackgroundColor3 = Color3.fromRGB(255,255,255)
-			Section.BackgroundTransparency = 1
-			Section.BorderColor3 = Color3.fromRGB(0,0,0)
-			Section.BorderSizePixel = 0
-			Section.Size = UDim2.new(1, 0,0, 20)
+		Section.Name = "Background"
+		Section.Parent = RealBackground
+		Section.BackgroundColor3 = Color3.fromRGB(255,255,255)
+		Section.BackgroundTransparency = 1
+		Section.BorderColor3 = Color3.fromRGB(0,0,0)
+		Section.BorderSizePixel = 0
+		Section.Size = UDim2.new(1, 0,0, 20)
 
-			SectionHeader.Name = "Header"
+		local SectionStroke = Instance.new("UIStroke")
+		SectionStroke.Parent = Section
+		SectionStroke.Color = themes[IsTheme].Main
+		SectionStroke.Transparency = 0.7
+		SectionStroke.Thickness = 1
+		SectionStroke.LineJoinMode = Enum.LineJoinMode.Round
+
+		addToTheme('Main', SectionStroke)
+
+		SectionHeader.Name = "Header"
 			SectionHeader.Parent = Section
 			SectionHeader.BackgroundColor3 = Color3.fromRGB(255,255,255)
 			SectionHeader.BackgroundTransparency = 1
@@ -4609,6 +4618,7 @@ function Library:Window(p)
 		local originalSize, originalPosition
 
 		Minisize_1.MouseButton1Click:Connect(function()
+			local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
 			if not isZ then
 				originalSize = Shadow_1.Size
 				originalPosition = Shadow_1.Position
@@ -4616,13 +4626,28 @@ function Library:Window(p)
 					Size = UDim2.new(1, 0, 1, 0),
 					Position = UDim2.new(0, 0, 0, 0)
 				}}):Play()
+				tw({v = Background_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
+					GroupTransparency = 1
+				}}):Play()
 				Minisize_1.Image = "rbxassetid://13857981896"
+				task.wait(0.15)
+				Background_1.Visible = false
+				if closeUIButton then
+					closeUIButton.Visible = true
+				end
 			else
+				Background_1.Visible = true
+				tw({v = Background_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
+					GroupTransparency = 0
+				}}):Play()
 				Minisize_1.Image = "rbxassetid://13857987062"
 				tw({v = Shadow_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
 					Size = originalSize,
 					Position = originalPosition
 				}}):Play()
+				if closeUIButton then
+					closeUIButton.Visible = false
+				end
 			end
 			isZ = not isZ
 		end)
@@ -4685,6 +4710,10 @@ function Library:Window(p)
 				close:Play()
 				close.Completed:Wait()
 				Shadow_1.Visible = false
+				local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
+				if closeUIButton then
+					closeUIButton.Visible = false
+				end
 			else
 				Shadow_1.Visible = true  
 				local open = tw({
@@ -4698,6 +4727,10 @@ function Library:Window(p)
 					}
 				})
 				open:Play()
+				local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
+				if closeUIButton then
+					closeUIButton.Visible = false
+				end
 			end
 
 			if not firsttime then
@@ -4843,18 +4876,18 @@ function Library:Window(p)
 			local FrameCloseUI_1 = Instance.new("Frame")
 			local Title_1 = Instance.new("TextLabel")
 
-			CloseUIShadow.Name = "CloseUIShadow"
-			CloseUIShadow.Parent = ScreenGui
-			CloseUIShadow.BackgroundColor3 = Color3.fromRGB(163,162,165)
-			CloseUIShadow.BackgroundTransparency = 1
-			CloseUIShadow.Position = UDim2.new(0, 0,0.200000003, 0)
-			CloseUIShadow.Size = UDim2.new(0, 40,0, 40)
-			CloseUIShadow.Image = "rbxassetid://1316045217"
-			CloseUIShadow.ImageColor3 = Color3.fromRGB(24,24,31)
-			CloseUIShadow.ImageTransparency = 0.5
-			CloseUIShadow.ScaleType = Enum.ScaleType.Slice
-			CloseUIShadow.SliceCenter = Rect.new(10, 10, 118, 118)
-			CloseUIShadow.Visible = CloseUI.Enabled
+		CloseUIShadow.Name = "CloseUIShadow"
+		CloseUIShadow.Parent = ScreenGui
+		CloseUIShadow.BackgroundColor3 = Color3.fromRGB(163,162,165)
+		CloseUIShadow.BackgroundTransparency = 1
+		CloseUIShadow.Position = UDim2.new(0, 0,0.200000003, 0)
+		CloseUIShadow.Size = UDim2.new(0, 70,0, 70)
+		CloseUIShadow.Image = "rbxassetid://1316045217"
+		CloseUIShadow.ImageColor3 = Color3.fromRGB(24,24,31)
+		CloseUIShadow.ImageTransparency = 0.5
+		CloseUIShadow.ScaleType = Enum.ScaleType.Slice
+		CloseUIShadow.SliceCenter = Rect.new(10, 10, 118, 118)
+		CloseUIShadow.Visible = false
 
 			addToTheme('Shadow', CloseUIShadow)
 
@@ -4900,20 +4933,18 @@ function Library:Window(p)
 		CloseUIImage.BorderColor3 = Color3.fromRGB(0,0,0)
 		CloseUIImage.BorderSizePixel = 0
 		CloseUIImage.Position = UDim2.new(0.5, 0,0.5, 0)
-		CloseUIImage.Size = UDim2.new(0, 32,0, 32)
+		CloseUIImage.Size = UDim2.new(0, 50,0, 50)
 		CloseUIImage.Image = "rbxassetid://127229998224259"
 		CloseUIImage.ImageTransparency = 0
 
 		addToTheme('Text & Icon', CloseUIImage)
 
-		CloseUIShadow.Size = UDim2.new(0, 40,0, 40)
-
 		local Click = click(CloseUIShadow)
 		lak(Click, CloseUIShadow)
 		Click.MouseButton1Click:Connect(function()
-			tw({v = CloseUIImage, t = 0.15, s = Enum.EasingStyle.Back, d = "Out", g = {Size = UDim2.new(0, 28,0, 28)}}):Play()
+			tw({v = CloseUIImage, t = 0.15, s = Enum.EasingStyle.Back, d = "Out", g = {Size = UDim2.new(0, 45,0, 45)}}):Play()
 			delay(.06, function()
-				tw({v = CloseUIImage, t = 0.15, s = Enum.EasingStyle.Back, d = "Out", g = {Size = UDim2.new(0, 32,0, 32)}}):Play()
+				tw({v = CloseUIImage, t = 0.15, s = Enum.EasingStyle.Back, d = "Out", g = {Size = UDim2.new(0, 50,0, 50)}}):Play()
 			end)
 			pcall(closeui)
 		end)
