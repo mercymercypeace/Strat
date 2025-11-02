@@ -158,7 +158,7 @@ local themes = {
 }
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "Dummy Kawaii"
+ScreenGui.Name = "LunarisX"
 ScreenGui.Parent = not game:GetService("RunService"):IsStudio() and game:GetService("CoreGui") or game:GetService("Players").LocalPlayer.PlayerGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -1051,6 +1051,7 @@ function Library:Window(p)
 	local Theme = p.Theme or 'Dark'
 	local Keybind = p.Config.Keybind or Enum.KeyCode.LeftControl
 	local Size = p.Config.Size or UDim2.new(0, 530,0, 400)
+	local DiscordLink = p.DiscordLink or nil
 
 	local R, HAA = false, false
 	local HasChangeTheme = p.Theme
@@ -1161,9 +1162,21 @@ function Library:Window(p)
 	Frame_5.BorderColor3 = Color3.fromRGB(0,0,0)
 	Frame_5.BorderSizePixel = 0
 	Frame_5.Position = UDim2.new(0, 0,1, 0)
-	Frame_5.Size = UDim2.new(1, 0,0, 2)
+	Frame_5.Size = UDim2.new(1, 0,0, 1)
 
 	addToTheme('Page', Frame_5)
+
+	local SidebarTopLine = Instance.new("Frame")
+	SidebarTopLine.Parent = Background_1
+	SidebarTopLine.AnchorPoint = Vector2.new(0, 0)
+	SidebarTopLine.BackgroundColor3 = Color3.fromRGB(24,24,31)
+	SidebarTopLine.BorderColor3 = Color3.fromRGB(0,0,0)
+	SidebarTopLine.BorderSizePixel = 0
+	SidebarTopLine.Position = UDim2.new(0, 0,0, 42)
+	SidebarTopLine.Size = UDim2.new(0, 110,0, 1)
+	SidebarTopLine.ZIndex = 5
+
+	addToTheme('Page', SidebarTopLine)
 
 	Ct_1.Name = "Ct"
 	Ct_1.Parent = Topbar_1
@@ -1222,6 +1235,26 @@ function Library:Window(p)
 	ChSize_1.Size = UDim2.new(0, 16,0, 16)
 	ChSize_1.Image = "rbxassetid://15082210525"
 	ChSize_1.ImageTransparency = 0.5
+
+	local DiscordButton = nil
+	if DiscordLink then
+		DiscordButton = Instance.new("ImageButton")
+		DiscordButton.Name = "Discord"
+		DiscordButton.Parent = Ct_1
+		DiscordButton.Active = true
+		DiscordButton.BackgroundColor3 = Color3.fromRGB(255,255,255)
+		DiscordButton.BackgroundTransparency = 1
+		DiscordButton.BorderColor3 = Color3.fromRGB(0,0,0)
+		DiscordButton.BorderSizePixel = 0
+		DiscordButton.AnchorPoint = Vector2.new(1, 0.5)
+		DiscordButton.Position = UDim2.new(1, -125,0.5, 0)
+		DiscordButton.Size = UDim2.new(0, 16,0, 16)
+		DiscordButton.Image = "rbxassetid://11339969197"
+		DiscordButton.ImageTransparency = 0
+		DiscordButton.Visible = true
+
+		addToTheme('Text & Icon', DiscordButton)
+	end
 
 	DropdownValue_1.Name = "DropdownValue"
 	DropdownValue_1.Parent = Ct_1
@@ -1407,6 +1440,18 @@ function Library:Window(p)
 	UIPadding_17.PaddingBottom = UDim.new(0,5)
 	UIPadding_17.PaddingLeft = UDim.new(0,3)
 	UIPadding_17.PaddingTop = UDim.new(0,45)
+
+	local SidebarVerticalLine = Instance.new("Frame")
+	SidebarVerticalLine.Parent = Background_1
+	SidebarVerticalLine.AnchorPoint = Vector2.new(0, 0)
+	SidebarVerticalLine.BackgroundColor3 = Color3.fromRGB(24,24,31)
+	SidebarVerticalLine.BorderColor3 = Color3.fromRGB(0,0,0)
+	SidebarVerticalLine.BorderSizePixel = 0
+	SidebarVerticalLine.Position = UDim2.new(0, 110,0, 42)
+	SidebarVerticalLine.Size = UDim2.new(0, 1,1, -42)
+	SidebarVerticalLine.ZIndex = 5
+
+	addToTheme('Page', SidebarVerticalLine)
 
 	changecanvas(ScrollingFrame_2, UIListLayout_10, 5)
 
@@ -1682,13 +1727,17 @@ function Library:Window(p)
 		end)
 
 		local Func = {}
+		local currentSection = nil
 
 		function Func:Section(p)
 			local Title = p.Title or 'null'
 			local RealBackground = Instance.new("Frame")
 			local Section = Instance.new("Frame")
+			local SectionHeader = Instance.new("TextButton")
 			local Section_1 = Instance.new("TextLabel")
 			local UIPadding_1 = Instance.new("UIPadding")
+			local SectionContent = Instance.new("Frame")
+			local ContentList = Instance.new("UIListLayout")
 
 			RealBackground.Name = "Real Background"
 			RealBackground.Parent = ScrollingFrame_1
@@ -1706,13 +1755,22 @@ function Library:Window(p)
 			Section.BorderSizePixel = 0
 			Section.Size = UDim2.new(1, 0,0, 20)
 
+			SectionHeader.Name = "Header"
+			SectionHeader.Parent = Section
+			SectionHeader.BackgroundColor3 = Color3.fromRGB(255,255,255)
+			SectionHeader.BackgroundTransparency = 1
+			SectionHeader.BorderColor3 = Color3.fromRGB(0,0,0)
+			SectionHeader.BorderSizePixel = 0
+			SectionHeader.Size = UDim2.new(1, 0,0, 20)
+			SectionHeader.Text = ""
+
 			Section_1.Name = "Section"
-			Section_1.Parent = Section
+			Section_1.Parent = SectionHeader
 			Section_1.BackgroundColor3 = Color3.fromRGB(255,255,255)
 			Section_1.BackgroundTransparency = 1
 			Section_1.BorderColor3 = Color3.fromRGB(0,0,0)
 			Section_1.BorderSizePixel = 0
-			Section_1.Size = UDim2.new(1, 0,0, 20)
+			Section_1.Size = UDim2.new(1, 0,1, 0)
 			Section_1.Font = Enum.Font.GothamBold
 			Section_1.Text = Title
 			Section_1.TextColor3 = Color3.fromRGB(255,255,255)
@@ -1721,9 +1779,60 @@ function Library:Window(p)
 
 			addToTheme('Text & Icon', Section_1)
 
-			UIPadding_1.Parent = Section
+			UIPadding_1.Parent = SectionHeader
 			UIPadding_1.PaddingLeft = UDim.new(0,5)
 			UIPadding_1.PaddingRight = UDim.new(0,5)
+
+			SectionContent.Name = "Content"
+			SectionContent.Parent = Section
+			SectionContent.BackgroundColor3 = Color3.fromRGB(255,255,255)
+			SectionContent.BackgroundTransparency = 1
+			SectionContent.BorderColor3 = Color3.fromRGB(0,0,0)
+			SectionContent.BorderSizePixel = 0
+			SectionContent.Position = UDim2.new(0, 0,0, 20)
+			SectionContent.Size = UDim2.new(1, 0,0, 0)
+			SectionContent.ClipsDescendants = true
+
+			ContentList.Parent = SectionContent
+			ContentList.Padding = UDim.new(0, 5)
+			ContentList.SortOrder = Enum.SortOrder.LayoutOrder
+
+			local isExpanded = true
+
+			local function updateSize()
+				local contentHeight = ContentList.AbsoluteContentSize.Y
+				local targetSize = isExpanded and (20 + contentHeight) or 20
+				local targetContentSize = isExpanded and contentHeight or 0
+				
+				tw({v = RealBackground, t = 0.3, s = Enum.EasingStyle.Quad, d = "Out", g = {
+					Size = UDim2.new(1, 0,0, targetSize)
+				}}):Play()
+				
+				tw({v = SectionContent, t = 0.3, s = Enum.EasingStyle.Quad, d = "Out", g = {
+					Size = UDim2.new(1, 0,0, targetContentSize)
+				}}):Play()
+			end
+
+			ContentList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+				if isExpanded then
+					updateSize()
+				end
+			end)
+
+			SectionHeader.MouseButton1Click:Connect(function()
+				isExpanded = not isExpanded
+				updateSize()
+			end)
+
+			task.delay(0.1, function()
+				if isExpanded then
+					local contentHeight = ContentList.AbsoluteContentSize.Y
+					RealBackground.Size = UDim2.new(1, 0,0, 20 + contentHeight)
+					SectionContent.Size = UDim2.new(1, 0,0, contentHeight)
+				end
+			end)
+
+			currentSection = SectionContent
 
 			local New = {}
 
@@ -1741,7 +1850,8 @@ function Library:Window(p)
 			local Title = p.Title or 'null'
 			local Desc = p.Desc or ''
 
-			local Toggle, Config = background(ScrollingFrame_1, Title, Desc, Image, 'Toggle')
+			local parent = currentSection or ScrollingFrame_1
+			local Toggle, Config = background(parent, Title, Desc, Image, 'Toggle')
 
 			local F_1 = Instance.new("Frame")
 			local UIListLayout_1 = Instance.new("UIListLayout")
@@ -1871,7 +1981,8 @@ function Library:Window(p)
 			local Desc = p.Desc or ''
 			local Image = p.Image or ''
 
-			local Label, Config = background(ScrollingFrame_1, Title, Desc, Image, 'Label')
+			local parent = currentSection or ScrollingFrame_1
+			local Label, Config = background(parent, Title, Desc, Image, 'Label')
 
 			Config:SetTextTransparencyTitle(0)
 			Config:SetSizeT(0)
@@ -1899,7 +2010,8 @@ function Library:Window(p)
 			local Image = p.Image or ''
 			local Callback = p.Callback or function() end
 
-			local Button, Config = background(ScrollingFrame_1, Title, Desc, Image, 'Button')
+			local parent = currentSection or ScrollingFrame_1
+			local Button, Config = background(parent, Title, Desc, Image, 'Button')
 
 			Config:SetTextTransparencyTitle(0)
 			Config:SetSizeT(50)
@@ -1966,7 +2078,8 @@ function Library:Window(p)
 			local Rounding = p.Rounding or 2
 			local Callback = p.Callback or function() end
 
-			local Slider, Config = background(ScrollingFrame_1, Title, Desc, Image, 'Slider')
+			local parent = currentSection or ScrollingFrame_1
+			local Slider, Config = background(parent, Title, Desc, Image, 'Slider')
 
 			Config:SetTextTransparencyTitle(0)
 			Config:SetSizeT(200)
@@ -2216,8 +2329,9 @@ function Library:Window(p)
 			local ImageLabel_1 = Instance.new("ImageLabel")
 			local UIGradient_1 = Instance.new("UIGradient")
 
+			local parent = currentSection or ScrollingFrame_1
 			RealBackground.Name = "Real Background"
-			RealBackground.Parent = ScrollingFrame_1
+			RealBackground.Parent = parent
 			RealBackground.BackgroundTransparency = 1
 			RealBackground.BorderColor3 = Color3.fromRGB(0,0,0)
 			RealBackground.BorderSizePixel = 0
@@ -2751,7 +2865,8 @@ function Library:Window(p)
 			local Multi = p.Multi or false
 			local Callback = p.Callback or function() end
 
-			local Dropdown, Config = background(ScrollingFrame_1, Title, Desc, Image, 'Dropdown')
+			local parent = currentSection or ScrollingFrame_1
+			local Dropdown, Config = background(parent, Title, Desc, Image, 'Dropdown')
 
 			Config:SetTextTransparencyTitle(0)
 			Config:SetSizeT(125)
@@ -2796,7 +2911,8 @@ function Library:Window(p)
 			local Key = p.Key or Enum.KeyCode.E
 			local Callback = p.Callback or function() end
 
-			local Keybind, Config = background(ScrollingFrame_1, Title, Desc, Image, 'Keybind')
+			local parent = currentSection or ScrollingFrame_1
+			local Keybind, Config = background(parent, Title, Desc, Image, 'Keybind')
 
 			Config:SetSizeT(100)
 
@@ -3020,7 +3136,8 @@ function Library:Window(p)
 			local Value = p.Value or Color3.fromRGB(255, 255, 255)
 			local Callback = p.Callback or function() end
 
-			local ColorPicker, Config = background(ScrollingFrame_1, Title, Desc, Image, 'Color Picker')
+			local parent = currentSection or ScrollingFrame_1
+			local ColorPicker, Config = background(parent, Title, Desc, Image, 'Color Picker')
 
 			Config:SetTextTransparencyTitle(0)
 			Config:SetSizeT(50)
@@ -3799,7 +3916,8 @@ function Library:Window(p)
 			local ClearText = p.ClearText or p.ClearTextOnFocus or false
 			local Callback = p.Callback or function() end
 
-			local Textbox, Config = background(ScrollingFrame_1, Title, Desc, Image, 'Textbox')
+			local parent = currentSection or ScrollingFrame_1
+			local Textbox, Config = background(parent, Title, Desc, Image, 'Textbox')
 
 			Config:SetTextTransparencyTitle(0)
 			Config:SetSizeT(145)
@@ -3942,8 +4060,9 @@ function Library:Window(p)
 		function Func:Image()
 			local ImageLogo = Instance.new("ImageLabel")
 			local UICorner_1 = Instance.new("UICorner")
+			local parent = currentSection or ScrollingFrame_1
 			ImageLogo.Name = "Im"
-			ImageLogo.Parent = ScrollingFrame_1
+			ImageLogo.Parent = parent
 			ImageLogo.AnchorPoint = Vector2.new(0.5,0.5)
 			ImageLogo.Position = UDim2.new(0.5,0,0.5,0)
 			ImageLogo.BackgroundTransparency = 1
@@ -3984,6 +4103,15 @@ function Library:Window(p)
 		local Title = p.Title or 'null'
 		local Desc = p.Desc or ''
 		local Time = p.Time or 5
+		local Type = p.Type or 'normal'
+
+		local colorMap = {
+			error = Color3.fromRGB(255, 50, 50),
+			warning = Color3.fromRGB(255, 215, 0),
+			normal = Color3.fromRGB(0, 200, 255)
+		}
+
+		local notificationColor = colorMap[Type] or colorMap.normal
 
 		local Shadow = Instance.new("ImageLabel")
 		local UIPadding_1 = Instance.new("UIPadding")
@@ -4034,8 +4162,8 @@ function Library:Window(p)
 
 		Frame_1.Parent = Background_1
 		Frame_1.AnchorPoint = Vector2.new(0, 1)
-		Frame_1.BackgroundColor3 = Color3.fromRGB(255,255,255)
-		Frame_1.BackgroundTransparency = 0.8999999761581421
+		Frame_1.BackgroundColor3 = notificationColor
+		Frame_1.BackgroundTransparency = 0.3
 		Frame_1.BorderColor3 = Color3.fromRGB(0,0,0)
 		Frame_1.BorderSizePixel = 0
 		Frame_1.Position = UDim2.new(0, 0,1, 0)
@@ -4520,7 +4648,7 @@ function Library:Window(p)
 			if not firsttime then
 				firsttime = true
 				Tabs:Notify({
-					Title = 'Dummy Kawaii',
+					Title = 'LunarisX',
 					Desc = 'Press the <font color="#FF77A5" size="14">('..tostring(Keybind):gsub("Enum.KeyCode.", "")..')</font> button to hide and show the UI',
 					Time = 10
 				})
@@ -4619,6 +4747,55 @@ function Library:Window(p)
 			})
 		end
 		local ThemeDrop = addDropdownSelect(DropdownValue_1, DropdownValue_1, false, CallTheme, Theme, themes.index)
+
+		if DiscordButton and DiscordLink then
+			DiscordButton.MouseButton1Click:Connect(function()
+				local opened = false
+				
+				if request then
+					local success = pcall(function()
+						request({
+							Url = DiscordLink,
+							Method = "GET"
+						})
+						opened = true
+					end)
+				end
+				
+				if not opened and game:GetService("HttpService") and game:GetService("HttpService").OpenBrowserWindow then
+					local success = pcall(function()
+						game:GetService("HttpService"):OpenBrowserWindow(DiscordLink)
+						opened = true
+					end)
+				end
+				
+				if setclipboard then
+					setclipboard(DiscordLink)
+					if opened then
+						Tabs:Notify({
+							Title = "Discord",
+							Desc = "Discord link opened!",
+							Time = 3,
+							Type = "normal"
+						})
+					else
+						Tabs:Notify({
+							Title = "Discord",
+							Desc = "Discord link copied to clipboard!",
+							Time = 3,
+							Type = "normal"
+						})
+					end
+				elseif not opened then
+					Tabs:Notify({
+						Title = "Discord",
+						Desc = "Discord link: " .. DiscordLink,
+						Time = 5,
+						Type = "normal"
+					})
+				end
+			end)
+		end
 
 		Close_1.MouseButton1Click:Connect(function()
 			Tabs:Dialog({
