@@ -43,30 +43,6 @@ local Tab = Window:Tab({Title = "Main", Icon = "star"}) do
         end
     })
 
-    Tab:Section({Title = "Announcements"})
-    Tab:Button({
-        Title = "Announcement",
-        Desc = "view latest announcement",
-        Callback = function()
-            local latestAnnouncement = Window:GetLatestAnnouncement()
-            if latestAnnouncement then
-                Window:Notify({
-                    Title = "Latest Announcement",
-                    Desc = latestAnnouncement,
-                    Time = 10,
-                    Type = "normal"
-                })
-            else
-                Window:Notify({
-                    Title = "No Announcements",
-                    Desc = "No announcements have been received yet.",
-                    Time = 3,
-                    Type = "warning"
-                })
-            end
-        end
-    })
-
     Tab:Section({Title = "Input Text"})
     Tab:Textbox({
         Title = "Input Text",
@@ -290,6 +266,71 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
             end
         end
     })
+end
+
+Window:Line()
+
+local AnnouncementTab = Window:Tab({Title = "Announcement", Icon = "bell"}) do
+    -- Find the ScrollingFrame for this tab (it's created inside InPage_1)
+    task.spawn(function()
+        task.wait(0.2) -- Wait for tab to be fully created
+        
+        -- Find the Announcement tab's page by searching through tabs
+        local tabs = Window.List
+        for _, tabData in pairs(tabs) do
+            if tabData.Page and tabData.Button then
+                -- Check if this is the Announcement tab
+                local tabButton = tabData.Button
+                local funcFrame = tabButton:FindFirstChild("Func")
+                if funcFrame then
+                    local titleLabel = funcFrame:FindFirstChild("Title")
+                    if titleLabel and titleLabel.Text == "Announcement" then
+                        local scrollingFrame = tabData.Page:FindFirstChild("ScrollingFrame")
+                        if scrollingFrame then
+                            -- Store reference in Window (which is Tabs)
+                            Window.AnnouncementScrollingFrame = scrollingFrame
+                            
+                            -- Make it fill the entire page for chat display
+                            scrollingFrame.Size = UDim2.new(1, 0, 1, 0)
+                            scrollingFrame.Position = UDim2.new(0, 0, 0, 0)
+                            scrollingFrame.ScrollBarThickness = 4
+                            
+                            -- Clear existing padding that might interfere
+                            local existingPadding = scrollingFrame:FindFirstChild("UIPadding")
+                            if existingPadding then
+                                existingPadding:Destroy()
+                            end
+                            
+                            local announcementUIPadding = Instance.new("UIPadding")
+                            announcementUIPadding.Parent = scrollingFrame
+                            announcementUIPadding.PaddingBottom = UDim.new(0, 10)
+                            announcementUIPadding.PaddingLeft = UDim.new(0, 10)
+                            announcementUIPadding.PaddingRight = UDim.new(0, 10)
+                            announcementUIPadding.PaddingTop = UDim.new(0, 10)
+                            
+                            -- Update canvas size when content changes
+                            local listLayout = scrollingFrame:FindFirstChild("UIListLayout")
+                            if listLayout then
+                                listLayout.Padding = UDim.new(0, 8)
+                                listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                                    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 20)
+                                end)
+                            end
+                            
+                            -- Load existing announcements
+                            task.wait(0.1)
+                            local announcements = Window:GetAnnouncements()
+                            for id, message in pairs(announcements) do
+                                Window:AddAnnouncementToUI(message)
+                            end
+                            
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end)
 end
 
 Window:Notify({

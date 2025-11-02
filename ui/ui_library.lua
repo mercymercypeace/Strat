@@ -4728,8 +4728,8 @@ function Library:Window(p)
 		local fullSize = Shadow_1.Size
 		local minimizedSize = UDim2.new(0, Shadow_1.Size.X.Offset, 0, 43) -- Topbar (42) + horizontal line (1)
 
-		-- Minimize button: Hide content, stop at horizontal line below topbar (43 pixels)
-		ChSize_1.MouseButton1Click:Connect(function()
+		-- Minimize button (-): Hide content, stop at horizontal line below topbar (43 pixels)
+		Minisize_1.MouseButton1Click:Connect(function()
 			if not isMinimized then
 				-- Store full size before minimizing
 				fullSize = Shadow_1.Size
@@ -4775,8 +4775,8 @@ function Library:Window(p)
 			end
 		end)
 
-		-- Minimize button (-): Close the GUI and show draggable button
-		Minisize_1.MouseButton1Click:Connect(function()
+		-- Close button: Close the GUI and show draggable button
+		ChSize_1.MouseButton1Click:Connect(function()
 			if not CloseUIShadowRef then
 				CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
 			end
@@ -5227,6 +5227,11 @@ function Library:Window(p)
 								Tabs.ReceivedAnnouncements[id] = true
 								Tabs.Announcements[id] = tostring(message)
 								
+								-- Add message to announcement tab UI
+								task.spawn(function()
+									Tabs:AddAnnouncementToUI(tostring(message))
+								end)
+								
 								pcall(function()
 									Tabs:Notify({
 										Title = "Announcement",
@@ -5268,6 +5273,92 @@ function Library:Window(p)
 			end
 		end
 		return latestMessage
+	end
+	
+	-- Function to add message to announcement tab UI
+	function Tabs:AddAnnouncementToUI(message)
+		-- Try to find the announcement scrolling frame if not stored
+		if not Tabs.AnnouncementScrollingFrame then
+			-- Search through tabs to find Announcement tab
+			for _, tabData in pairs(Tabs.List) do
+				if tabData.Page then
+					local scrollingFrame = tabData.Page:FindFirstChild("ScrollingFrame")
+					if scrollingFrame then
+						-- Check if this tab has "Announcement" in its button
+						local tabButton = tabData.Button
+						if tabButton and tabButton:FindFirstChild("Func") then
+							local titleLabel = tabButton.Func:FindFirstChild("Title")
+							if titleLabel and titleLabel.Text == "Announcement" then
+								Tabs.AnnouncementScrollingFrame = scrollingFrame
+								break
+							end
+						end
+					end
+				end
+			end
+		end
+		
+		if Tabs.AnnouncementScrollingFrame then
+			local messageFrame = Instance.new("Frame")
+			local UICorner = Instance.new("UICorner")
+			local UIPadding = Instance.new("UIPadding")
+			local MessageLabel = Instance.new("TextLabel")
+			local TimeLabel = Instance.new("TextLabel")
+			
+			messageFrame.Name = "AnnouncementMessage"
+			messageFrame.Parent = Tabs.AnnouncementScrollingFrame
+			messageFrame.BackgroundColor3 = themes[IsTheme].Function.Button.Background
+			messageFrame.BorderSizePixel = 0
+			messageFrame.Size = UDim2.new(1, -10, 0, 0)
+			messageFrame.AutomaticSize = Enum.AutomaticSize.Y
+			
+			addToTheme('Function.Button.Background', messageFrame)
+			
+			UICorner.Parent = messageFrame
+			UICorner.CornerRadius = UDim.new(0, 5)
+			
+			UIPadding.Parent = messageFrame
+			UIPadding.PaddingBottom = UDim.new(0, 8)
+			UIPadding.PaddingLeft = UDim.new(0, 10)
+			UIPadding.PaddingRight = UDim.new(0, 10)
+			UIPadding.PaddingTop = UDim.new(0, 8)
+			
+			MessageLabel.Name = "Message"
+			MessageLabel.Parent = messageFrame
+			MessageLabel.BackgroundTransparency = 1
+			MessageLabel.Size = UDim2.new(1, 0, 0, 0)
+			MessageLabel.Font = Enum.Font.Gotham
+			MessageLabel.Text = tostring(message)
+			MessageLabel.TextColor3 = themes[IsTheme]['Text & Icon']
+			MessageLabel.TextSize = 12
+			MessageLabel.TextWrapped = true
+			MessageLabel.TextXAlignment = Enum.TextXAlignment.Left
+			MessageLabel.TextYAlignment = Enum.TextYAlignment.Top
+			MessageLabel.AutomaticSize = Enum.AutomaticSize.Y
+			
+			addToTheme('Text & Icon', MessageLabel)
+			
+			TimeLabel.Name = "Time"
+			TimeLabel.Parent = messageFrame
+			TimeLabel.AnchorPoint = Vector2.new(1, 0)
+			TimeLabel.BackgroundTransparency = 1
+			TimeLabel.Position = UDim2.new(1, -5, 0, 5)
+			TimeLabel.Size = UDim2.new(0, 50, 0, 10)
+			TimeLabel.Font = Enum.Font.Gotham
+			TimeLabel.Text = os.date("%H:%M")
+			TimeLabel.TextColor3 = themes[IsTheme]['Text & Icon']
+			TimeLabel.TextTransparency = 0.5
+			TimeLabel.TextSize = 10
+			TimeLabel.TextXAlignment = Enum.TextXAlignment.Right
+			
+			addToTheme('Text & Icon', TimeLabel)
+			
+			-- Auto-scroll to bottom
+			task.wait()
+			if Tabs.AnnouncementScrollingFrame then
+				Tabs.AnnouncementScrollingFrame.CanvasPosition = Vector2.new(0, Tabs.AnnouncementScrollingFrame.AbsoluteCanvasSize.Y)
+			end
+		end
 	end
 
 	return Tabs
