@@ -1312,6 +1312,7 @@ function Library:Window(p)
 		VersionBox.BorderColor3 = Color3.fromRGB(0,0,0)
 		VersionBox.BorderSizePixel = 0
 		VersionBox.LayoutOrder = 2
+		VersionBox.AnchorPoint = Vector2.new(0, 0.5)
 		VersionBox.Size = UDim2.new(0, 0,0, 18)
 
 		local VersionCorner = Instance.new("UICorner")
@@ -1341,10 +1342,32 @@ function Library:Window(p)
 		addToTheme('Page', VersionBox)
 		addToTheme('Text & Icon', VersionText)
 
+		local TitleFrame = Td_1:FindFirstChild("Title")
+		local function updateVersionPosition()
+			if TitleFrame then
+				task.wait()
+				local titleDesc = TitleFrame:FindFirstChild("Desc")
+				if titleDesc then
+					local titleWidth = titleDesc.TextBounds.X
+					VersionBox.Position = UDim2.new(0, titleWidth + 2, 0.5, 0)
+				end
+			end
+		end
+		
 		VersionText:GetPropertyChangedSignal("TextBounds"):Connect(function()
 			VersionBox.Size = UDim2.new(0, VersionText.TextBounds.X + 12,0, 18)
+			updateVersionPosition()
 		end)
+		
+		if TitleFrame then
+			local titleDesc = TitleFrame:FindFirstChild("Desc")
+			if titleDesc then
+				titleDesc:GetPropertyChangedSignal("TextBounds"):Connect(updateVersionPosition)
+			end
+		end
+		
 		VersionBox.Size = UDim2.new(0, VersionText.TextBounds.X + 12,0, 18)
+		updateVersionPosition()
 	end
 
 	Icon_1.Name = "Icon"
@@ -4825,7 +4848,7 @@ function Library:Window(p)
 			CloseUIShadow.BackgroundColor3 = Color3.fromRGB(163,162,165)
 			CloseUIShadow.BackgroundTransparency = 1
 			CloseUIShadow.Position = UDim2.new(0, 0,0.200000003, 0)
-			CloseUIShadow.Size = UDim2.new(0, 70,0, 40)
+			CloseUIShadow.Size = UDim2.new(0, 40,0, 40)
 			CloseUIShadow.Image = "rbxassetid://1316045217"
 			CloseUIShadow.ImageColor3 = Color3.fromRGB(24,24,31)
 			CloseUIShadow.ImageTransparency = 0.5
@@ -4883,7 +4906,7 @@ function Library:Window(p)
 
 		addToTheme('Text & Icon', CloseUIImage)
 
-		CloseUIShadow.Size = UDim2.new(0, 70,0, 40)
+		CloseUIShadow.Size = UDim2.new(0, 40,0, 40)
 
 		local Click = click(CloseUIShadow)
 		lak(Click, CloseUIShadow)
