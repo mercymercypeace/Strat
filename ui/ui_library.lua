@@ -1100,6 +1100,7 @@ function Library:Window(p)
 
 	Shadow_1.Visible = true  
 	local CloseUIShadowRef = nil
+	local savedCloseSize = Background_1.Size
 	local org = Background_1.Size
 	Background_1.Size = org - UDim2.fromOffset(5, 5)
 	tw({
@@ -4619,9 +4620,8 @@ function Library:Window(p)
 		local isMaximized = false
 		local normalSize = Shadow_1.Size
 		local normalPosition = Shadow_1.Position
-		local oSize
 
-		ChSize_1.MouseButton1Click:Connect(function()
+		Minisize_1.MouseButton1Click:Connect(function()
 			if not isMaximized then
 				normalSize = Shadow_1.Size
 				normalPosition = Shadow_1.Position
@@ -4639,11 +4639,14 @@ function Library:Window(p)
 			end
 		end)
 
-		Minisize_1.MouseButton1Click:Connect(function()
+		ChSize_1.MouseButton1Click:Connect(function()
 			if not CloseUIShadowRef then
 				CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
 			end
-			local closeSize = Background_1.Size
+			savedCloseSize = Background_1.Size
+			if not savedCloseSize then
+				savedCloseSize = Background_1.Size
+			end
 			local close = tw({
 				v = Background_1,
 				t = 0.15,
@@ -4651,7 +4654,7 @@ function Library:Window(p)
 				d = "InOut",
 				g = {
 					GroupTransparency = 1,
-					Size = closeSize - UDim2.fromOffset(5, 5)
+					Size = savedCloseSize - UDim2.fromOffset(5, 5)
 				}
 			})
 			close:Play()
@@ -4965,7 +4968,18 @@ function Library:Window(p)
 			delay(.06, function()
 				tw({v = CloseUIImage, t = 0.15, s = Enum.EasingStyle.Back, d = "Out", g = {Size = UDim2.new(0, 50,0, 50)}}):Play()
 			end)
-			pcall(closeui)
+			if CloseUIShadowRef and CloseUIShadowRef.Visible then
+				CloseUIShadowRef.Visible = false
+				if Shadow_1 then
+					Shadow_1.Visible = true
+					tw({v = Background_1, t = 0.15, s = Enum.EasingStyle.Linear, d = "InOut", g = {
+						GroupTransparency = 0,
+						Size = savedCloseSize
+					}}):Play()
+				end
+			else
+				pcall(closeui)
+			end
 		end)
 		end
 	end
