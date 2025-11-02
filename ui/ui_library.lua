@@ -205,7 +205,7 @@ do
 		end
 	end
 
-	local IconList = loadstring(game:HttpGet('https://raw.githubusercontent.com/mercymercypeace/Strat/refs/heads/main/ui/icons.lua'))()
+	local IconList = loadstring(game:HttpGet('https://raw.githubusercontent.com/Dummyrme/Library/refs/heads/main/Icon.lua'))()
 	function gl(i)
 		local iconData = IconList.Icons[i]
 		if iconData then
@@ -1266,10 +1266,7 @@ function Library:Window(p)
 		DiscordIcon.BorderColor3 = Color3.fromRGB(0,0,0)
 		DiscordIcon.BorderSizePixel = 0
 		DiscordIcon.Size = UDim2.new(1, 0,1, 0)
-		local discordIconData = gl("discord")
-		DiscordIcon.Image = discordIconData.Image
-		DiscordIcon.ImageRectSize = discordIconData.ImageRectSize
-		DiscordIcon.ImageRectOffset = discordIconData.ImageRectPosition
+		DiscordIcon.Image = "rbxassetid://109457688092190"
 		DiscordIcon.ImageTransparency = 0
 
 		addToTheme('Main', DiscordButton)
@@ -1314,7 +1311,7 @@ function Library:Window(p)
 		VersionBox.BackgroundColor3 = Color3.fromRGB(24,24,31)
 		VersionBox.BorderColor3 = Color3.fromRGB(0,0,0)
 		VersionBox.BorderSizePixel = 0
-		VersionBox.LayoutOrder = -1
+		VersionBox.LayoutOrder = 2
 		VersionBox.Size = UDim2.new(0, 0,0, 18)
 
 		local VersionCorner = Instance.new("UICorner")
@@ -4349,10 +4346,8 @@ function Library:Window(p)
 		tw({v = Frame_1, t = 0.3, s = Enum.EasingStyle.Quad, d = "Out", g = {Size = UDim2.new(1, 0,0, 4)}}):Play()
 		
 		task.spawn(function()
-			for i = Time, 1, -1 do
-				tw({v = Frame_1, t = 0.15, s = Enum.EasingStyle.Quad, d = "InOut", g = {Size = UDim2.new(i / Time, 0,0, 4)}}):Play()
-				task.wait(1)
-			end
+			tw({v = Frame_1, t = Time, s = Enum.EasingStyle.Linear, d = "InOut", g = {Size = UDim2.new(0, 0,0, 4)}}):Play()
+			task.wait(Time)
 			local f = tw({
 				v = Background_1,
 				t = 0.15,
@@ -4900,6 +4895,5 @@ function Library:Window(p)
 
 	return Tabs
 end
-
 
 return Library
