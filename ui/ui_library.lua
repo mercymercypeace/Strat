@@ -2,7 +2,7 @@ Library = {}
 SaveTheme = {}
 
 local themes = {
-	index = {'Dark', 'Amethyst'},
+	index = {'Dark', 'Amethyst', 'Dark Glass'},
 	Amethyst = {
 		['Shadow'] = Color3.fromRGB(24, 24, 31),
 		['Background'] = Color3.fromRGB(29, 28, 38),
@@ -155,6 +155,82 @@ local themes = {
 			}
 		}
 	},
+	['Dark Glass'] = {
+		['Shadow'] = Color3.fromRGB(0, 0, 0),
+		['Background'] = Color3.fromRGB(10, 10, 15),
+		['Page'] = Color3.fromRGB(5, 5, 10),
+		['Main'] = Color3.fromRGB(100, 150, 255),
+		['Text & Icon'] = Color3.fromRGB(255, 255, 255),
+		['Function'] = {
+			['Toggle'] = {
+				['Background'] = Color3.fromRGB(15, 15, 20),
+				['True'] = {
+					['Toggle Background'] = Color3.fromRGB(30, 40, 60),
+					['Toggle Value'] = Color3.fromRGB(100, 150, 255),
+				},
+				['False'] = {
+					['Toggle Background'] = Color3.fromRGB(15, 15, 20),
+					['Toggle Value'] = Color3.fromRGB(40, 40, 50),
+				}
+			},
+			['Label'] = {
+				['Background'] = Color3.fromRGB(15, 15, 20),
+			},
+			['Dropdown'] = {
+				['Background'] = Color3.fromRGB(15, 15, 20),
+				['Value Background'] = Color3.fromRGB(10, 10, 15),
+				['Value Stroke'] = Color3.fromRGB(255, 255, 255),
+				['Dropdown Select'] = {
+					['Background'] = Color3.fromRGB(10, 10, 15),
+					['Search'] = Color3.fromRGB(20, 20, 25),
+					['Item Background'] = Color3.fromRGB(25, 25, 35),
+				}
+			},
+			['Slider'] = {
+				['Background'] = Color3.fromRGB(15, 15, 20),
+				['Value Background'] = Color3.fromRGB(10, 10, 15),
+				['Value Stroke'] = Color3.fromRGB(255, 255, 255),
+				['Slider Bar'] = Color3.fromRGB(30, 40, 60),
+				['Slider Bar Value'] = Color3.fromRGB(100, 150, 255),
+				['Circle Value'] = Color3.fromRGB(255, 255, 255)
+			},
+			['Code'] = {
+				['Background'] = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 15, 20)), ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 20))},
+				['Background Code'] = Color3.fromRGB(25, 25, 35),
+				['Background Code Value'] = Color3.fromRGB(20, 20, 30),
+				['ScrollingFrame Code'] = Color3.fromRGB(150, 150, 150)
+			},
+			['Button'] = {
+				['Background'] = Color3.fromRGB(15, 15, 20),
+				['Click'] = Color3.fromRGB(255, 255, 255)
+			},
+			['Textbox'] = {
+				['Background'] = Color3.fromRGB(15, 15, 20),
+				['Value Background'] = Color3.fromRGB(10, 10, 15),
+				['Value Stroke'] = Color3.fromRGB(255, 255, 255),
+			},
+			['Keybind'] = {
+				['Background'] = Color3.fromRGB(15, 15, 20),
+				['Value Background'] = Color3.fromRGB(10, 10, 15),
+				['Value Stroke'] = Color3.fromRGB(255, 255, 255),
+				['True'] = {
+					['Toggle Background'] = Color3.fromRGB(30, 40, 60),
+					['Toggle Value'] = Color3.fromRGB(100, 150, 255),
+				},
+				['False'] = {
+					['Toggle Background'] = Color3.fromRGB(15, 15, 20),
+					['Toggle Value'] = Color3.fromRGB(40, 40, 50),
+				}
+			},
+			['Color Picker'] = {
+				['Background'] = Color3.fromRGB(15, 15, 20),
+				['Color Select'] = {
+					['Background'] = Color3.fromRGB(10, 10, 15),
+					['UIStroke'] = Color3.fromRGB(255, 255, 255),
+				}
+			}
+		}
+	},
 }
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -178,7 +254,7 @@ do
 		end
 		return result
 	end
-	function Library:setTheme(st)
+	function Library:setTheme(st, isDarkGlass)
 		for name, objs in pairs(SaveTheme) do
 			local color = getColorFromPath(st, name)
 			if color then
@@ -187,6 +263,14 @@ do
 						for _, obj in pairs(SaveTheme[name]) do
 							if obj:IsA("Frame") or obj:IsA("CanvasGroup") then
 								obj.BackgroundColor3 = color
+								-- Apply glass transparency to function backgrounds for Dark Glass theme
+								if isDarkGlass and (name:find("Function") or name == "Page") then
+									if obj.Name ~= "Background" and obj.Name ~= "Shadow" and not obj.Name:find("Text") then
+										if obj.BackgroundTransparency == 0 or (obj.BackgroundTransparency < 0.2 and obj.BackgroundTransparency >= 0) then
+											obj.BackgroundTransparency = 0.25
+										end
+									end
+								end
 							elseif obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
 								obj.TextColor3 = color
 							elseif obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
@@ -4619,55 +4703,100 @@ function Library:Window(p)
 		end)
 
 		local isMinimized = false
-		local isMaximized = false
-		local normalSize = Shadow_1.Size
-		local normalPosition = Shadow_1.Position
+		local fullSize = Shadow_1.Size
+		local minimizedSize = UDim2.new(0, Shadow_1.Size.X.Offset, 0, 42)
 
-		Minisize_1.MouseButton1Click:Connect(function()
-			if not isMaximized then
-				normalSize = Shadow_1.Size
-				normalPosition = Shadow_1.Position
-				tw({v = Shadow_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
-					Size = UDim2.new(1, 0, 1, 0),
-					Position = UDim2.new(0, 0, 0, 0)
-				}}):Play()
-				isMaximized = true
+		-- Minimize button: Hide content, show only topbar
+		ChSize_1.MouseButton1Click:Connect(function()
+			if not isMinimized then
+				-- Store full size before minimizing
+				fullSize = Shadow_1.Size
+				
+				-- Calculate minimized size (just topbar height)
+				local currentWidth = Shadow_1.Size.X.Offset
+				minimizedSize = UDim2.new(0, currentWidth, 0, 42)
+				
+				-- Hide sidebar and content
+				TabP_1.Visible = false
+				Page_1.Visible = false
+				SidebarTopLine.Visible = false
+				
+				-- Animate to minimized size (pull up animation)
+				tw({
+					v = Shadow_1,
+					t = 0.3,
+					s = Enum.EasingStyle.Exponential,
+					d = "Out",
+					g = {
+						Size = minimizedSize
+					}
+				}):Play()
+				
+				isMinimized = true
 			else
-				tw({v = Shadow_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
-					Size = normalSize,
-					Position = normalPosition
-				}}):Play()
-				isMaximized = false
+				-- Restore full size and show content
+				TabP_1.Visible = true
+				Page_1.Visible = true
+				SidebarTopLine.Visible = true
+				
+				-- Animate back to full size
+				tw({
+					v = Shadow_1,
+					t = 0.3,
+					s = Enum.EasingStyle.Exponential,
+					d = "Out",
+					g = {
+						Size = fullSize
+					}
+				}):Play()
+				
+				isMinimized = false
 			end
 		end)
 
-		ChSize_1.MouseButton1Click:Connect(function()
-			if not CloseUIShadowRef then
-				CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
-			end
-			savedCloseSize = Background_1.Size
-			if not savedCloseSize then
-				savedCloseSize = Background_1.Size
-			end
-			local close = tw({
-				v = Background_1,
-				t = 0.15,
-				s = Enum.EasingStyle.Linear,
-				d = "InOut",
-				g = {
-					GroupTransparency = 1,
-					Size = savedCloseSize - UDim2.fromOffset(5, 5)
-				}
-			})
-			close:Play()
-			close.Completed:Wait()
-			Shadow_1.Visible = false
-			task.wait(0.1)
-			if CloseUIShadowRef then
-				CloseUIShadowRef.Visible = true
-				tw({v = CloseUIShadowRef, t = 0.2, s = Enum.EasingStyle.Linear, d = "Out", g = {
-					ImageTransparency = 0.5
-				}}):Play()
+		-- Maximize button: Toggle between minimize/restore (same as minimize button now)
+		Minisize_1.MouseButton1Click:Connect(function()
+			if isMinimized then
+				-- Restore full size and show content
+				TabP_1.Visible = true
+				Page_1.Visible = true
+				SidebarTopLine.Visible = true
+				
+				-- Animate back to full size
+				tw({
+					v = Shadow_1,
+					t = 0.3,
+					s = Enum.EasingStyle.Exponential,
+					d = "Out",
+					g = {
+						Size = fullSize
+					}
+				}):Play()
+				
+				isMinimized = false
+			else
+				-- Minimize: store size and hide content
+				fullSize = Shadow_1.Size
+				local currentWidth = Shadow_1.Size.X.Offset
+				minimizedSize = UDim2.new(0, currentWidth, 0, 42)
+				
+				-- Hide sidebar and content
+				TabP_1.Visible = false
+				Page_1.Visible = false
+				SidebarTopLine.Visible = false
+				
+				-- Animate to minimized size
+				tw({
+					v = Shadow_1,
+					t = 0.3,
+					s = Enum.EasingStyle.Exponential,
+					d = "Out",
+					g = {
+						Size = minimizedSize
+					}
+				}):Play()
+				
+				isMinimized = true
 			end
 		end)
 
@@ -4697,10 +4826,17 @@ function Library:Window(p)
 				local nH = math.max(220, i.Position.Y - Shadow_1.AbsolutePosition.Y)
 				local nZ = UDim2.new(0, nW, 0, nH)
 				tw({v = Shadow_1, t = 0.05, s = Enum.EasingStyle.Exponential, d = "Out", g = {Size = nZ}}):Play()
+				-- Update fullSize if resizing while not minimized
+				fullSize = nZ
 				tw({v = SizeFrame, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {BackgroundTransparency = 0.6}}):Play()
 				tw({v = ImageLabel_1, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {ImageTransparency = 0}}):Play()
 				ImageLabel_1.Image = 'rbxassetid://13857987062'	
 			elseif isMinimized and R and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+				-- When minimized, only allow resizing width, keep height at 42
+				local nW = math.max(450, i.Position.X - Shadow_1.AbsolutePosition.X)
+				local nZ = UDim2.new(0, nW, 0, 42)
+				tw({v = Shadow_1, t = 0.05, s = Enum.EasingStyle.Exponential, d = "Out", g = {Size = nZ}}):Play()
+				minimizedSize = nZ
 				tw({v = SizeFrame, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {BackgroundTransparency = 0.6}}):Play()
 				tw({v = ImageLabel_1, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {ImageTransparency = 0}}):Play()
 				ImageLabel_1.Image = 'rbxassetid://14906268026'
@@ -4779,6 +4915,7 @@ function Library:Window(p)
 		local CallTheme = function(v)
 			IsTheme = v
 			local t = themes[v]
+			local isDarkGlass = (v == 'Dark Glass')
 			Library:setTheme({
 				['Shadow'] = t.Shadow,
 				['Background'] = t.Background,
@@ -4854,9 +4991,37 @@ function Library:Window(p)
 						}
 					}
 				}
-			})
+			}, isDarkGlass)
+			
+			-- Apply glass effect for Dark Glass theme
+			if v == 'Dark Glass' then
+				-- Apply transparency to main background for glass morphism effect
+				Background_1.BackgroundTransparency = 0.3
+				Background_1.GroupTransparency = 0
+				
+				-- Apply transparency to Shadow for glass effect
+				Shadow_1.ImageTransparency = 0.2
+				
+				-- Apply glass transparency to Page background
+				if Page_1 then
+					Page_1.BackgroundTransparency = 0.5
+				end
+				
+			else
+				-- Reset transparency for other themes
+				Background_1.BackgroundTransparency = 0
+				Shadow_1.ImageTransparency = 0.8
+				
+				-- Reset Page transparency
+				if Page_1 then
+					Page_1.BackgroundTransparency = 1
+				end
+			end
 		end
 		local ThemeDrop = addDropdownSelect(DropdownValue_1, DropdownValue_1, false, CallTheme, Theme, themes.index)
+		
+		-- Apply initial theme (including glass effect if Dark Glass is selected)
+		CallTheme(Theme)
 
 		if DiscordButton and DiscordLink then
 			DiscordButton.MouseButton1Click:Connect(function()
