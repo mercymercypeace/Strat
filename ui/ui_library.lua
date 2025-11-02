@@ -1266,7 +1266,7 @@ function Library:Window(p)
 		DiscordIcon.BorderColor3 = Color3.fromRGB(0,0,0)
 		DiscordIcon.BorderSizePixel = 0
 		DiscordIcon.Size = UDim2.new(1, 0,1, 0)
-		DiscordIcon.Image = "rbxassetid://109457688092190"
+		DiscordIcon.Image = "rbxassetid://119690296342461"
 		DiscordIcon.ImageTransparency = 0
 
 		addToTheme('Main', DiscordButton)
@@ -4230,6 +4230,8 @@ function Library:Window(p)
 		Frame_1.BorderSizePixel = 0
 		Frame_1.Position = UDim2.new(0.5, 0,1, 0)
 		Frame_1.Size = UDim2.new(0, 0,0, 4)
+		Frame_1.Visible = true
+		Frame_1.ZIndex = 10
 
 		Text_1.Name = "Text"
 		Text_1.Parent = Background_1
@@ -4343,9 +4345,11 @@ function Library:Window(p)
 			}
 		}):Play()
 
+		task.wait(0.3)
 		tw({v = Frame_1, t = 0.3, s = Enum.EasingStyle.Quad, d = "Out", g = {Size = UDim2.new(1, 0,0, 4)}}):Play()
 		
 		task.spawn(function()
+			task.wait(0.3)
 			tw({v = Frame_1, t = Time, s = Enum.EasingStyle.Linear, d = "InOut", g = {Size = UDim2.new(0, 0,0, 4)}}):Play()
 			task.wait(Time)
 			local f = tw({
@@ -4864,37 +4868,36 @@ function Library:Window(p)
 			FrameCloseUI_1.Position = UDim2.new(0, 0,1, 0)
 			FrameCloseUI_1.Size = UDim2.new(1, 0,0, 4)
 
-			Title_1.Name = "Title"
-			Title_1.Parent = BackgroundCloseUI_1
-			Title_1.AutomaticSize = Enum.AutomaticSize.Y
-			Title_1.BackgroundColor3 = Color3.fromRGB(255,255,255)
-			Title_1.BackgroundTransparency = 1
-			Title_1.BorderColor3 = Color3.fromRGB(0,0,0)
-			Title_1.BorderSizePixel = 0
-			Title_1.Size = UDim2.new(1, 0,1, 0)
-			Title_1.Font = Enum.Font.GothamBold
-			Title_1.Text = CloseUI.Text
-			Title_1.TextColor3 = Color3.fromRGB(255,255,255)
-			Title_1.TextSize = 12
+		local CloseUIImage = Instance.new("ImageLabel")
+		CloseUIImage.Name = "CloseUIImage"
+		CloseUIImage.Parent = BackgroundCloseUI_1
+		CloseUIImage.AnchorPoint = Vector2.new(0.5, 0.5)
+		CloseUIImage.BackgroundColor3 = Color3.fromRGB(255,255,255)
+		CloseUIImage.BackgroundTransparency = 1
+		CloseUIImage.BorderColor3 = Color3.fromRGB(0,0,0)
+		CloseUIImage.BorderSizePixel = 0
+		CloseUIImage.Position = UDim2.new(0.5, 0,0.5, 0)
+		CloseUIImage.Size = UDim2.new(0, 32,0, 32)
+		CloseUIImage.Image = "rbxassetid://127229998224259"
+		CloseUIImage.ImageTransparency = 0
 
-			addToTheme('Text & Icon', Title_1)
+		addToTheme('Text & Icon', CloseUIImage)
 
-			CloseUIShadow.Size = UDim2.new(0, Title_1.TextBounds.X + 40,0, 40)
+		CloseUIShadow.Size = UDim2.new(0, 70,0, 40)
 
-			local Click = click(CloseUIShadow)
-			lak(Click, CloseUIShadow)
-			Click.MouseButton1Click:Connect(function()
-				tw({v = Title_1, t = 0.15, s = Enum.EasingStyle.Back, d = "Out", g = {TextSize = Title_1.TextSize - 2}}):Play()
-				delay(.06, function()
-					tw({v = Title_1, t = 0.15, s = Enum.EasingStyle.Back, d = "Out", g = {TextSize = 12}}):Play()
-				end)
-				pcall(closeui)
+		local Click = click(CloseUIShadow)
+		lak(Click, CloseUIShadow)
+		Click.MouseButton1Click:Connect(function()
+			tw({v = CloseUIImage, t = 0.15, s = Enum.EasingStyle.Back, d = "Out", g = {Size = UDim2.new(0, 28,0, 28)}}):Play()
+			delay(.06, function()
+				tw({v = CloseUIImage, t = 0.15, s = Enum.EasingStyle.Back, d = "Out", g = {Size = UDim2.new(0, 32,0, 32)}}):Play()
 			end)
+			pcall(closeui)
+		end)
 		end
 	end
 
 	return Tabs
 end
-
 
 return Library
