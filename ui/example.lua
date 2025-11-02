@@ -43,6 +43,30 @@ local Tab = Window:Tab({Title = "Main", Icon = "star"}) do
         end
     })
 
+    Tab:Section({Title = "Announcements"})
+    Tab:Button({
+        Title = "Announcement",
+        Desc = "view latest announcement",
+        Callback = function()
+            local latestAnnouncement = Window:GetLatestAnnouncement()
+            if latestAnnouncement then
+                Window:Notify({
+                    Title = "Latest Announcement",
+                    Desc = latestAnnouncement,
+                    Time = 10,
+                    Type = "normal"
+                })
+            else
+                Window:Notify({
+                    Title = "No Announcements",
+                    Desc = "No announcements have been received yet.",
+                    Time = 3,
+                    Type = "warning"
+                })
+            end
+        end
+    })
+
     Tab:Section({Title = "Input Text"})
     Tab:Textbox({
         Title = "Input Text",
@@ -160,6 +184,88 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
                 Time = 3,
                 Type = "normal"
             })
+        end
+    })
+end
+
+Window:Line()
+
+local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
+    local webhookUrl = ""
+    
+    WebhookTab:Section({Title = "Webhook Configuration"})
+    local WebhookUrlInput = WebhookTab:Textbox({
+        Title = "Discord Webhook URL",
+        Desc = "enter your discord webhook url",
+        Placeholder = "https://discord.com/api/webhooks/...",
+        Value = "",
+        ClearTextOnFocus = false,
+        Callback = function(text)
+            webhookUrl = text
+            if text ~= "" then
+                Window:Notify({
+                    Title = "Webhook URL",
+                    Desc = "Webhook URL saved!",
+                    Time = 3,
+                    Type = "normal"
+                })
+            end
+        end
+    })
+    
+    WebhookTab:Section({Title = "Test Webhook"})
+    local TestInput = WebhookTab:Textbox({
+        Title = "Test Message",
+        Desc = "enter a message to test the webhook",
+        Placeholder = "type test message here...",
+        Value = "",
+        ClearTextOnFocus = false,
+        Callback = function(testMessage)
+            if webhookUrl == "" then
+                Window:Notify({
+                    Title = "Error",
+                    Desc = "Please enter a webhook URL first!",
+                    Time = 3,
+                    Type = "error"
+                })
+                return
+            end
+            
+            if testMessage == "" then
+                Window:Notify({
+                    Title = "Error",
+                    Desc = "Please enter a test message!",
+                    Time = 3,
+                    Type = "error"
+                })
+                return
+            end
+            
+            local HttpService = game:GetService("HttpService")
+            local success, result = pcall(function()
+                local data = {
+                    content = testMessage,
+                    username = "LunarisX Test"
+                }
+                local json = HttpService:JSONEncode(data)
+                return HttpService:PostAsync(webhookUrl, json, Enum.HttpContentType.ApplicationJson)
+            end)
+            
+            if success then
+                Window:Notify({
+                    Title = "Success",
+                    Desc = "Webhook test sent successfully!",
+                    Time = 3,
+                    Type = "normal"
+                })
+            else
+                Window:Notify({
+                    Title = "Error",
+                    Desc = "Failed to send webhook: " .. tostring(result),
+                    Time = 5,
+                    Type = "error"
+                })
+            end
         end
     })
 end

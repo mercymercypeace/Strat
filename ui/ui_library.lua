@@ -1545,7 +1545,9 @@ function Library:Window(p)
 	local Tabs = {
 		Value = false,
 		List = {},
-		DefaultIndex = 1
+		DefaultIndex = 1,
+		Announcements = {},
+		ReceivedAnnouncements = {}
 	}
 
 	function Tabs:SelectTab(p)
@@ -4982,6 +4984,78 @@ function Library:Window(p)
 			end
 		end)
 		end
+	end
+
+	-- Announcement System
+	local HttpService = game:GetService("HttpService")
+	local Players = game:GetService("Players")
+	local StarterGui = game:GetService("StarterGui")
+	local player = Players.LocalPlayer
+	
+	if player then
+		local client_id = tostring(player.UserId)
+		local BASE_URL = "http://128.199.10.44:5000/"
+		local API_URL = BASE_URL .. "announce/receive/" .. client_id
+		
+		local function pollAnnouncements()
+			while true do
+				local success, result = pcall(function()
+					return game:HttpGet(API_URL, true)
+				end)
+				
+				if success and result then
+					local announcements = nil
+					pcall(function()
+						announcements = HttpService:JSONDecode(result)
+					end)
+					
+					if announcements and type(announcements) == "table" then
+						for id, message in pairs(announcements) do
+							if not Tabs.ReceivedAnnouncements[id] then
+								Tabs.ReceivedAnnouncements[id] = true
+								Tabs.Announcements[id] = tostring(message)
+								
+								pcall(function()
+									Tabs:Notify({
+										Title = "Announcement",
+										Desc = tostring(message),
+										Time = 10,
+										Type = "normal"
+									})
+								end)
+								
+								pcall(function()
+									StarterGui:SetCore("SendNotification", {
+										Title = "Announcement",
+										Text = tostring(message),
+										Duration = 10,
+									})
+								end)
+							end
+						end
+					end
+				end
+				task.wait(2)
+			end
+		end
+		
+		task.spawn(pollAnnouncements)
+	end
+	
+	function Tabs:GetAnnouncements()
+		return Tabs.Announcements
+	end
+	
+	function Tabs:GetLatestAnnouncement()
+		local latestId = nil
+		local latestMessage = nil
+		for id, message in pairs(Tabs.Announcements) do
+			if not latestId or tonumber(id) > tonumber(latestId) then
+				latestId = id
+				latestMessage = message
+			end
+		end
+		return latestMessage
 	end
 
 	return Tabs
