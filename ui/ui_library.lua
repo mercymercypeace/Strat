@@ -205,7 +205,7 @@ do
 		end
 	end
 
-	local IconList = loadstring(game:HttpGet('https://raw.githubusercontent.com/Dummyrme/Library/refs/heads/main/Icon.lua'))()
+	local IconList = loadstring(game:HttpGet('https://raw.githubusercontent.com/mercymercypeace/Strat/refs/heads/main/ui/icons.lua'))()
 	function gl(i)
 		local iconData = IconList.Icons[i]
 		if iconData then
@@ -4895,5 +4895,6 @@ function Library:Window(p)
 
 	return Tabs
 end
+
 
 return Library
