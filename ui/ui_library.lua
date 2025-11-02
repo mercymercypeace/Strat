@@ -4625,16 +4625,15 @@ function Library:Window(p)
 			if not isZ then
 				originalSize = Shadow_1.Size
 				originalPosition = Shadow_1.Position
-				tw({v = Shadow_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
-					Size = UDim2.new(1, 0, 1, 0),
-					Position = UDim2.new(0, 0, 0, 0)
+				tw({v = Page_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
+					BackgroundTransparency = 1
 				}}):Play()
-				tw({v = Background_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
-					GroupTransparency = 1
+				tw({v = Page_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
+					Size = UDim2.new(1, 0, 0, 0)
 				}}):Play()
 				Minisize_1.Image = "rbxassetid://13857981896"
 				task.wait(0.15)
-				Background_1.Visible = false
+				Page_1.Visible = false
 				if not CloseUIShadowRef then
 					CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
 				end
@@ -4645,15 +4644,14 @@ function Library:Window(p)
 					}}):Play()
 				end
 			else
-				Background_1.Visible = true
-				tw({v = Background_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
-					GroupTransparency = 0
+				Page_1.Visible = true
+				tw({v = Page_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
+					BackgroundTransparency = 1
+				}}):Play()
+				tw({v = Page_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
+					Size = UDim2.new(1, 0, 1, 0)
 				}}):Play()
 				Minisize_1.Image = "rbxassetid://13857987062"
-				tw({v = Shadow_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
-					Size = originalSize,
-					Position = originalPosition
-				}}):Play()
 				if CloseUIShadowRef then
 					CloseUIShadowRef.Visible = false
 				end
