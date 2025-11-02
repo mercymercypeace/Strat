@@ -1052,6 +1052,7 @@ function Library:Window(p)
 	local Keybind = p.Config.Keybind or Enum.KeyCode.LeftControl
 	local Size = p.Config.Size or UDim2.new(0, 530,0, 400)
 	local DiscordLink = p.DiscordLink or nil
+	local Version = p.Version or nil
 
 	local R, HAA = false, false
 	local HasChangeTheme = p.Theme
@@ -1236,16 +1237,6 @@ function Library:Window(p)
 	ChSize_1.Image = "rbxassetid://15082210525"
 	ChSize_1.ImageTransparency = 0.5
 
-	DropdownValue_1.Name = "DropdownValue"
-	DropdownValue_1.Parent = Ct_1
-	DropdownValue_1.AnchorPoint = Vector2.new(1, 0.5)
-	DropdownValue_1.BackgroundColor3 = Color3.fromRGB(24,24,31)
-	DropdownValue_1.BorderColor3 = Color3.fromRGB(0,0,0)
-	DropdownValue_1.BorderSizePixel = 0
-	DropdownValue_1.Position = UDim2.new(1, DiscordLink and -140 or 0,0.5, 0)
-	DropdownValue_1.Size = UDim2.new(0, 120,0, 20)
-	DropdownValue_1.Transparency = 1
-
 	local DiscordButton = nil
 	if DiscordLink then
 		DiscordButton = Instance.new("TextButton")
@@ -1282,6 +1273,16 @@ function Library:Window(p)
 		addToTheme('Text & Icon', DiscordIcon)
 	end
 
+	DropdownValue_1.Name = "DropdownValue"
+	DropdownValue_1.Parent = Ct_1
+	DropdownValue_1.AnchorPoint = Vector2.new(1, 0.5)
+	DropdownValue_1.BackgroundColor3 = Color3.fromRGB(24,24,31)
+	DropdownValue_1.BorderColor3 = Color3.fromRGB(0,0,0)
+	DropdownValue_1.BorderSizePixel = 0
+	DropdownValue_1.Position = UDim2.new(1, DiscordLink and -25 or 0,0.5, 0)
+	DropdownValue_1.Size = UDim2.new(0, 120,0, 20)
+	DropdownValue_1.Transparency = 1
+
 	Td_1.Name = "Td"
 	Td_1.Parent = Topbar_1
 	Td_1.BackgroundColor3 = Color3.fromRGB(255,255,255)
@@ -1314,6 +1315,50 @@ function Library:Window(p)
 	Icon_1.ImageRectOffset = gl(Icon).ImageRectPosition
 
 	addToTheme('Text & Icon', Icon_1)
+
+	local VersionBox = nil
+	if Version then
+		VersionBox = Instance.new("Frame")
+		VersionBox.Name = "VersionBox"
+		VersionBox.Parent = Td_1
+		VersionBox.BackgroundColor3 = Color3.fromRGB(24,24,31)
+		VersionBox.BorderColor3 = Color3.fromRGB(0,0,0)
+		VersionBox.BorderSizePixel = 0
+		VersionBox.LayoutOrder = 0
+		VersionBox.Size = UDim2.new(0, 0,0, 18)
+
+		local VersionCorner = Instance.new("UICorner")
+		VersionCorner.Parent = VersionBox
+		VersionCorner.CornerRadius = UDim.new(0, 4)
+
+		local VersionPadding = Instance.new("UIPadding")
+		VersionPadding.Parent = VersionBox
+		VersionPadding.PaddingLeft = UDim.new(0, 6)
+		VersionPadding.PaddingRight = UDim.new(0, 6)
+
+		local VersionText = Instance.new("TextLabel")
+		VersionText.Name = "VersionText"
+		VersionText.Parent = VersionBox
+		VersionText.BackgroundColor3 = Color3.fromRGB(255,255,255)
+		VersionText.BackgroundTransparency = 1
+		VersionText.BorderColor3 = Color3.fromRGB(0,0,0)
+		VersionText.BorderSizePixel = 0
+		VersionText.Size = UDim2.new(1, 0,1, 0)
+		VersionText.Font = Enum.Font.GothamBold
+		VersionText.Text = Version
+		VersionText.TextColor3 = Color3.fromRGB(255,255,255)
+		VersionText.TextSize = 10
+		VersionText.TextXAlignment = Enum.TextXAlignment.Center
+		VersionText.TextYAlignment = Enum.TextYAlignment.Center
+
+		addToTheme('Page', VersionBox)
+		addToTheme('Text & Icon', VersionText)
+
+		VersionText:GetPropertyChangedSignal("TextBounds"):Connect(function()
+			VersionBox.Size = UDim2.new(0, VersionText.TextBounds.X + 12,0, 18)
+		end)
+		VersionBox.Size = UDim2.new(0, VersionText.TextBounds.X + 12,0, 18)
+	end
 
 	Title_1.Name = "Title"
 	Title_1.Parent = Td_1
@@ -4352,19 +4397,11 @@ function Library:Window(p)
 		local Frame_2 = Instance.new("Frame")
 		local Button1_1 = Instance.new("Frame")
 		local UICorner_2 = Instance.new("UICorner")
-		local UIGradient_1 = Instance.new("UIGradient")
-		local UIStroke_1 = Instance.new("UIStroke")
-		local UIGradient_2 = Instance.new("UIGradient")
 		local TextLabel_2 = Instance.new("TextLabel")
-		local UIStroke_2 = Instance.new("UIStroke")
 		local UIListLayout_2 = Instance.new("UIListLayout")
 		local Button2_1 = Instance.new("Frame")
 		local UICorner_3 = Instance.new("UICorner")
-		local UIGradient_3 = Instance.new("UIGradient")
-		local UIStroke_3 = Instance.new("UIStroke")
-		local UIGradient_4 = Instance.new("UIGradient")
 		local TextLabel_3 = Instance.new("TextLabel")
-		local UIStroke_4 = Instance.new("UIStroke")
 
 		Dialog.Name = "Dialog"
 		Dialog.Parent = Shadow_1
@@ -4414,24 +4451,13 @@ function Library:Window(p)
 
 		Button1_1.Name = "Button1"
 		Button1_1.Parent = Frame_2
-		Button1_1.BackgroundColor3 = Color3.fromRGB(255,255,255)
+		Button1_1.BackgroundColor3 = themes[IsTheme].Function.Button.Background
 		Button1_1.BorderColor3 = Color3.fromRGB(0,0,0)
 		Button1_1.BorderSizePixel = 0
 		Button1_1.Size = UDim2.new(0, 130,0, 40)
 
 		UICorner_2.Parent = Button1_1
-		UICorner_2.CornerRadius = UDim.new(1,0)
-
-		UIGradient_1.Parent = Button1_1
-		UIGradient_1.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(124, 124, 124))}
-
-		UIStroke_1.Parent = Button1_1
-		UIStroke_1.Color = Color3.fromRGB(255,255,255)
-		UIStroke_1.Thickness = 2
-
-		UIGradient_2.Parent = UIStroke_1
-		UIGradient_2.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(124, 124, 124))}
-		UIGradient_2.Rotation = 180
+		UICorner_2.CornerRadius = UDim.new(0, 4)
 
 		TextLabel_2.Parent = Button1_1
 		TextLabel_2.BackgroundColor3 = Color3.fromRGB(255,255,255)
@@ -4441,12 +4467,10 @@ function Library:Window(p)
 		TextLabel_2.Size = UDim2.new(1, 0,1, 0)
 		TextLabel_2.Font = Enum.Font.GothamBold
 		TextLabel_2.Text = TitleButton1
-		TextLabel_2.TextColor3 = Color1
-		TextLabel_2.TextSize = 16
-
-		UIStroke_2.Parent = TextLabel_2
-		UIStroke_2.Thickness = 1
-		UIStroke_2.Transparency = 0.95
+		TextLabel_2.TextColor3 = themes[IsTheme]['Text & Icon']
+		TextLabel_2.TextSize = 14
+		TextLabel_2.TextXAlignment = Enum.TextXAlignment.Center
+		TextLabel_2.TextYAlignment = Enum.TextYAlignment.Center
 
 		UIListLayout_2.Parent = Frame_2
 		UIListLayout_2.Padding = UDim.new(0,10)
@@ -4457,24 +4481,13 @@ function Library:Window(p)
 
 		Button2_1.Name = "Button2"
 		Button2_1.Parent = Frame_2
-		Button2_1.BackgroundColor3 = Color3.fromRGB(255,255,255)
+		Button2_1.BackgroundColor3 = themes[IsTheme].Function.Button.Background
 		Button2_1.BorderColor3 = Color3.fromRGB(0,0,0)
 		Button2_1.BorderSizePixel = 0
 		Button2_1.Size = UDim2.new(0, 130,0, 40)
 
 		UICorner_3.Parent = Button2_1
-		UICorner_3.CornerRadius = UDim.new(1,0)
-
-		UIGradient_3.Parent = Button2_1
-		UIGradient_3.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(124, 124, 124))}
-
-		UIStroke_3.Parent = Button2_1
-		UIStroke_3.Color = Color3.fromRGB(255,255,255)
-		UIStroke_3.Thickness = 2
-
-		UIGradient_4.Parent = UIStroke_3
-		UIGradient_4.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(124, 124, 124))}
-		UIGradient_4.Rotation = 180
+		UICorner_3.CornerRadius = UDim.new(0, 4)
 
 		TextLabel_3.Parent = Button2_1
 		TextLabel_3.BackgroundColor3 = Color3.fromRGB(255,255,255)
@@ -4484,12 +4497,10 @@ function Library:Window(p)
 		TextLabel_3.Size = UDim2.new(1, 0,1, 0)
 		TextLabel_3.Font = Enum.Font.GothamBold
 		TextLabel_3.Text = TitleButton2
-		TextLabel_3.TextColor3 = Color2
-		TextLabel_3.TextSize = 16
-
-		UIStroke_4.Parent = TextLabel_3
-		UIStroke_4.Thickness = 1
-		UIStroke_4.Transparency = 0.95
+		TextLabel_3.TextColor3 = themes[IsTheme]['Text & Icon']
+		TextLabel_3.TextSize = 14
+		TextLabel_3.TextXAlignment = Enum.TextXAlignment.Center
+		TextLabel_3.TextYAlignment = Enum.TextYAlignment.Center
 
 		tw({v = Dialog, t = 0.25, s = Enum.EasingStyle.Linear, d = "Out", g = {GroupTransparency = 0}}):Play()
 		local Click1 = click(Button1_1)
