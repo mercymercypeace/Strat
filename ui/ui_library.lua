@@ -4619,42 +4619,23 @@ function Library:Window(p)
 		local isMaximized = false
 		local normalSize = Shadow_1.Size
 		local normalPosition = Shadow_1.Position
+		local oSize
 
 		ChSize_1.MouseButton1Click:Connect(function()
-			if not CloseUIShadowRef then
-				CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
-			end
-			if not isMinimized then
-				tw({v = Page_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
-					BackgroundTransparency = 1
+			if not isMaximized then
+				normalSize = Shadow_1.Size
+				normalPosition = Shadow_1.Position
+				tw({v = Shadow_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
+					Size = UDim2.new(1, 0, 1, 0),
+					Position = UDim2.new(0, 0, 0, 0)
 				}}):Play()
-				tw({v = Page_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
-					Size = UDim2.new(1, 0, 0, 0)
-				}}):Play()
-				task.wait(0.15)
-				Page_1.Visible = false
-				if not CloseUIShadowRef then
-					CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
-				end
-				if CloseUIShadowRef then
-					CloseUIShadowRef.Visible = true
-					tw({v = CloseUIShadowRef, t = 0.2, s = Enum.EasingStyle.Linear, d = "Out", g = {
-						ImageTransparency = 0.5
-					}}):Play()
-				end
-				isMinimized = true
+				isMaximized = true
 			else
-				Page_1.Visible = true
-				tw({v = Page_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
-					BackgroundTransparency = 1
+				tw({v = Shadow_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
+					Size = normalSize,
+					Position = normalPosition
 				}}):Play()
-				tw({v = Page_1, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {
-					Size = UDim2.new(1, 0, 1, 0)
-				}}):Play()
-				if CloseUIShadowRef then
-					CloseUIShadowRef.Visible = false
-				end
-				isMinimized = false
+				isMaximized = false
 			end
 		end)
 
@@ -4662,8 +4643,21 @@ function Library:Window(p)
 			if not CloseUIShadowRef then
 				CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
 			end
-			pcall(function() closeui(false) end)
-			task.wait(0.15)
+			local closeSize = Background_1.Size
+			local close = tw({
+				v = Background_1,
+				t = 0.15,
+				s = Enum.EasingStyle.Linear,
+				d = "InOut",
+				g = {
+					GroupTransparency = 1,
+					Size = closeSize - UDim2.fromOffset(5, 5)
+				}
+			})
+			close:Play()
+			close.Completed:Wait()
+			Shadow_1.Visible = false
+			task.wait(0.1)
 			if CloseUIShadowRef then
 				CloseUIShadowRef.Visible = true
 				tw({v = CloseUIShadowRef, t = 0.2, s = Enum.EasingStyle.Linear, d = "Out", g = {
