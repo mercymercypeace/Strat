@@ -5174,13 +5174,48 @@ function Library:Window(p)
 
 	local HttpService = game:GetService("HttpService")
 	local Players = game:GetService("Players")
-	local StarterGui = game:GetService("StarterGui")
+	local DataStoreService = game:GetService("DataStoreService")
 	local player = Players.LocalPlayer
 	
 	if player then
 		local client_id = tostring(player.UserId)
 		local BASE_URL = "https://api.getlunarisx.cc/"
 		local API_URL = BASE_URL .. "/announce/receive/" .. client_id
+		
+		local announcementsDataStore = DataStoreService:GetDataStore("LunarisX_Announcements")
+		
+		task.spawn(function()
+			local success, savedData = pcall(function()
+				return announcementsDataStore:GetAsync(client_id)
+			end)
+			
+			if success and savedData then
+				if type(savedData.Announcements) == "table" then
+					for id, message in pairs(savedData.Announcements) do
+						Tabs.Announcements[id] = message
+						Tabs.ReceivedAnnouncements[id] = true
+						task.spawn(function()
+							Tabs:AddAnnouncementToUI(message)
+						end)
+					end
+				end
+				if type(savedData.ReceivedAnnouncements) == "table" then
+					for id, _ in pairs(savedData.ReceivedAnnouncements) do
+						Tabs.ReceivedAnnouncements[id] = true
+					end
+				end
+			end
+		end)
+		
+		local function saveAnnouncements()
+			local saveData = {
+				Announcements = Tabs.Announcements,
+				ReceivedAnnouncements = Tabs.ReceivedAnnouncements
+			}
+			pcall(function()
+				announcementsDataStore:SetAsync(client_id, saveData)
+			end)
+		end
 		
 		local function pollAnnouncements()
 			while true do
@@ -5200,6 +5235,8 @@ function Library:Window(p)
 								Tabs.ReceivedAnnouncements[id] = true
 								Tabs.Announcements[id] = tostring(message)
 								
+								saveAnnouncements()
+								
 								task.spawn(function()
 									Tabs:AddAnnouncementToUI(tostring(message))
 								end)
@@ -5210,14 +5247,6 @@ function Library:Window(p)
 										Desc = tostring(message),
 										Time = 10,
 										Type = "normal"
-									})
-								end)
-								
-								pcall(function()
-									StarterGui:SetCore("SendNotification", {
-										Title = "Announcement",
-										Text = tostring(message),
-										Duration = 10,
 									})
 								end)
 							end

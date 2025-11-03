@@ -244,6 +244,77 @@ end
 
 Window:Line()
 
+if not getgenv().LunarisX then
+	getgenv().LunarisX = {
+		SellAllTower = false,
+		AtWave = 1,
+		MarcoUrl = ""
+	}
+end
+
+local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
+	MacroTab:Section({Title = "Macro Configuration"})
+	
+	local MacroUrlInput = MacroTab:Textbox({
+		Title = "Macro URL",
+		Desc = "enter the raw link to your macro script",
+		Placeholder = "https://api.junkie-development.de/api/v1/luascripts/...",
+		Value = getgenv().LunarisX.MarcoUrl or "",
+		ClearTextOnFocus = false,
+		Callback = function(text)
+			getgenv().LunarisX.MarcoUrl = text
+			if text ~= "" then
+				Window:Notify({
+					Title = "Macro URL",
+					Desc = "Macro URL saved!",
+					Time = 3,
+					Type = "normal"
+				})
+			end
+		end
+	})
+	
+	MacroTab:Section({Title = "Wave Settings"})
+	local AtWaveInput = MacroTab:Textbox({
+		Title = "At Wave",
+		Desc = "set the wave number (1-50)",
+		Placeholder = "1",
+		Value = tostring(getgenv().LunarisX.AtWave or 1),
+		ClearTextOnFocus = false,
+		Callback = function(text)
+			local waveNum = tonumber(text)
+			if waveNum and waveNum >= 1 and waveNum <= 50 then
+				getgenv().LunarisX.AtWave = waveNum
+				Window:Notify({
+					Title = "Wave Set",
+					Desc = "Wave set to " .. waveNum,
+					Time = 2,
+					Type = "normal"
+				})
+			else
+				Window:Notify({
+					Title = "Error",
+					Desc = "Please enter a number between 1 and 50",
+					Time = 3,
+					Type = "error"
+				})
+			end
+		end
+	})
+	
+	MacroTab:Section({Title = "Tower Settings"})
+	local SellAllTowerToggle = MacroTab:Toggle({
+		Title = "Sell All Tower",
+		Desc = "toggle to sell all towers",
+		Value = getgenv().LunarisX.SellAllTower or false,
+		Callback = function(v)
+			getgenv().LunarisX.SellAllTower = v
+		end
+	})
+end
+
+Window:Line()
+
 local icons = {"star", "bell", "tag", "wrench", "message", "code", "settings", "home", "user", "heart"}
 local randomIcon = icons[math.random(1, #icons)]
 local WebhookTab = Window:Tab({Title = "Webhook", Icon = randomIcon}) do
