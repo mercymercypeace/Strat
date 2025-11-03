@@ -267,7 +267,7 @@ do
 									if obj.Name ~= "Background" and obj.Name ~= "Shadow" and not obj.Name:find("Text") and obj.Name ~= "Topbar" then
 										local currentTrans = obj.BackgroundTransparency
 										if currentTrans == 0 or (currentTrans < 0.3 and currentTrans >= 0) then
-											obj.BackgroundTransparency = 0.75
+											obj.BackgroundTransparency = 0.8
 										end
 										
 										local glassBorder = obj:FindFirstChild("GlassBorder")
@@ -276,10 +276,11 @@ do
 											glassBorder.Name = "GlassBorder"
 											glassBorder.Parent = obj
 											glassBorder.Color = Color3.fromRGB(255, 255, 255)
-											glassBorder.Transparency = 0.85
-											glassBorder.Thickness = 0.5
+											glassBorder.Transparency = 0.8
+											glassBorder.Thickness = 0.8
 										else
-											glassBorder.Transparency = 0.85
+											glassBorder.Transparency = 0.8
+											glassBorder.Thickness = 0.8
 											glassBorder.Visible = true
 										end
 									end
@@ -287,6 +288,11 @@ do
 									local glassBorder = obj:FindFirstChild("GlassBorder")
 									if glassBorder then
 										glassBorder.Visible = false
+									end
+									if isDarkGlass == false and obj.BackgroundTransparency then
+										if obj.BackgroundTransparency > 0.7 and obj.BackgroundTransparency < 1 then
+											obj.BackgroundTransparency = 0
+										end
 									end
 								end
 							elseif obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
@@ -4990,21 +4996,24 @@ function Library:Window(p)
 				if not existingBlur then
 					local BlurEffect = Instance.new("BlurEffect")
 					BlurEffect.Name = "UIBlur_DarkGlass"
-					BlurEffect.Size = 20
+					BlurEffect.Size = 30
 					BlurEffect.Enabled = true
 					BlurEffect.Parent = Lighting
 				else
-					existingBlur.Size = 20
+					existingBlur.Size = 30
 					existingBlur.Enabled = true
 				end
 				
-				Background_1.BackgroundTransparency = 0.85
-				Background_1.GroupTransparency = 0
+				if Background_1.GroupTransparency == 1 then
+					Background_1.GroupTransparency = 0
+				end
 				
-				Shadow_1.ImageTransparency = 0.8
+				Background_1.BackgroundTransparency = 0.9
+				
+				Shadow_1.ImageTransparency = 0.85
 				
 				if Page_1 then
-					Page_1.BackgroundTransparency = 0.9
+					Page_1.BackgroundTransparency = 0.92
 				end
 				
 				local glassStroke = Background_1:FindFirstChild("GlassStroke")
@@ -5013,18 +5022,25 @@ function Library:Window(p)
 					glassStroke.Name = "GlassStroke"
 					glassStroke.Parent = Background_1
 					glassStroke.Color = Color3.fromRGB(255, 255, 255)
-					glassStroke.Transparency = 0.8
-					glassStroke.Thickness = 1
+					glassStroke.Transparency = 0.7
+					glassStroke.Thickness = 1.5
 				else
-					glassStroke.Transparency = 0.8
+					glassStroke.Transparency = 0.7
+					glassStroke.Thickness = 1.5
 					glassStroke.Visible = true
 				end
+				
+				Shadow_1.Visible = true
 				
 			else
 				local Lighting = game:GetService("Lighting")
 				local existingBlur = Lighting:FindFirstChild("UIBlur_DarkGlass")
 				if existingBlur then
 					existingBlur.Enabled = false
+				end
+				
+				if Background_1.GroupTransparency == 1 then
+					Background_1.GroupTransparency = 0
 				end
 				
 				Background_1.BackgroundTransparency = 0
@@ -5038,6 +5054,8 @@ function Library:Window(p)
 				if glassStroke then
 					glassStroke.Visible = false
 				end
+				
+				Shadow_1.Visible = true
 			end
 		end
 		local ThemeDrop = addDropdownSelect(DropdownValue_1, DropdownValue_1, false, CallTheme, Theme, themes.index)
