@@ -2,7 +2,7 @@ Library = {}
 SaveTheme = {}
 
 local themes = {
-	index = {'Dark', 'Amethyst', 'Dark Glass'},
+	index = {'Dark', 'Amethyst'},
 	Amethyst = {
 		['Shadow'] = Color3.fromRGB(24, 24, 31),
 		['Background'] = Color3.fromRGB(29, 28, 38),
@@ -155,82 +155,6 @@ local themes = {
 			}
 		}
 	},
-	['Dark Glass'] = {
-		['Shadow'] = Color3.fromRGB(0, 0, 0),
-		['Background'] = Color3.fromRGB(5, 5, 10),
-		['Page'] = Color3.fromRGB(3, 3, 8),
-		['Main'] = Color3.fromRGB(80, 140, 255),
-		['Text & Icon'] = Color3.fromRGB(255, 255, 255),
-		['Function'] = {
-			['Toggle'] = {
-				['Background'] = Color3.fromRGB(10, 10, 15),
-				['True'] = {
-					['Toggle Background'] = Color3.fromRGB(25, 35, 55),
-					['Toggle Value'] = Color3.fromRGB(80, 140, 255),
-				},
-				['False'] = {
-					['Toggle Background'] = Color3.fromRGB(10, 10, 15),
-					['Toggle Value'] = Color3.fromRGB(30, 30, 40),
-				}
-			},
-			['Label'] = {
-				['Background'] = Color3.fromRGB(10, 10, 15),
-			},
-			['Dropdown'] = {
-				['Background'] = Color3.fromRGB(10, 10, 15),
-				['Value Background'] = Color3.fromRGB(5, 5, 10),
-				['Value Stroke'] = Color3.fromRGB(255, 255, 255),
-				['Dropdown Select'] = {
-					['Background'] = Color3.fromRGB(5, 5, 10),
-					['Search'] = Color3.fromRGB(15, 15, 20),
-					['Item Background'] = Color3.fromRGB(20, 20, 30),
-				}
-			},
-			['Slider'] = {
-				['Background'] = Color3.fromRGB(10, 10, 15),
-				['Value Background'] = Color3.fromRGB(5, 5, 10),
-				['Value Stroke'] = Color3.fromRGB(255, 255, 255),
-				['Slider Bar'] = Color3.fromRGB(25, 35, 55),
-				['Slider Bar Value'] = Color3.fromRGB(80, 140, 255),
-				['Circle Value'] = Color3.fromRGB(255, 255, 255)
-			},
-			['Code'] = {
-				['Background'] = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 10, 15)), ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 15))},
-				['Background Code'] = Color3.fromRGB(20, 20, 30),
-				['Background Code Value'] = Color3.fromRGB(15, 15, 25),
-				['ScrollingFrame Code'] = Color3.fromRGB(150, 150, 150)
-			},
-			['Button'] = {
-				['Background'] = Color3.fromRGB(10, 10, 15),
-				['Click'] = Color3.fromRGB(255, 255, 255)
-			},
-			['Textbox'] = {
-				['Background'] = Color3.fromRGB(10, 10, 15),
-				['Value Background'] = Color3.fromRGB(5, 5, 10),
-				['Value Stroke'] = Color3.fromRGB(255, 255, 255),
-			},
-			['Keybind'] = {
-				['Background'] = Color3.fromRGB(10, 10, 15),
-				['Value Background'] = Color3.fromRGB(5, 5, 10),
-				['Value Stroke'] = Color3.fromRGB(255, 255, 255),
-				['True'] = {
-					['Toggle Background'] = Color3.fromRGB(25, 35, 55),
-					['Toggle Value'] = Color3.fromRGB(80, 140, 255),
-				},
-				['False'] = {
-					['Toggle Background'] = Color3.fromRGB(10, 10, 15),
-					['Toggle Value'] = Color3.fromRGB(30, 30, 40),
-				}
-			},
-			['Color Picker'] = {
-				['Background'] = Color3.fromRGB(10, 10, 15),
-				['Color Select'] = {
-					['Background'] = Color3.fromRGB(5, 5, 10),
-					['UIStroke'] = Color3.fromRGB(255, 255, 255),
-				}
-			}
-		}
-	},
 }
 
 local existingUI = game.CoreGui:FindFirstChild("LunarisX") or game.Players.LocalPlayer.PlayerGui:FindFirstChild("LunarisX")
@@ -260,48 +184,20 @@ do
 		end
 		return result
 	end
-	function Library:setTheme(st, isDarkGlass)
+	function Library:setTheme(st)
 		for name, objs in pairs(SaveTheme) do
-			if not objs or #objs == 0 then
+			if not objs or #objs == 0 then 
 			else
 				local color = getColorFromPath(st, name)
 				if color then
-					local isFunctionPage = isDarkGlass and (name:find("Function") or name == "Page" or name == "Background")
 					for _, obj in pairs(objs) do
 						if not obj or not obj.Parent then
 						else
 							if obj:IsA("Frame") or obj:IsA("CanvasGroup") then
 								obj.BackgroundColor3 = color
-								if isFunctionPage then
-									local objName = obj.Name
-									if objName ~= "Background" and objName ~= "Shadow" and not objName:find("Text") and objName ~= "Topbar" and objName ~= "TabP" and objName ~= "InPage" then
-										local currentTrans = obj.BackgroundTransparency
-										if currentTrans == 0 or (currentTrans < 0.8 and currentTrans >= 0) then
-											obj.BackgroundTransparency = 0.92
-										end
-										
-										local glassBorder = obj:FindFirstChild("GlassBorder")
-										if not glassBorder then
-											glassBorder = Instance.new("UIStroke")
-											glassBorder.Name = "GlassBorder"
-											glassBorder.Parent = obj
-											glassBorder.Color = Color3.fromRGB(255, 255, 255)
-											glassBorder.Transparency = 0.65
-											glassBorder.Thickness = 1.8
-										else
-											glassBorder.Transparency = 0.65
-											glassBorder.Thickness = 1.8
-											glassBorder.Visible = true
-										end
-									end
-								else
-									local glassBorder = obj:FindFirstChild("GlassBorder")
-									if glassBorder then
-										glassBorder.Visible = false
-									end
-									if not isDarkGlass and obj.BackgroundTransparency and obj.BackgroundTransparency > 0.7 and obj.BackgroundTransparency < 1 then
-										obj.BackgroundTransparency = 0
-									end
+								local glassBorder = obj:FindFirstChild("GlassBorder")
+								if glassBorder then
+									glassBorder.Visible = false
 								end
 							elseif obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
 								obj.TextColor3 = color
@@ -1183,6 +1079,10 @@ function Library:Window(p)
 	local Size = p.Config.Size or UDim2.new(0, 530,0, 400)
 	local DiscordLink = p.DiscordLink or nil
 	local Version = p.Version or nil
+
+	Tabs.UIToggleKeybind = Keybind
+	
+	local keybindConnection = nil
 
 	local R, HAA = false, false
 	local HasChangeTheme = p.Theme
@@ -4949,7 +4849,15 @@ function Library:Window(p)
 					}
 				})
 				open:Play()
-				if hideDraggable ~= false then
+				if hideDraggable == false then
+					local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
+					if closeUIButton then
+						closeUIButton.Visible = true
+						tw({v = closeUIButton, t = 0.2, s = Enum.EasingStyle.Linear, d = "Out", g = {
+							ImageTransparency = 0.5
+						}}):Play()
+					end
+				else
 					local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
 					if closeUIButton then
 						closeUIButton.Visible = false
@@ -4968,19 +4876,42 @@ function Library:Window(p)
 		end
 
 
-		U.InputBegan:Connect(function(i)
-			if i.KeyCode == Keybind then
-				local focusedTextBox = U:GetFocusedTextBox()
-				if not focusedTextBox then
-					closeui()
-				end
+		local function setupKeybindListener()
+			if keybindConnection then
+				keybindConnection:Disconnect()
 			end
-		end)
+			keybindConnection = U.InputBegan:Connect(function(i)
+				if i.KeyCode == Tabs.UIToggleKeybind then
+					local focusedTextBox = U:GetFocusedTextBox()
+					if not focusedTextBox then
+						closeui(false)
+					end
+				end
+			end)
+		end
+		
+		setupKeybindListener()
+		
+		function Tabs:SetUIToggleKeybind(newKeybind)
+			Tabs.UIToggleKeybind = newKeybind
+			setupKeybindListener()
+			if not firsttime then
+				firsttime = true
+				Tabs:Notify({
+					Title = 'LunarisX',
+					Desc = 'Press the <font color="#FF77A5" size="14">('..tostring(newKeybind):gsub("Enum.KeyCode.", "")..')</font> button to hide and show the UI',
+					Time = 10
+				})
+			end
+		end
+		
+		function Tabs:GetUIToggleKeybind()
+			return Tabs.UIToggleKeybind
+		end
 
 		local CallTheme = function(v)
 			IsTheme = v
 			local t = themes[v]
-			local isDarkGlass = (v == 'Dark Glass')
 			Library:setTheme({
 				['Shadow'] = t.Shadow,
 				['Background'] = t.Background,
@@ -5056,157 +4987,44 @@ function Library:Window(p)
 						}
 					}
 				}
-			}, isDarkGlass)
+			})
 			
-			if v == 'Dark Glass' then
-				local Lighting = game:GetService("Lighting")
-				local existingBlur = Lighting:FindFirstChild("UIBlur_DarkGlass")
-				
-				if not existingBlur then
-					local BlurEffect = Instance.new("BlurEffect")
-					BlurEffect.Name = "UIBlur_DarkGlass"
-					BlurEffect.Size = 50
-					BlurEffect.Enabled = true
-					BlurEffect.Parent = Lighting
-				else
-					existingBlur.Size = 50
-					existingBlur.Enabled = true
-				end
-				
-				if Background_1.GroupTransparency == 1 then
-					Background_1.GroupTransparency = 0
-				end
-				
-				Background_1.BackgroundTransparency = 0.95
-				
-				Shadow_1.ImageTransparency = 0.92
-				
-				if Page_1 then
-					Page_1.BackgroundTransparency = 0.96
-				end
-				
-				local glassStroke = Background_1:FindFirstChild("GlassStroke")
-				if not glassStroke then
-					glassStroke = Instance.new("UIStroke")
-					glassStroke.Name = "GlassStroke"
-					glassStroke.Parent = Background_1
-					glassStroke.Color = Color3.fromRGB(255, 255, 255)
-					glassStroke.Transparency = 0.6
-					glassStroke.Thickness = 2
-				else
-					glassStroke.Transparency = 0.6
-					glassStroke.Thickness = 2
-					glassStroke.Visible = true
-				end
-				
-				local RunService = game:GetService("RunService")
-				task.spawn(function()
-					task.wait(0.3)
-					local descendants = Background_1:GetDescendants()
-					local frames = {}
-					local scrollingFrames = {}
-					local canvasGroups = {}
-					local imageLabels = {}
-					
-					for _, descendant in pairs(descendants) do
-						if descendant:IsA("Frame") and descendant ~= Background_1 and descendant ~= Page_1 then
-							local name = descendant.Name
-							if name ~= "Topbar" and not name:find("Close") and not name:find("Size") and not name:find("Dialog") then
-								table.insert(frames, descendant)
-							end
-						elseif descendant:IsA("ScrollingFrame") then
-							table.insert(scrollingFrames, descendant)
-						elseif descendant:IsA("CanvasGroup") and descendant ~= Background_1 then
-							table.insert(canvasGroups, descendant)
-						elseif descendant:IsA("ImageLabel") and descendant ~= Shadow_1 then
-							table.insert(imageLabels, descendant)
-						end
-					end
-					
-					for _, frame in pairs(frames) do
-						if frame.Name == "InPage" then
-							frame.BackgroundTransparency = 0.94
-						elseif frame.BackgroundTransparency == 0 or frame.BackgroundTransparency < 0.85 then
-							frame.BackgroundTransparency = 0.9
-						end
-					end
-					
-					for _, scrollingFrame in pairs(scrollingFrames) do
-						if scrollingFrame.BackgroundTransparency == 0 or scrollingFrame.BackgroundTransparency < 0.85 then
-							scrollingFrame.BackgroundTransparency = 0.92
-						end
-					end
-					
-					for _, canvasGroup in pairs(canvasGroups) do
-						if canvasGroup.GroupTransparency == 0 or canvasGroup.GroupTransparency < 0.85 then
-							canvasGroup.GroupTransparency = 0.88
-						end
-					end
-					
-					for _, imageLabel in pairs(imageLabels) do
-						if imageLabel.ImageTransparency == 0 or imageLabel.ImageTransparency < 0.85 then
-							imageLabel.ImageTransparency = 0.9
-						end
-					end
-					
-					for _, tabData in pairs(Tabs.List) do
-						if tabData.Page then
-							local inPage = tabData.Page:FindFirstChild("InPage")
-							if inPage and inPage.BackgroundTransparency < 0.9 then
-								inPage.BackgroundTransparency = 0.94
-							end
-						end
-					end
-				end)
-				
-				Shadow_1.Visible = true
-				
-			else
-				local Lighting = game:GetService("Lighting")
-				local existingBlur = Lighting:FindFirstChild("UIBlur_DarkGlass")
-				if existingBlur then
-					existingBlur.Enabled = false
-				end
-				
-				if Background_1.GroupTransparency == 1 then
-					Background_1.GroupTransparency = 0
-				end
-				
-				Background_1.BackgroundTransparency = 0
-				Shadow_1.ImageTransparency = 0.8
-				
-				if Page_1 then
-					Page_1.BackgroundTransparency = 1
-				end
-				
-				local glassStroke = Background_1:FindFirstChild("GlassStroke")
-				if glassStroke then
-					glassStroke.Visible = false
-				end
-				
-				task.spawn(function()
-					task.wait(0.1)
-					local descendants = ScreenGui:GetDescendants()
-					for _, descendant in pairs(descendants) do
-						if descendant:IsA("Frame") or descendant:IsA("CanvasGroup") then
-							local glassBorder = descendant:FindFirstChild("GlassBorder")
-							if glassBorder then
-								glassBorder.Visible = false
-							end
-							local bgTrans = descendant.BackgroundTransparency
-							if bgTrans and bgTrans > 0.7 and bgTrans < 1 then
-								descendant.BackgroundTransparency = 0
-							end
-							local groupTrans = descendant.GroupTransparency
-							if groupTrans and groupTrans > 0.7 and groupTrans < 1 then
-								descendant.GroupTransparency = 0
-							end
-						end
-					end
-				end)
-				
-				Shadow_1.Visible = true
+			local Lighting = game:GetService("Lighting")
+			local existingBlur = Lighting:FindFirstChild("UIBlur_DarkGlass")
+			if existingBlur then
+				existingBlur.Enabled = false
 			end
+			
+			if Background_1.GroupTransparency == 1 then
+				Background_1.GroupTransparency = 0
+			end
+			
+			Background_1.BackgroundTransparency = 0
+			Shadow_1.ImageTransparency = 0.8
+			
+			if Page_1 then
+				Page_1.BackgroundTransparency = 1
+			end
+			
+			local glassStroke = Background_1:FindFirstChild("GlassStroke")
+			if glassStroke then
+				glassStroke.Visible = false
+			end
+			
+			task.spawn(function()
+				task.wait(0.1)
+				local descendants = ScreenGui:GetDescendants()
+				for _, descendant in pairs(descendants) do
+					if descendant:IsA("Frame") or descendant:IsA("CanvasGroup") then
+						local glassBorder = descendant:FindFirstChild("GlassBorder")
+						if glassBorder then
+							glassBorder.Visible = false
+						end
+					end
+				end
+			end)
+			
+			Shadow_1.Visible = true
 		end
 		local ThemeDrop = addDropdownSelect(DropdownValue_1, DropdownValue_1, false, CallTheme, Theme, themes.index)
 		

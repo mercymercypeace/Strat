@@ -109,11 +109,68 @@ end
 Window:Line()
 
 local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
+    Settings:Section({Title = "UI Settings"})
+    
+    local currentKeybind = Window:GetUIToggleKeybind() or Enum.KeyCode.LeftControl
+    local UIToggleKeybind = Settings:Keybind({
+        Title = "UI Toggle Keybind",
+        Desc = "press to change the keybind for opening/closing the ui",
+        Key = currentKeybind,
+        Value = false,
+        Callback = function(key, value)
+            if Window.SetUIToggleKeybind then
+                Window:SetUIToggleKeybind(key)
+                if writefile then
+                    pcall(function()
+                        local saveData = {
+                            UIToggleKeybind = tostring(key)
+                        }
+                        local HttpService = game:GetService("HttpService")
+                        writefile("LunarisX_UIKeybind.json", HttpService:JSONEncode(saveData))
+                    end)
+                end
+                Window:Notify({
+                    Title = "Keybind Changed",
+                    Desc = "UI toggle keybind set to: " .. tostring(key):gsub("Enum.KeyCode.", ""),
+                    Time = 3,
+                    Type = "normal"
+                })
+            end
+        end
+    })
+    
+    task.spawn(function()
+        task.wait(0.5)
+        if readfile then
+            local success, fileData = pcall(function()
+                return readfile("LunarisX_UIKeybind.json")
+            end)
+            
+            if success and fileData and fileData ~= "" then
+                local HttpService = game:GetService("HttpService")
+                local success2, savedData = pcall(function()
+                    return HttpService:JSONDecode(fileData)
+                end)
+                
+                if success2 and savedData and savedData.UIToggleKeybind then
+                    local keyCodeName = savedData.UIToggleKeybind:gsub("Enum.KeyCode.", "")
+                    local newKeybind = Enum.KeyCode[keyCodeName]
+                    if newKeybind and Window.SetUIToggleKeybind then
+                        Window:SetUIToggleKeybind(newKeybind)
+                        if UIToggleKeybind and UIToggleKeybind.SetKey then
+                            UIToggleKeybind:SetKey(newKeybind)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    
     Settings:Section({Title = "Theme"})
     local ThemeDropdown = Settings:Dropdown({
         Title = "Theme",
         Desc = "change ui theme",
-        List = {"Dark", "Amethyst", "Dark Glass"},
+        List = {"Dark", "Amethyst"},
         Value = "Dark",
         Callback = function(selectedTheme)
             task.spawn(function()
@@ -252,6 +309,17 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		Callback = function(text)
 			getgenv().LunarisX.MarcoUrl = text
 			if text ~= "" then
+				if writefile then
+					pcall(function()
+						local saveData = {
+							MarcoUrl = text,
+							AtWave = getgenv().LunarisX.AtWave or 1,
+							SellAllTower = getgenv().LunarisX.SellAllTower or false
+						}
+						local HttpService = game:GetService("HttpService")
+						writefile("LunarisX_Macro.json", HttpService:JSONEncode(saveData))
+					end)
+				end
 				Window:Notify({
 					Title = "Macro URL",
 					Desc = "Macro URL saved!",
@@ -262,7 +330,7 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		end
 	})
 	
-	MacroTab:Label({Title = "Wave Settings"})
+	MacroTab:Section({Title = "Wave Settings"})
 	local AtWaveInput = MacroTab:Textbox({
 		Title = "At Wave",
 		Desc = "set the wave number (1-50)",
@@ -273,6 +341,17 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 			local waveNum = tonumber(text)
 			if waveNum and waveNum >= 1 and waveNum <= 50 then
 				getgenv().LunarisX.AtWave = waveNum
+				if writefile then
+					pcall(function()
+						local saveData = {
+							MarcoUrl = getgenv().LunarisX.MarcoUrl or "",
+							AtWave = waveNum,
+							SellAllTower = getgenv().LunarisX.SellAllTower or false
+						}
+						local HttpService = game:GetService("HttpService")
+						writefile("LunarisX_Macro.json", HttpService:JSONEncode(saveData))
+					end)
+				end
 				Window:Notify({
 					Title = "Wave Set",
 					Desc = "Wave set to " .. waveNum,
@@ -290,18 +369,30 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		end
 	})
 	
-	MacroTab:Label({Title = "Settings"})
+	MacroTab:Section({Title = "Settings"})
 	local SellAllTowerToggle = MacroTab:Toggle({
 		Title = "Sell All Tower",
 		Desc = "toggle to sell all towers",
 		Value = getgenv().LunarisX.SellAllTower or false,
 		Callback = function(v)
 			getgenv().LunarisX.SellAllTower = v
+			if writefile then
+				pcall(function()
+					local saveData = {
+						MarcoUrl = getgenv().LunarisX.MarcoUrl or "",
+						AtWave = getgenv().LunarisX.AtWave or 1,
+						SellAllTower = v
+					}
+					local HttpService = game:GetService("HttpService")
+					writefile("LunarisX_Macro.json", HttpService:JSONEncode(saveData))
+				end)
+			end
 		end
 	})
 	
+	MacroTab:Section({Title = "Actions"})
 	MacroTab:Button({
-		Title = "Run",
+		Title = "Run Macro",
 		Desc = "run the macro script with current settings",
 		Callback = function()
 			local macroUrl = getgenv().LunarisX.MarcoUrl or ""
@@ -361,6 +452,130 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 			end
 		end
 	})
+	
+	MacroTab:Button({
+		Title = "Copy Config",
+		Desc = "copy current macro config to clipboard",
+		Callback = function()
+			local configText = "getgenv().LunarisX = {\n"
+			configText = configText .. "    SellAllTower = " .. tostring(getgenv().LunarisX.SellAllTower or false) .. ",\n"
+			configText = configText .. "    AtWave = " .. tostring(getgenv().LunarisX.AtWave or 1) .. ",\n"
+			configText = configText .. "    MarcoUrl = \"" .. tostring(getgenv().LunarisX.MarcoUrl or "") .. "\"\n"
+			configText = configText .. "}"
+			
+			if setclipboard then
+				setclipboard(configText)
+				Window:Notify({
+					Title = "Copied!",
+					Desc = "Macro config copied to clipboard",
+					Time = 3,
+					Type = "normal"
+				})
+			else
+				Window:Notify({
+					Title = "Error",
+					Desc = "Clipboard function not available",
+					Time = 3,
+					Type = "error"
+				})
+			end
+		end
+	})
+	
+	MacroTab:Section({Title = "Exploit Functions"})
+	MacroTab:Label({Title = "Available Functions"})
+	
+	local function checkExploitFunction(funcName, func)
+		if func then
+			return funcName .. " ✓"
+		else
+			return funcName .. " ✗"
+		end
+	end
+	
+	local functionList = {
+		checkExploitFunction("getgenv()", getgenv),
+		checkExploitFunction("setclipboard()", setclipboard),
+		checkExploitFunction("readfile()", readfile),
+		checkExploitFunction("writefile()", writefile),
+		checkExploitFunction("http_request()", http_request),
+		checkExploitFunction("request()", request),
+		checkExploitFunction("syn.request()", syn and syn.request),
+		checkExploitFunction("hookfunction()", hookfunction),
+		checkExploitFunction("getrawmetatable()", getrawmetatable),
+	}
+	
+	MacroTab:Button({
+		Title = "Check Exploit Functions",
+		Desc = "view available exploit functions",
+		Callback = function()
+			local available = {}
+			local unavailable = {}
+			
+			if getgenv then table.insert(available, "getgenv()") else table.insert(unavailable, "getgenv()") end
+			if setclipboard then table.insert(available, "setclipboard()") else table.insert(unavailable, "setclipboard()") end
+			if readfile then table.insert(available, "readfile()") else table.insert(unavailable, "readfile()") end
+			if writefile then table.insert(available, "writefile()") else table.insert(unavailable, "writefile()") end
+			if http_request then table.insert(available, "http_request()") else table.insert(unavailable, "http_request()") end
+			if request then table.insert(available, "request()") else table.insert(unavailable, "request()") end
+			if syn and syn.request then table.insert(available, "syn.request()") else table.insert(unavailable, "syn.request()") end
+			if hookfunction then table.insert(available, "hookfunction()") else table.insert(unavailable, "hookfunction()") end
+			if getrawmetatable then table.insert(available, "getrawmetatable()") else table.insert(unavailable, "getrawmetatable()") end
+			
+			local message = "Available: " .. #available .. "\n"
+			if #available > 0 then
+				message = message .. table.concat(available, ", ")
+			end
+			if #unavailable > 0 then
+				message = message .. "\n\nUnavailable: " .. #unavailable .. "\n"
+				message = message .. table.concat(unavailable, ", ")
+			end
+			
+			Window:Notify({
+				Title = "Exploit Functions",
+				Desc = message,
+				Time = 8,
+				Type = "normal"
+			})
+		end
+	})
+	
+	task.spawn(function()
+		task.wait(0.5)
+		if readfile then
+			local success, fileData = pcall(function()
+				return readfile("LunarisX_Macro.json")
+			end)
+			
+			if success and fileData and fileData ~= "" then
+				local HttpService = game:GetService("HttpService")
+				local success2, savedData = pcall(function()
+					return HttpService:JSONDecode(fileData)
+				end)
+				
+				if success2 and savedData then
+					if savedData.MarcoUrl then
+						getgenv().LunarisX.MarcoUrl = savedData.MarcoUrl
+						if MacroUrlInput and MacroUrlInput.SetValue then
+							MacroUrlInput:SetValue(savedData.MarcoUrl)
+						end
+					end
+					if savedData.AtWave then
+						getgenv().LunarisX.AtWave = savedData.AtWave
+						if AtWaveInput and AtWaveInput.SetValue then
+							AtWaveInput:SetValue(tostring(savedData.AtWave))
+						end
+					end
+					if savedData.SellAllTower ~= nil then
+						getgenv().LunarisX.SellAllTower = savedData.SellAllTower
+						if SellAllTowerToggle and SellAllTowerToggle.SetValue then
+							SellAllTowerToggle:SetValue(savedData.SellAllTower)
+						end
+					end
+				end
+			end
+		end
+	end)
 end
 
 Window:Line()
@@ -651,8 +866,59 @@ local LogTab = Window:Tab({Title = "Log", Icon = "settings"}) do
                                 end)
                             end
                             
-                            local function addLogEntry(text, date)
+                            local function getRelativeDate(entryDate)
+                                if not entryDate then
+                                    return os.date("%m/%d", os.time())
+                                end
+                                
+                                local currentTime = os.time()
+                                local entryTime = entryDate
+                                
+                                if type(entryDate) == "string" then
+                                    if entryDate == "Today" then
+                                        entryTime = currentTime
+                                    elseif entryDate == "Yesterday" then
+                                        entryTime = currentTime - 86400
+                                    else
+                                        return entryDate
+                                    end
+                                end
+                                
+                                local currentDateTable = os.date("*t", currentTime)
+                                local entryDateTable = os.date("*t", entryTime)
+                                
+                                currentDateTable.hour = 0
+                                currentDateTable.min = 0
+                                currentDateTable.sec = 0
+                                currentDateTable.isdst = nil
+                                
+                                entryDateTable.hour = 0
+                                entryDateTable.min = 0
+                                entryDateTable.sec = 0
+                                entryDateTable.isdst = nil
+                                
+                                local currentDayStart = os.time(currentDateTable)
+                                local entryDayStart = os.time(entryDateTable)
+                                
+                                local daysDiff = math.floor((currentDayStart - entryDayStart) / 86400)
+                                
+                                if daysDiff == 0 then
+                                    return "Today"
+                                elseif daysDiff == 1 then
+                                    return "Yesterday"
+                                elseif daysDiff == 2 then
+                                    return "2 days ago"
+                                elseif daysDiff < 7 then
+                                    return tostring(daysDiff) .. " days ago"
+                                else
+                                    return os.date("%m/%d/%y", entryTime)
+                                end
+                            end
+                            
+                            local function addLogEntry(text, entryDate)
                                 if not logScrollingFrame then return end
+                                
+                                local displayDate = getRelativeDate(entryDate)
                                 
                                 local logFrame = Instance.new("Frame")
                                 local UICorner = Instance.new("UICorner")
@@ -694,18 +960,22 @@ local LogTab = Window:Tab({Title = "Log", Icon = "settings"}) do
                                 TimeLabel.AnchorPoint = Vector2.new(1, 0)
                                 TimeLabel.BackgroundTransparency = 1
                                 TimeLabel.Position = UDim2.new(1, -5, 0, 5)
-                                TimeLabel.Size = UDim2.new(0, 50, 0, 10)
+                                TimeLabel.Size = UDim2.new(0, 80, 0, 10)
                                 TimeLabel.Font = Enum.Font.Gotham
-                                TimeLabel.Text = date or os.date("%m/%d")
+                                TimeLabel.Text = displayDate
                                 TimeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                                 TimeLabel.TextTransparency = 0.5
                                 TimeLabel.TextSize = 10
                                 TimeLabel.TextXAlignment = Enum.TextXAlignment.Right
                             end
                             
-                            addLogEntry("Optimized The Ui", "Today")
-                            addLogEntry("Fixed webhook not working", "Today")
-                            addLogEntry("Annoucement Added YAYY", "Today")
+                            local todayTime = os.time()
+                            local yesterdayTime = os.time() - 86400
+                            local twoDaysAgoTime = os.time() - (86400 * 2)
+                            
+                            addLogEntry("Optimized The Ui", todayTime)
+                            addLogEntry("Fixed webhook not working", todayTime)
+                            addLogEntry("Annoucement Added YAYY", yesterdayTime)
 
                             
                             break
