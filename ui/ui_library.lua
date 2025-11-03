@@ -157,6 +157,12 @@ local themes = {
 	},
 }
 
+local existingUI = game.CoreGui:FindFirstChild("LunarisX") or game.Players.LocalPlayer.PlayerGui:FindFirstChild("LunarisX")
+if existingUI then
+	game.Players.LocalPlayer:Kick("LunarisX UI is already loaded! Please don't run the script twice.")
+	return
+end
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "LunarisX"
 ScreenGui.Parent = not game:GetService("RunService"):IsStudio() and game:GetService("CoreGui") or game:GetService("Players").LocalPlayer.PlayerGui
@@ -1064,169 +1070,6 @@ do
 end
 
 function Library:Window(p)
-	local existingUI = game.CoreGui:FindFirstChild("LunarisX") or game.Players.LocalPlayer.PlayerGui:FindFirstChild("LunarisX")
-	if existingUI then
-		task.spawn(function()
-			task.wait(0.5)
-			local notificationFrame = existingUI:FindFirstChild("Notification")
-			if notificationFrame then
-				local Tw = game:GetService("TweenService")
-				local IsTheme = "Dark"
-				
-				local Shadow = Instance.new("ImageLabel")
-				local UIPadding_1 = Instance.new("UIPadding")
-				local Background_1 = Instance.new("CanvasGroup")
-				local UICorner_1 = Instance.new("UICorner")
-				local Frame_1 = Instance.new("Frame")
-				local Text_1 = Instance.new("Frame")
-				local UIPadding_2 = Instance.new("UIPadding")
-				local Title_1 = Instance.new("TextLabel")
-				local UIListLayout_1 = Instance.new("UIListLayout")
-				local Description_1 = Instance.new("TextLabel")
-				local Frame_2 = Instance.new("Frame")
-
-				Shadow.Name = "Shadow"
-				Shadow.Parent = notificationFrame
-				Shadow.BackgroundColor3 = Color3.fromRGB(163,162,165)
-				Shadow.BackgroundTransparency = 1
-				Shadow.Size = UDim2.new(0, 180,0, 0)
-				Shadow.Image = "rbxassetid://1316045217"
-				Shadow.ImageColor3 = Color3.fromRGB(24,24,31)
-				Shadow.ImageTransparency = 0.5
-				Shadow.ScaleType = Enum.ScaleType.Slice
-				Shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-				Shadow.LayoutOrder = 999999
-
-				UIPadding_1.Parent = Shadow
-				UIPadding_1.PaddingBottom = UDim.new(0,5)
-				UIPadding_1.PaddingLeft = UDim.new(0,5)
-				UIPadding_1.PaddingRight = UDim.new(0,5)
-				UIPadding_1.PaddingTop = UDim.new(0,5)
-
-				Background_1.Name = "Background"
-				Background_1.Parent = Shadow
-				Background_1.AnchorPoint = Vector2.new(0.5, 0.5)
-				Background_1.BackgroundColor3 = Color3.fromRGB(29,28,38)
-				Background_1.BorderColor3 = Color3.fromRGB(0,0,0)
-				Background_1.BorderSizePixel = 0
-				Background_1.Position = UDim2.new(0.5, 0,0.5, 0)
-				Background_1.Size = UDim2.new(1, 0,1, 0)
-				Background_1.ClipsDescendants = true
-				Background_1.GroupTransparency = 1
-
-				UICorner_1.Parent = Background_1
-				UICorner_1.CornerRadius = UDim.new(0,6)
-
-				Frame_1.Parent = Background_1
-				Frame_1.AnchorPoint = Vector2.new(0.5, 1)
-				Frame_1.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-				Frame_1.BackgroundTransparency = 0.3
-				Frame_1.BorderColor3 = Color3.fromRGB(0,0,0)
-				Frame_1.BorderSizePixel = 0
-				Frame_1.Position = UDim2.new(0.5, 0,1, 0)
-				Frame_1.Size = UDim2.new(0, 0,0, 4)
-				Frame_1.Visible = true
-				Frame_1.ZIndex = 10
-
-				Text_1.Name = "Text"
-				Text_1.Parent = Background_1
-				Text_1.BackgroundColor3 = Color3.fromRGB(255,255,255)
-				Text_1.BackgroundTransparency = 1
-				Text_1.BorderColor3 = Color3.fromRGB(0,0,0)
-				Text_1.BorderSizePixel = 0
-				Text_1.Size = UDim2.new(1, 0,1, 0)
-
-				UIPadding_2.Parent = Text_1
-				UIPadding_2.PaddingBottom = UDim.new(0,8)
-				UIPadding_2.PaddingLeft = UDim.new(0,10)
-				UIPadding_2.PaddingRight = UDim.new(0,10)
-				UIPadding_2.PaddingTop = UDim.new(0,8)
-
-				Title_1.Parent = Text_1
-				Title_1.BackgroundColor3 = Color3.fromRGB(255,255,255)
-				Title_1.BackgroundTransparency = 1
-				Title_1.BorderColor3 = Color3.fromRGB(0,0,0)
-				Title_1.BorderSizePixel = 0
-				Title_1.Size = UDim2.new(1, 0,0, 20)
-				Title_1.Font = Enum.Font.GothamBold
-				Title_1.RichText = true
-				Title_1.Text = "Duplicate UI Detected"
-				Title_1.TextColor3 = Color3.fromRGB(255,255,255)
-				Title_1.TextSize = 12
-				Title_1.TextTransparency = 0
-				Title_1.TextWrapped = true
-				Title_1.TextXAlignment = Enum.TextXAlignment.Left
-
-				UIListLayout_1.Parent = Text_1
-				UIListLayout_1.SortOrder = Enum.SortOrder.LayoutOrder
-				UIListLayout_1.Padding = UDim.new(0,5)
-
-				Description_1.Parent = Text_1
-				Description_1.BackgroundColor3 = Color3.fromRGB(255,255,255)
-				Description_1.BackgroundTransparency = 1
-				Description_1.BorderColor3 = Color3.fromRGB(0,0,0)
-				Description_1.BorderSizePixel = 0
-				Description_1.Size = UDim2.new(1, 0,0, 0)
-				Description_1.Font = Enum.Font.Gotham
-				Description_1.RichText = true
-				Description_1.Text = "LunarisX UI is already loaded! Please don't run the script twice."
-				Description_1.TextColor3 = Color3.fromRGB(178,178,178)
-				Description_1.TextSize = 10
-				Description_1.TextTransparency = 0
-				Description_1.TextWrapped = true
-				Description_1.TextXAlignment = Enum.TextXAlignment.Left
-				Description_1.AutomaticSize = Enum.AutomaticSize.Y
-
-				Frame_2.Parent = Background_1
-				Frame_2.AnchorPoint = Vector2.new(0.5, 1)
-				Frame_2.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-				Frame_2.BorderColor3 = Color3.fromRGB(0,0,0)
-				Frame_2.BorderSizePixel = 0
-				Frame_2.Position = UDim2.new(0.5, 0,1, 0)
-				Frame_2.Size = UDim2.new(0, 0,0, 4)
-				Frame_2.Visible = true
-				Frame_2.ZIndex = 10
-
-				local textSize = game:GetService("TextService"):GetTextSize(Title_1.Text, Title_1.TextSize, Title_1.Font, Vector2.new(160, math.huge))
-				local descSize = game:GetService("TextService"):GetTextSize(Description_1.Text, Description_1.TextSize, Description_1.Font, Vector2.new(160, math.huge))
-				local totalHeight = textSize.Y + descSize.Y + 21
-
-				Shadow.Size = UDim2.new(0, 180, 0, totalHeight)
-
-				Tw:Create(Background_1, TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
-				Tw:Create(Frame_1, TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 4)}):Play()
-				Tw:Create(Frame_2, TweenInfo.new(5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 4)}):Play()
-
-				task.wait(5)
-
-				Tw:Create(Background_1, TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {GroupTransparency = 1}):Play()
-				task.wait(0.3)
-				Shadow:Destroy()
-			end
-		end)
-		local emptyTabs = {}
-		emptyTabs.List = {}
-		
-		local emptyTab = {}
-		function emptyTab:Section() return self end
-		function emptyTab:Toggle() return self end
-		function emptyTab:Button() return self end
-		function emptyTab:Textbox() return self end
-		function emptyTab:Slider() return self end
-		function emptyTab:Dropdown() return self end
-		function emptyTab:Code() return self end
-		function emptyTab:Keybind() return self end
-		function emptyTab:Label() return self end
-		
-		function emptyTabs:Tab() return emptyTab end
-		function emptyTabs:Line() end
-		function emptyTabs:Notify() end
-		function emptyTabs:Dialog() end
-		function emptyTabs:GetUIToggleKeybind() return Enum.KeyCode.LeftControl end
-		function emptyTabs:SetUIToggleKeybind() end
-		function emptyTabs:AddAnnouncementToUI() end
-		return emptyTabs
-	end
 
 	local Title = p.Title or 'null'
 	local Desc = p.Desc or ''
