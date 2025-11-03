@@ -5226,48 +5226,85 @@ function Library:Window(p)
 
 	local HttpService = game:GetService("HttpService")
 	local Players = game:GetService("Players")
-	local DataStoreService = game:GetService("DataStoreService")
 	local player = Players.LocalPlayer
 	
 	if player then
 		local client_id = tostring(player.UserId)
 		local BASE_URL = "https://api.getlunarisx.cc/"
 		local API_URL = BASE_URL .. "/announce/receive/" .. client_id
+		local saveFilePath = "LunarisX_Announcements_" .. client_id .. ".json"
 		
-		local announcementsDataStore = DataStoreService:GetDataStore("LunarisX_Announcements")
-		
-		task.spawn(function()
-			local success, savedData = pcall(function()
-				return announcementsDataStore:GetAsync(client_id)
-			end)
-			
-			if success and savedData then
-				if type(savedData.Announcements) == "table" then
-					for id, message in pairs(savedData.Announcements) do
-						Tabs.Announcements[id] = message
-						Tabs.ReceivedAnnouncements[id] = true
-						task.spawn(function()
-							Tabs:AddAnnouncementToUI(message)
-						end)
+		local function loadAnnouncements()
+			if readfile then
+				local success, fileData = pcall(function()
+					return readfile(saveFilePath)
+				end)
+				
+				if success and fileData then
+					local success2, savedData = pcall(function()
+						return HttpService:JSONDecode(fileData)
+					end)
+					
+					if success2 and savedData then
+						if type(savedData.Announcements) == "table" then
+							for id, message in pairs(savedData.Announcements) do
+								Tabs.Announcements[id] = message
+								Tabs.ReceivedAnnouncements[id] = true
+								task.spawn(function()
+									Tabs:AddAnnouncementToUI(message)
+								end)
+							end
+						end
+						if type(savedData.ReceivedAnnouncements) == "table" then
+							for id, _ in pairs(savedData.ReceivedAnnouncements) do
+								Tabs.ReceivedAnnouncements[id] = true
+							end
+						end
 					end
 				end
-				if type(savedData.ReceivedAnnouncements) == "table" then
-					for id, _ in pairs(savedData.ReceivedAnnouncements) do
-						Tabs.ReceivedAnnouncements[id] = true
+			end
+		end
+		
+		local function saveAnnouncements()
+			if writefile then
+				local saveData = {
+					Announcements = Tabs.Announcements,
+					ReceivedAnnouncements = Tabs.ReceivedAnnouncements
+				}
+				pcall(function()
+					local json = HttpService:JSONEncode(saveData)
+					writefile(saveFilePath, json)
+				end)
+			end
+		end
+		
+		loadAnnouncements()
+		
+		task.spawn(function()
+			local success, result = pcall(function()
+				return game:HttpGet(API_URL, true)
+			end)
+			
+			if success and result then
+				local announcements = nil
+				pcall(function()
+					announcements = HttpService:JSONDecode(result)
+				end)
+				
+				if announcements and type(announcements) == "table" then
+					for id, message in pairs(announcements) do
+						if not Tabs.ReceivedAnnouncements[id] then
+							Tabs.Announcements[id] = tostring(message)
+							Tabs.ReceivedAnnouncements[id] = true
+							saveAnnouncements()
+							task.spawn(function()
+								Tabs:AddAnnouncementToUI(tostring(message))
+							end)
+						end
 					end
 				end
 			end
 		end)
-		
-		local function saveAnnouncements()
-			local saveData = {
-				Announcements = Tabs.Announcements,
-				ReceivedAnnouncements = Tabs.ReceivedAnnouncements
-			}
-			pcall(function()
-				announcementsDataStore:SetAsync(client_id, saveData)
-			end)
-		end
 		
 		local function pollAnnouncements()
 			while true do
@@ -5287,7 +5324,16 @@ function Library:Window(p)
 								Tabs.ReceivedAnnouncements[id] = true
 								Tabs.Announcements[id] = tostring(message)
 								
-								saveAnnouncements()
+								if writefile then
+									local saveData = {
+										Announcements = Tabs.Announcements,
+										ReceivedAnnouncements = Tabs.ReceivedAnnouncements
+									}
+									pcall(function()
+										local json = HttpService:JSONEncode(saveData)
+										writefile(saveFilePath, json)
+									end)
+								end
 								
 								task.spawn(function()
 									Tabs:AddAnnouncementToUI(tostring(message))
