@@ -1206,7 +1206,19 @@ function Library:Window(p)
 		end)
 		local emptyTabs = {}
 		emptyTabs.List = {}
-		function emptyTabs:Tab() return self end
+		
+		local emptyTab = {}
+		function emptyTab:Section() return self end
+		function emptyTab:Toggle() return self end
+		function emptyTab:Button() return self end
+		function emptyTab:Textbox() return self end
+		function emptyTab:Slider() return self end
+		function emptyTab:Dropdown() return self end
+		function emptyTab:Code() return self end
+		function emptyTab:Keybind() return self end
+		function emptyTab:Label() return self end
+		
+		function emptyTabs:Tab() return emptyTab end
 		function emptyTabs:Line() end
 		function emptyTabs:Notify() end
 		function emptyTabs:Dialog() end
