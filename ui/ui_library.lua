@@ -233,6 +233,12 @@ local themes = {
 	},
 }
 
+local existingUI = game.CoreGui:FindFirstChild("LunarisX") or game.Players.LocalPlayer.PlayerGui:FindFirstChild("LunarisX")
+if existingUI then
+	game.Players.LocalPlayer:Kick("LunarisX UI is already loaded! Please don't run the script twice.")
+	return
+end
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "LunarisX"
 ScreenGui.Parent = not game:GetService("RunService"):IsStudio() and game:GetService("CoreGui") or game:GetService("Players").LocalPlayer.PlayerGui
@@ -5240,7 +5246,7 @@ function Library:Window(p)
 					return readfile(saveFilePath)
 				end)
 				
-				if success and fileData then
+				if success and fileData and fileData ~= "" then
 					local success2, savedData = pcall(function()
 						return HttpService:JSONDecode(fileData)
 					end)
@@ -5250,9 +5256,6 @@ function Library:Window(p)
 							for id, message in pairs(savedData.Announcements) do
 								Tabs.Announcements[id] = message
 								Tabs.ReceivedAnnouncements[id] = true
-								task.spawn(function()
-									Tabs:AddAnnouncementToUI(message)
-								end)
 							end
 						end
 						if type(savedData.ReceivedAnnouncements) == "table" then
@@ -5260,6 +5263,15 @@ function Library:Window(p)
 								Tabs.ReceivedAnnouncements[id] = true
 							end
 						end
+						
+						task.spawn(function()
+							task.wait(1)
+							for id, message in pairs(Tabs.Announcements) do
+								task.spawn(function()
+									Tabs:AddAnnouncementToUI(message)
+								end)
+							end
+						end)
 					end
 				end
 			end
@@ -5279,6 +5291,27 @@ function Library:Window(p)
 		end
 		
 		loadAnnouncements()
+		
+		task.spawn(function()
+			task.wait(2)
+			if readfile then
+				local success, fileData = pcall(function()
+					return readfile(saveFilePath)
+				end)
+				
+				if success and fileData and fileData ~= "" then
+					local success2, savedData = pcall(function()
+						return HttpService:JSONDecode(fileData)
+					end)
+					
+					if success2 and savedData and type(savedData.Announcements) == "table" then
+						for id, message in pairs(savedData.Announcements) do
+							Tabs:AddAnnouncementToUI(message)
+						end
+					end
+				end
+			end
+		end)
 		
 		task.spawn(function()
 			local success, result = pcall(function()
@@ -5359,6 +5392,33 @@ function Library:Window(p)
 	end
 	
 	function Tabs:GetAnnouncements()
+		if readfile then
+			local Players = game:GetService("Players")
+			local localPlayer = Players.LocalPlayer
+			if localPlayer then
+				local client_id = tostring(localPlayer.UserId)
+				local saveFilePath = "LunarisX_Announcements_" .. client_id .. ".json"
+				local success, fileData = pcall(function()
+					return readfile(saveFilePath)
+				end)
+				
+				if success and fileData and fileData ~= "" then
+					local HttpService = game:GetService("HttpService")
+					local success2, savedData = pcall(function()
+						return HttpService:JSONDecode(fileData)
+					end)
+					
+					if success2 and savedData and type(savedData.Announcements) == "table" then
+						for id, message in pairs(savedData.Announcements) do
+							if not Tabs.Announcements[id] then
+								Tabs.Announcements[id] = message
+								Tabs.ReceivedAnnouncements[id] = true
+							end
+						end
+					end
+				end
+			end
+		end
 		return Tabs.Announcements
 	end
 	
@@ -5383,7 +5443,26 @@ function Library:Window(p)
 						local tabButton = tabData.Button
 						if tabButton and tabButton:FindFirstChild("Func") then
 							local titleLabel = tabButton.Func:FindFirstChild("Title")
-							if titleLabel and titleLabel.Text == "Announcement" then
+							if titleLabel and (titleLabel.Text == "Announce" or titleLabel.Text == "Announcement") then
+								Tabs.AnnouncementScrollingFrame = scrollingFrame
+								break
+							end
+						end
+					end
+				end
+			end
+		end
+		
+		if not Tabs.AnnouncementScrollingFrame then
+			task.wait(0.5)
+			for _, tabData in pairs(Tabs.List) do
+				if tabData.Page then
+					local scrollingFrame = tabData.Page:FindFirstChild("ScrollingFrame")
+					if scrollingFrame then
+						local tabButton = tabData.Button
+						if tabButton and tabButton:FindFirstChild("Func") then
+							local titleLabel = tabButton.Func:FindFirstChild("Title")
+							if titleLabel and (titleLabel.Text == "Announce" or titleLabel.Text == "Announcement") then
 								Tabs.AnnouncementScrollingFrame = scrollingFrame
 								break
 							end
