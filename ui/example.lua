@@ -24,7 +24,6 @@ local Tab = Window:Tab({Title = "Main", Icon = "star"}) do
         Desc = "toggle to enable or disable",
         Value = false,
         Callback = function(v)
-            print("toggle:", v)
         end
     })
 
@@ -33,7 +32,6 @@ local Tab = Window:Tab({Title = "Main", Icon = "star"}) do
         Title = "Run Action",
         Desc = "click to do something",
         Callback = function()
-            print("button clicked!")
             Window:Notify({
                 Title = "Button",
                 Desc = "action done lol",
@@ -51,7 +49,6 @@ local Tab = Window:Tab({Title = "Main", Icon = "star"}) do
         Value = "",
         ClearTextOnFocus = false,
         Callback = function(text)
-            print("textbox:", text)
         end
     })
 
@@ -63,7 +60,6 @@ local Tab = Window:Tab({Title = "Main", Icon = "star"}) do
         Rounding = 0,
         Value = 25,
         Callback = function(val)
-            print("slider:", val)
         end
     })
 
@@ -73,7 +69,6 @@ local Tab = Window:Tab({Title = "Main", Icon = "star"}) do
         List = {"Option 1", "Option 2", "Option 3"},
         Value = "Option 1",
         Callback = function(choice)
-            print("selected:", choice)
         end
     })
 
@@ -430,8 +425,6 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 				if scriptCode then
 					local wrappedScript = "getgenv().LunarisX = { SellAllTower = " .. tostring(sellAllTower) .. ", AtWave = " .. tostring(atWave) .. ", MarcoUrl = \"" .. macroUrl .. "\" } " .. scriptCode
 					loadstring(wrappedScript)()
-				else
-					error("Failed to load macro script")
 				end
 			end)
 			
@@ -654,8 +647,6 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = randomIcon}) do
                     
                     if response and (response.Success or response.StatusCode == 200 or response.StatusCode == 204) then
                         return {Success = true, StatusCode = response.StatusCode or 200}
-                    else
-                        error("Webhook request failed: " .. tostring(response))
                     end
                 elseif request then
                     local response = request({
@@ -669,8 +660,6 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = randomIcon}) do
                     
                     if response and (response.Success or response.StatusCode == 200 or response.StatusCode == 204) then
                         return {Success = true, StatusCode = response.StatusCode or 200}
-                    else
-                        error("Webhook request failed: " .. tostring(response))
                     end
                 elseif syn and syn.request then
                     local response = syn.request({
@@ -684,8 +673,6 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = randomIcon}) do
                     
                     if response and (response.Success or response.StatusCode == 200 or response.StatusCode == 204) then
                         return {Success = true, StatusCode = response.StatusCode or 200}
-                    else
-                        error("Webhook request failed: " .. tostring(response))
                     end
                 elseif HttpService.HttpEnabled then
                     local postSuccess, postResult = pcall(function()
@@ -694,11 +681,7 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = randomIcon}) do
                     
                     if postSuccess and postResult then
                         return {Success = true, StatusCode = 200, Body = postResult}
-                    else
-                        error("HttpPost failed: " .. tostring(postResult))
                     end
-                else
-                    error("No HTTP method available. Make sure you're using a supported exploit.")
                 end
             end)
             
