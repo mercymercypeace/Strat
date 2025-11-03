@@ -263,16 +263,13 @@ do
 						for _, obj in pairs(SaveTheme[name]) do
 							if obj:IsA("Frame") or obj:IsA("CanvasGroup") then
 								obj.BackgroundColor3 = color
-								-- Apply glass transparency to function backgrounds for Dark Glass theme
 								if isDarkGlass and (name:find("Function") or name == "Page") then
 									if obj.Name ~= "Background" and obj.Name ~= "Shadow" and not obj.Name:find("Text") and obj.Name ~= "Topbar" then
 										local currentTrans = obj.BackgroundTransparency
-										-- Apply glass transparency - more transparent for glass morphism
 										if currentTrans == 0 or (currentTrans < 0.3 and currentTrans >= 0) then
-											obj.BackgroundTransparency = 0.4
+											obj.BackgroundTransparency = 0.75
 										end
 										
-										-- Add subtle glass border to function elements
 										local glassBorder = obj:FindFirstChild("GlassBorder")
 										if not glassBorder then
 											glassBorder = Instance.new("UIStroke")
@@ -287,7 +284,6 @@ do
 										end
 									end
 								else
-									-- Remove glass borders when not Dark Glass
 									local glassBorder = obj:FindFirstChild("GlassBorder")
 									if glassBorder then
 										glassBorder.Visible = false
@@ -2780,7 +2776,6 @@ function Library:Window(p)
 			ImageLabel_1.ImageTransparency = 0.5
 
 			UIGradient_1.Parent = Code
-			--UIGradient_1.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(216, 150, 179)), ColorSequenceKeypoint.new(1, Color3.fromRGB(105, 81, 164))}
 			UIGradient_1.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(29, 28, 38)), ColorSequenceKeypoint.new(1, Color3.fromRGB(29, 28, 38))}
 			UIGradient_1.Rotation = 45
 
@@ -2840,7 +2835,7 @@ function Library:Window(p)
 					boolean = Color3.fromHex("#79c0ff"),
 					operator = Color3.fromHex("#ff7b72"),
 					lua = Color3.fromHex("#ff7b72"),
-					rbx = Color3.fromHex("#7fcfef"), -- def
+					rbx = Color3.fromHex("#7fcfef"),
 					str = Color3.fromHex("#a5d6ff"),
 					comment = Color3.fromHex("#8b949e"),
 					null = Color3.fromHex("#79c0ff"),
@@ -4726,24 +4721,18 @@ function Library:Window(p)
 
 		local isMinimized = false
 		local fullSize = Shadow_1.Size
-		local minimizedSize = UDim2.new(0, Shadow_1.Size.X.Offset, 0, 43) -- Topbar (42) + horizontal line (1)
+		local minimizedSize = UDim2.new(0, Shadow_1.Size.X.Offset, 0, 43)
 
-		-- Minimize button (-): Hide content, stop at horizontal line below topbar (43 pixels)
 		Minisize_1.MouseButton1Click:Connect(function()
 			if not isMinimized then
-				-- Store full size before minimizing
 				fullSize = Shadow_1.Size
 				
-				-- Calculate minimized size (topbar 42 + horizontal line 1 = 43)
 				local currentWidth = Shadow_1.Size.X.Offset
 				minimizedSize = UDim2.new(0, currentWidth, 0, 43)
 				
-				-- Hide content but keep topbar and horizontal line visible
 				Page_1.Visible = false
 				TabP_1.Visible = false
-				-- Keep SidebarTopLine visible (it's the horizontal line)
 				
-				-- Animate to minimized size (stops at horizontal line)
 				tw({
 					v = Shadow_1,
 					t = 0.3,
@@ -4756,11 +4745,9 @@ function Library:Window(p)
 				
 				isMinimized = true
 			else
-				-- Restore full size and show content
 				Page_1.Visible = true
 				TabP_1.Visible = true
 				
-				-- Animate back to full size
 				tw({
 					v = Shadow_1,
 					t = 0.3,
@@ -4775,7 +4762,6 @@ function Library:Window(p)
 			end
 		end)
 
-		-- Close button: Close the GUI and show draggable button
 		ChSize_1.MouseButton1Click:Connect(function()
 			if not CloseUIShadowRef then
 				CloseUIShadowRef = ScreenGui:FindFirstChild("CloseUIShadow")
@@ -4832,13 +4818,11 @@ function Library:Window(p)
 				local nH = math.max(220, i.Position.Y - Shadow_1.AbsolutePosition.Y)
 				local nZ = UDim2.new(0, nW, 0, nH)
 				tw({v = Shadow_1, t = 0.05, s = Enum.EasingStyle.Exponential, d = "Out", g = {Size = nZ}}):Play()
-				-- Update fullSize if resizing while not minimized
 				fullSize = nZ
 				tw({v = SizeFrame, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {BackgroundTransparency = 0.6}}):Play()
 				tw({v = ImageLabel_1, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {ImageTransparency = 0}}):Play()
 				ImageLabel_1.Image = 'rbxassetid://13857987062'	
 			elseif isMinimized and R and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-				-- When minimized, only allow resizing width, keep height at 43 (topbar + line)
 				local nW = math.max(450, i.Position.X - Shadow_1.AbsolutePosition.X)
 				local nZ = UDim2.new(0, nW, 0, 43)
 				tw({v = Shadow_1, t = 0.05, s = Enum.EasingStyle.Exponential, d = "Out", g = {Size = nZ}}):Play()
@@ -4999,9 +4983,7 @@ function Library:Window(p)
 				}
 			}, isDarkGlass)
 			
-			-- Apply glass effect for Dark Glass theme
 			if v == 'Dark Glass' then
-				-- Enable blur effect in Lighting for glass morphism
 				local Lighting = game:GetService("Lighting")
 				local existingBlur = Lighting:FindFirstChild("UIBlur_DarkGlass")
 				
@@ -5016,19 +4998,15 @@ function Library:Window(p)
 					existingBlur.Enabled = true
 				end
 				
-				-- Apply high transparency to main background for true glass effect
-				Background_1.BackgroundTransparency = 0.5
+				Background_1.BackgroundTransparency = 0.85
 				Background_1.GroupTransparency = 0
 				
-				-- Apply transparency to Shadow for glass effect
-				Shadow_1.ImageTransparency = 0.4
+				Shadow_1.ImageTransparency = 0.8
 				
-				-- Apply glass transparency to Page background
 				if Page_1 then
-					Page_1.BackgroundTransparency = 0.6
+					Page_1.BackgroundTransparency = 0.9
 				end
 				
-				-- Add glass border effect to main background
 				local glassStroke = Background_1:FindFirstChild("GlassStroke")
 				if not glassStroke then
 					glassStroke = Instance.new("UIStroke")
@@ -5043,7 +5021,6 @@ function Library:Window(p)
 				end
 				
 			else
-				-- Disable blur and reset transparency for other themes
 				local Lighting = game:GetService("Lighting")
 				local existingBlur = Lighting:FindFirstChild("UIBlur_DarkGlass")
 				if existingBlur then
@@ -5053,12 +5030,10 @@ function Library:Window(p)
 				Background_1.BackgroundTransparency = 0
 				Shadow_1.ImageTransparency = 0.8
 				
-				-- Reset Page transparency
 				if Page_1 then
 					Page_1.BackgroundTransparency = 1
 				end
 				
-				-- Hide glass border
 				local glassStroke = Background_1:FindFirstChild("GlassStroke")
 				if glassStroke then
 					glassStroke.Visible = false
@@ -5067,7 +5042,6 @@ function Library:Window(p)
 		end
 		local ThemeDrop = addDropdownSelect(DropdownValue_1, DropdownValue_1, false, CallTheme, Theme, themes.index)
 		
-		-- Apply initial theme (including glass effect if Dark Glass is selected)
 		CallTheme(Theme)
 
 		if DiscordButton and DiscordLink then
@@ -5198,7 +5172,6 @@ function Library:Window(p)
 		end
 	end
 
-	-- Announcement System
 	local HttpService = game:GetService("HttpService")
 	local Players = game:GetService("Players")
 	local StarterGui = game:GetService("StarterGui")
@@ -5206,8 +5179,8 @@ function Library:Window(p)
 	
 	if player then
 		local client_id = tostring(player.UserId)
-		local BASE_URL = "http://128.199.10.44:5000/"
-		local API_URL = BASE_URL .. "announce/receive/" .. client_id
+		local BASE_URL = "https://api.getlunarisx.cc/"
+		local API_URL = BASE_URL .. "/announce/receive/" .. client_id
 		
 		local function pollAnnouncements()
 			while true do
@@ -5227,7 +5200,6 @@ function Library:Window(p)
 								Tabs.ReceivedAnnouncements[id] = true
 								Tabs.Announcements[id] = tostring(message)
 								
-								-- Add message to announcement tab UI
 								task.spawn(function()
 									Tabs:AddAnnouncementToUI(tostring(message))
 								end)
@@ -5275,16 +5247,12 @@ function Library:Window(p)
 		return latestMessage
 	end
 	
-	-- Function to add message to announcement tab UI
 	function Tabs:AddAnnouncementToUI(message)
-		-- Try to find the announcement scrolling frame if not stored
 		if not Tabs.AnnouncementScrollingFrame then
-			-- Search through tabs to find Announcement tab
 			for _, tabData in pairs(Tabs.List) do
 				if tabData.Page then
 					local scrollingFrame = tabData.Page:FindFirstChild("ScrollingFrame")
 					if scrollingFrame then
-						-- Check if this tab has "Announcement" in its button
 						local tabButton = tabData.Button
 						if tabButton and tabButton:FindFirstChild("Func") then
 							local titleLabel = tabButton.Func:FindFirstChild("Title")
@@ -5353,7 +5321,6 @@ function Library:Window(p)
 			
 			addToTheme('Text & Icon', TimeLabel)
 			
-			-- Auto-scroll to bottom
 			task.wait()
 			if Tabs.AnnouncementScrollingFrame then
 				Tabs.AnnouncementScrollingFrame.CanvasPosition = Vector2.new(0, Tabs.AnnouncementScrollingFrame.AbsoluteCanvasSize.Y)

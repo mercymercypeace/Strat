@@ -109,6 +109,84 @@ end
 Window:Line()
 
 local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
+    local newUIScreenGui = nil
+    
+    local function getOldUI()
+        return game.CoreGui:FindFirstChild("LunarisX") or game.Players.LocalPlayer.PlayerGui:FindFirstChild("LunarisX")
+    end
+    
+    local function createNewUI()
+        if newUIScreenGui and newUIScreenGui.Parent then
+            newUIScreenGui:Destroy()
+        end
+        
+        local success, result = pcall(function()
+            local HttpService = game:GetService("HttpService")
+            if HttpService.HttpEnabled then
+                local code = game:HttpGet("https://raw.githubusercontent.com/mercymercypeace/Strat/refs/heads/main/ui/new_ui.lua")
+                if code and code ~= "" then
+                    return loadstring(code)()
+                end
+            end
+            return nil
+        end)
+        
+        if success and result then
+            newUIScreenGui = result
+        else
+            Window:Notify({
+                Title = "Error",
+                Desc = "failed to load new ui. make sure new_ui.lua is uploaded.",
+                Time = 4,
+                Type = "error"
+            })
+        end
+    end
+    
+    Settings:Section({Title = "UI Changer"})
+    local UISwitcher = Settings:Dropdown({
+        Title = "UI Changer",
+        Desc = "switch between ui versions",
+        List = {"Current UI", "New UI"},
+        Value = "Current UI",
+        Callback = function(choice)
+            local oldUI = getOldUI()
+            
+            if choice == "Current UI" then
+                if oldUI then
+                    oldUI.Enabled = true
+                end
+                if newUIScreenGui and newUIScreenGui.Parent then
+                    newUIScreenGui:Destroy()
+                    newUIScreenGui = nil
+                end
+                Window:Notify({
+                    Title = "UI Switched",
+                    Desc = "switched to current ui",
+                    Time = 2,
+                    Type = "normal"
+                })
+            elseif choice == "New UI" then
+                if oldUI then
+                    oldUI.Enabled = false
+                end
+                task.wait(0.1)
+                createNewUI()
+                if newUIScreenGui then
+                    task.spawn(function()
+                        task.wait(0.5)
+                        Window:Notify({
+                            Title = "UI Switched",
+                            Desc = "switched to new ui",
+                            Time = 2,
+                            Type = "normal"
+                        })
+                    end)
+                end
+            end
+        end
+    })
+
     Settings:Section({Title = "Show Message"})
     Settings:Button({
         Title = "Show Message",
@@ -166,8 +244,10 @@ end
 
 Window:Line()
 
-local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
-    local url = "" -- Local URL variable for webhook
+local icons = {"star", "bell", "tag", "wrench", "message", "code", "settings", "home", "user", "heart"}
+local randomIcon = icons[math.random(1, #icons)]
+local WebhookTab = Window:Tab({Title = "Webhook", Icon = randomIcon}) do
+    local url = ""
     
     WebhookTab:Section({Title = "Webhook Configuration"})
     local WebhookUrlInput = WebhookTab:Textbox({
@@ -219,7 +299,6 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
             
             local HttpService = game:GetService("HttpService")
             
-            -- Check if HTTP services are enabled
             if not HttpService.HttpEnabled then
                 Window:Notify({
                     Title = "HTTP Disabled",
@@ -236,11 +315,8 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
                     username = "LunarisX Test"
                 }
                 local json = HttpService:JSONEncode(data)
-                
-                -- Use local url variable
                 local link = url
                 
-                -- Try HttpPost method (older, might still work even if newer methods are disabled)
                 local postSuccess, postResult = pcall(function()
                     return HttpService:HttpPost(link, json, Enum.HttpContentType.ApplicationJson, false)
                 end)
@@ -249,12 +325,10 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
                     return {Success = true, StatusCode = 200, Body = postResult}
                 end
                 
-                -- If HttpPost fails, all HTTP POST methods are likely disabled
                 error("HttpPost failed: " .. tostring(postResult))
             end)
             
             if success then
-                -- Successfully sent webhook
                 Window:Notify({
                     Title = "Success",
                     Desc = "Webhook test sent successfully!",
@@ -262,7 +336,6 @@ local WebhookTab = Window:Tab({Title = "Webhook", Icon = "message"}) do
                     Type = "normal"
                 })
             else
-                -- Check error type
                 local errorMsg = tostring(result)
                 if errorMsg:find("disabled") or errorMsg:find("security") or errorMsg:find("PostAsync") or errorMsg:find("RequestAsync") or errorMsg:find("GetAsync") or errorMsg:find("HttpPost") then
                     Window:Notify({
@@ -286,32 +359,26 @@ end
 
 Window:Line()
 
-local AnnouncementTab = Window:Tab({Title = "Announcement", Icon = "bell"}) do
-    -- Find the ScrollingFrame for this tab (it's created inside InPage_1)
+local AnnouncementTab = Window:Tab({Title = "Announce", Icon = "bell"}) do
     task.spawn(function()
-        task.wait(0.2) -- Wait for tab to be fully created
+        task.wait(0.2)
         
-        -- Find the Announcement tab's page by searching through tabs
         local tabs = Window.List
         for _, tabData in pairs(tabs) do
             if tabData.Page and tabData.Button then
-                -- Check if this is the Announcement tab
                 local tabButton = tabData.Button
                 local funcFrame = tabButton:FindFirstChild("Func")
                 if funcFrame then
                     local titleLabel = funcFrame:FindFirstChild("Title")
-                    if titleLabel and titleLabel.Text == "Announcement" then
+                    if titleLabel and titleLabel.Text == "Announce" then
                         local scrollingFrame = tabData.Page:FindFirstChild("ScrollingFrame")
                         if scrollingFrame then
-                            -- Store reference in Window (which is Tabs)
                             Window.AnnouncementScrollingFrame = scrollingFrame
                             
-                            -- Make it fill the entire page for chat display
                             scrollingFrame.Size = UDim2.new(1, 0, 1, 0)
                             scrollingFrame.Position = UDim2.new(0, 0, 0, 0)
                             scrollingFrame.ScrollBarThickness = 4
                             
-                            -- Clear existing padding that might interfere
                             local existingPadding = scrollingFrame:FindFirstChild("UIPadding")
                             if existingPadding then
                                 existingPadding:Destroy()
@@ -324,7 +391,6 @@ local AnnouncementTab = Window:Tab({Title = "Announcement", Icon = "bell"}) do
                             announcementUIPadding.PaddingRight = UDim.new(0, 10)
                             announcementUIPadding.PaddingTop = UDim.new(0, 10)
                             
-                            -- Update canvas size when content changes
                             local listLayout = scrollingFrame:FindFirstChild("UIListLayout")
                             if listLayout then
                                 listLayout.Padding = UDim.new(0, 8)
@@ -333,7 +399,6 @@ local AnnouncementTab = Window:Tab({Title = "Announcement", Icon = "bell"}) do
                                 end)
                             end
                             
-                            -- Load existing announcements
                             task.wait(0.1)
                             local announcements = Window:GetAnnouncements()
                             for id, message in pairs(announcements) do
