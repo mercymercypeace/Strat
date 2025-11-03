@@ -262,18 +262,22 @@ do
 	end
 	function Library:setTheme(st, isDarkGlass)
 		for name, objs in pairs(SaveTheme) do
-			local color = getColorFromPath(st, name)
-			if color then
-				for _, obj in pairs(objs) do
-					if SaveTheme[name] then
-						for _, obj in pairs(SaveTheme[name]) do
+			if not objs or #objs == 0 then
+			else
+				local color = getColorFromPath(st, name)
+				if color then
+					local isFunctionPage = isDarkGlass and (name:find("Function") or name == "Page" or name == "Background")
+					for _, obj in pairs(objs) do
+						if not obj or not obj.Parent then
+						else
 							if obj:IsA("Frame") or obj:IsA("CanvasGroup") then
 								obj.BackgroundColor3 = color
-								if isDarkGlass and (name:find("Function") or name == "Page") then
-									if obj.Name ~= "Background" and obj.Name ~= "Shadow" and not obj.Name:find("Text") and obj.Name ~= "Topbar" then
+								if isFunctionPage then
+									local objName = obj.Name
+									if objName ~= "Background" and objName ~= "Shadow" and not objName:find("Text") and objName ~= "Topbar" and objName ~= "TabP" and objName ~= "InPage" then
 										local currentTrans = obj.BackgroundTransparency
-										if currentTrans == 0 or (currentTrans < 0.3 and currentTrans >= 0) then
-											obj.BackgroundTransparency = 0.8
+										if currentTrans == 0 or (currentTrans < 0.8 and currentTrans >= 0) then
+											obj.BackgroundTransparency = 0.92
 										end
 										
 										local glassBorder = obj:FindFirstChild("GlassBorder")
@@ -282,11 +286,11 @@ do
 											glassBorder.Name = "GlassBorder"
 											glassBorder.Parent = obj
 											glassBorder.Color = Color3.fromRGB(255, 255, 255)
-											glassBorder.Transparency = 0.8
-											glassBorder.Thickness = 0.8
+											glassBorder.Transparency = 0.65
+											glassBorder.Thickness = 1.8
 										else
-											glassBorder.Transparency = 0.8
-											glassBorder.Thickness = 0.8
+											glassBorder.Transparency = 0.65
+											glassBorder.Thickness = 1.8
 											glassBorder.Visible = true
 										end
 									end
@@ -295,10 +299,8 @@ do
 									if glassBorder then
 										glassBorder.Visible = false
 									end
-									if isDarkGlass == false and obj.BackgroundTransparency then
-										if obj.BackgroundTransparency > 0.7 and obj.BackgroundTransparency < 1 then
-											obj.BackgroundTransparency = 0
-										end
+									if not isDarkGlass and obj.BackgroundTransparency and obj.BackgroundTransparency > 0.7 and obj.BackgroundTransparency < 1 then
+										obj.BackgroundTransparency = 0
 									end
 								end
 							elseif obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
@@ -871,15 +873,16 @@ do
 
 		local isopen = false
 
-		local function updateDropdownSize()
-			if not isopen then return end
+				local function updateDropdownSize()
+					if not isopen then return end
 
-			local visibleCount = 0
-			for i, v in pairs(ScrollingFrame_1:GetChildren()) do
-				if v:IsA("Frame") and v.Visible then
-					visibleCount = visibleCount + 1
-				end
-			end
+					local visibleCount = 0
+					local children = ScrollingFrame_1:GetChildren()
+					for i, v in pairs(children) do
+						if v:IsA("Frame") and v.Visible then
+							visibleCount = visibleCount + 1
+						end
+					end
 
 			local contentHeight = (UIListLayout_1.AbsoluteContentSize.Y + 54)
 			if contentHeight > 200 then
@@ -889,23 +892,24 @@ do
 			tw({v = DropdownSelect, t = 0.15, s = Enum.EasingStyle.Exponential, d = "Out", g = {Size = UDim2.new(0, 150, 0, contentHeight)}}):Play()
 		end
 
-		TextBox_1.Changed:Connect(function()
-			local SearchT = string.lower(TextBox_1.Text)
-			for i, v in pairs(ScrollingFrame_1:GetChildren()) do
-				if v:IsA("Frame") then
-					if SearchT ~= "" and v:FindFirstChild("TextLabel") then
-						if string.find(string.lower(v.TextLabel.Text), SearchT) then
-							v.Visible = true
-						else
-							v.Visible = false
+				TextBox_1.Changed:Connect(function()
+					local SearchT = string.lower(TextBox_1.Text)
+					local children = ScrollingFrame_1:GetChildren()
+					local hasSearch = SearchT ~= ""
+					for i, v in pairs(children) do
+						if v:IsA("Frame") then
+							if hasSearch then
+								local textLabel = v:FindFirstChild("TextLabel")
+								if textLabel then
+									v.Visible = string.find(string.lower(textLabel.Text), SearchT) ~= nil
+								end
+							else
+								v.Visible = true
+							end
 						end
-					else
-						v.Visible = true
 					end
-				end
-			end
-			updateDropdownSize()
-		end)
+					updateDropdownSize()
+				end)
 
 		local function open()
 			if isopen then
@@ -980,12 +984,16 @@ do
 				pcall(Callback ,selectedValues)
 			end
 
-			for _, v in ipairs(ScrollingFrame_1:GetChildren()) do
+			local children = ScrollingFrame_1:GetChildren()
+			for _, v in ipairs(children) do
 				if v:IsA("Frame") and shouldClear(v) then
-					if selectedItem and v:FindFirstChild("TextLabel") and v.TextLabel.Text == selectedItem then
-						selectedItem = nil
-						TextLabelValue_1.Text = "--"
-						pcall(Callback, TextLabelValue_1.Text)
+					if selectedItem then
+						local textLabel = v:FindFirstChild("TextLabel")
+						if textLabel and textLabel.Text == selectedItem then
+							selectedItem = nil
+							TextLabelValue_1.Text = "--"
+							pcall(Callback, TextLabelValue_1.Text)
+						end
 					end
 					v:Destroy()
 				end
@@ -1064,9 +1072,13 @@ do
 					end
 					pcall(Callback, selectedList)
 				else
-					for i,v in pairs(ScrollingFrame_1:GetChildren()) do
+					local children = ScrollingFrame_1:GetChildren()
+					for i,v in pairs(children) do
 						if v:IsA("Frame") then
-							tw({v = v.TextLabel, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {TextTransparency = 0.8}}):Play()
+							local textLabel = v:FindFirstChild("TextLabel")
+							if textLabel then
+								tw({v = textLabel, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {TextTransparency = 0.8}}):Play()
+							end
 						end
 					end
 					hasselect()
@@ -1134,12 +1146,16 @@ do
 			else
 				Value = value
 				TextLabelValue_1.Text = value
-				for _, v in ipairs(ScrollingFrame_1:GetChildren()) do
-					if v:IsA("Frame") and v:FindFirstChild("TextLabel") then
-						if v.TextLabel.Text == value then
-							tw({v = v.TextLabel, t = 0.05, s = Enum.EasingStyle.Exponential, d = "Out", g = {TextTransparency = 0}}):Play()
-						else
-							tw({v = v.TextLabel, t = 0.05, s = Enum.EasingStyle.Exponential, d = "Out", g = {TextTransparency = 0.8}}):Play()
+				local children = ScrollingFrame_1:GetChildren()
+				for _, v in ipairs(children) do
+					if v:IsA("Frame") then
+						local textLabel = v:FindFirstChild("TextLabel")
+						if textLabel then
+							if textLabel.Text == value then
+								tw({v = textLabel, t = 0.05, s = Enum.EasingStyle.Exponential, d = "Out", g = {TextTransparency = 0}}):Play()
+							else
+								tw({v = textLabel, t = 0.05, s = Enum.EasingStyle.Exponential, d = "Out", g = {TextTransparency = 0.8}}):Play()
+							end
 						end
 					end
 				end
@@ -1862,7 +1878,7 @@ function Library:Window(p)
 		local function chg()
 			for i, v in pairs(self.List) do
 				if v.Page then
-					v.Page.Visible = false
+				v.Page.Visible = false
 				end
 				for i, v in pairs(ScrollingFrame_1:GetChildren()) do
 					if v:IsA('Frame') and v:FindFirstChild('Background') then
@@ -1871,39 +1887,52 @@ function Library:Window(p)
 					end
 				end
 				task.spawn(function()
-					for i, v in next, ScrollingFrame_1:GetChildren() do
-						if v:IsA('Frame') and v:FindFirstChild('Background') then
-							tw({
-								v = v.Background,
-								t = 0.3,
-								s = Enum.EasingStyle.Exponential,
-								d = "InOut",
-								g = {AnchorPoint = Vector2.new(0 ,0)}
-							}):Play()
-							task.wait(.05)
+					local children = ScrollingFrame_1:GetChildren()
+					for i, v in next, children do
+						if v:IsA('Frame') then
+							local bg = v:FindFirstChild('Background')
+							if bg then
+								tw({
+									v = bg,
+									t = 0.3,
+									s = Enum.EasingStyle.Exponential,
+									d = "InOut",
+									g = {AnchorPoint = Vector2.new(0 ,0)}
+								}):Play()
+							end
 						end
 					end
 				end)
 				if InPage_1 then
-					InPage_1.Visible = true
+				InPage_1.Visible = true
 				end
 			end
-			for i, v in pairs(TabList_1:GetChildren()) do
+			local tabChildren = TabList_1:GetChildren()
+			for i, v in pairs(tabChildren) do
 				if v:IsA('Frame') and v.Name ~= 'Line' then
-					tw({
-						v = v.Func.Title,
-						t = 0.15,
-						s = Enum.EasingStyle.Linear,
-						d = "InOut",
-						g = {TextTransparency = 0.7}
-					}):Play()
-					tw({
-						v = v.Func.ImageLabel,
-						t = 0.15,
-						s = Enum.EasingStyle.Linear,
-						d = "InOut",
-						g = {ImageTransparency = 0.7}
-					}):Play()
+					local func = v:FindFirstChild("Func")
+					if func then
+						local title = func:FindFirstChild("Title")
+						local imageLabel = func:FindFirstChild("ImageLabel")
+						if title then
+							tw({
+								v = title,
+								t = 0.15,
+								s = Enum.EasingStyle.Linear,
+								d = "InOut",
+								g = {TextTransparency = 0.7}
+							}):Play()
+						end
+						if imageLabel then
+							tw({
+								v = imageLabel,
+								t = 0.15,
+								s = Enum.EasingStyle.Linear,
+								d = "InOut",
+								g = {ImageTransparency = 0.7}
+							}):Play()
+						end
+					end
 				end
 			end
 			tw({
@@ -5036,11 +5065,11 @@ function Library:Window(p)
 				if not existingBlur then
 					local BlurEffect = Instance.new("BlurEffect")
 					BlurEffect.Name = "UIBlur_DarkGlass"
-					BlurEffect.Size = 30
+					BlurEffect.Size = 50
 					BlurEffect.Enabled = true
 					BlurEffect.Parent = Lighting
 				else
-					existingBlur.Size = 30
+					existingBlur.Size = 50
 					existingBlur.Enabled = true
 				end
 				
@@ -5048,12 +5077,12 @@ function Library:Window(p)
 					Background_1.GroupTransparency = 0
 				end
 				
-				Background_1.BackgroundTransparency = 0.9
+				Background_1.BackgroundTransparency = 0.95
 				
-				Shadow_1.ImageTransparency = 0.85
+				Shadow_1.ImageTransparency = 0.92
 				
 				if Page_1 then
-					Page_1.BackgroundTransparency = 0.92
+					Page_1.BackgroundTransparency = 0.96
 				end
 				
 				local glassStroke = Background_1:FindFirstChild("GlassStroke")
@@ -5062,13 +5091,73 @@ function Library:Window(p)
 					glassStroke.Name = "GlassStroke"
 					glassStroke.Parent = Background_1
 					glassStroke.Color = Color3.fromRGB(255, 255, 255)
-					glassStroke.Transparency = 0.7
-					glassStroke.Thickness = 1.5
+					glassStroke.Transparency = 0.6
+					glassStroke.Thickness = 2
 				else
-					glassStroke.Transparency = 0.7
-					glassStroke.Thickness = 1.5
+					glassStroke.Transparency = 0.6
+					glassStroke.Thickness = 2
 					glassStroke.Visible = true
 				end
+				
+				local RunService = game:GetService("RunService")
+				task.spawn(function()
+					task.wait(0.3)
+					local descendants = Background_1:GetDescendants()
+					local frames = {}
+					local scrollingFrames = {}
+					local canvasGroups = {}
+					local imageLabels = {}
+					
+					for _, descendant in pairs(descendants) do
+						if descendant:IsA("Frame") and descendant ~= Background_1 and descendant ~= Page_1 then
+							local name = descendant.Name
+							if name ~= "Topbar" and not name:find("Close") and not name:find("Size") and not name:find("Dialog") then
+								table.insert(frames, descendant)
+							end
+						elseif descendant:IsA("ScrollingFrame") then
+							table.insert(scrollingFrames, descendant)
+						elseif descendant:IsA("CanvasGroup") and descendant ~= Background_1 then
+							table.insert(canvasGroups, descendant)
+						elseif descendant:IsA("ImageLabel") and descendant ~= Shadow_1 then
+							table.insert(imageLabels, descendant)
+						end
+					end
+					
+					for _, frame in pairs(frames) do
+						if frame.Name == "InPage" then
+							frame.BackgroundTransparency = 0.94
+						elseif frame.BackgroundTransparency == 0 or frame.BackgroundTransparency < 0.85 then
+							frame.BackgroundTransparency = 0.9
+						end
+					end
+					
+					for _, scrollingFrame in pairs(scrollingFrames) do
+						if scrollingFrame.BackgroundTransparency == 0 or scrollingFrame.BackgroundTransparency < 0.85 then
+							scrollingFrame.BackgroundTransparency = 0.92
+						end
+					end
+					
+					for _, canvasGroup in pairs(canvasGroups) do
+						if canvasGroup.GroupTransparency == 0 or canvasGroup.GroupTransparency < 0.85 then
+							canvasGroup.GroupTransparency = 0.88
+						end
+					end
+					
+					for _, imageLabel in pairs(imageLabels) do
+						if imageLabel.ImageTransparency == 0 or imageLabel.ImageTransparency < 0.85 then
+							imageLabel.ImageTransparency = 0.9
+						end
+					end
+					
+					for _, tabData in pairs(Tabs.List) do
+						if tabData.Page then
+							local inPage = tabData.Page:FindFirstChild("InPage")
+							if inPage and inPage.BackgroundTransparency < 0.9 then
+								inPage.BackgroundTransparency = 0.94
+							end
+						end
+					end
+				end)
 				
 				Shadow_1.Visible = true
 				
@@ -5094,6 +5183,27 @@ function Library:Window(p)
 				if glassStroke then
 					glassStroke.Visible = false
 				end
+				
+				task.spawn(function()
+					task.wait(0.1)
+					local descendants = ScreenGui:GetDescendants()
+					for _, descendant in pairs(descendants) do
+						if descendant:IsA("Frame") or descendant:IsA("CanvasGroup") then
+							local glassBorder = descendant:FindFirstChild("GlassBorder")
+							if glassBorder then
+								glassBorder.Visible = false
+							end
+							local bgTrans = descendant.BackgroundTransparency
+							if bgTrans and bgTrans > 0.7 and bgTrans < 1 then
+								descendant.BackgroundTransparency = 0
+							end
+							local groupTrans = descendant.GroupTransparency
+							if groupTrans and groupTrans > 0.7 and groupTrans < 1 then
+								descendant.GroupTransparency = 0
+							end
+						end
+					end
+				end)
 				
 				Shadow_1.Visible = true
 			end
@@ -5265,11 +5375,9 @@ function Library:Window(p)
 						end
 						
 						task.spawn(function()
-							task.wait(1)
-							for id, message in pairs(Tabs.Announcements) do
-								task.spawn(function()
-									Tabs:AddAnnouncementToUI(message)
-								end)
+							task.wait(1.5)
+							for id, message in pairs(savedData.Announcements) do
+								Tabs:AddAnnouncementToUI(message)
 							end
 						end)
 					end
@@ -5293,7 +5401,7 @@ function Library:Window(p)
 		loadAnnouncements()
 		
 		task.spawn(function()
-			task.wait(2)
+			task.wait(2.5)
 			if readfile then
 				local success, fileData = pcall(function()
 					return readfile(saveFilePath)
@@ -5306,7 +5414,11 @@ function Library:Window(p)
 					
 					if success2 and savedData and type(savedData.Announcements) == "table" then
 						for id, message in pairs(savedData.Announcements) do
-							Tabs:AddAnnouncementToUI(message)
+							if not Tabs.Announcements[id] then
+								Tabs.Announcements[id] = message
+								Tabs.ReceivedAnnouncements[id] = true
+								Tabs:AddAnnouncementToUI(message)
+							end
 						end
 					end
 				end
@@ -5352,21 +5464,12 @@ function Library:Window(p)
 					end)
 					
 					if announcements and type(announcements) == "table" then
+						local hasNew = false
 						for id, message in pairs(announcements) do
 							if not Tabs.ReceivedAnnouncements[id] then
 								Tabs.ReceivedAnnouncements[id] = true
 								Tabs.Announcements[id] = tostring(message)
-								
-								if writefile then
-									local saveData = {
-										Announcements = Tabs.Announcements,
-										ReceivedAnnouncements = Tabs.ReceivedAnnouncements
-									}
-									pcall(function()
-										local json = HttpService:JSONEncode(saveData)
-										writefile(saveFilePath, json)
-									end)
-								end
+								hasNew = true
 								
 								task.spawn(function()
 									Tabs:AddAnnouncementToUI(tostring(message))
@@ -5382,9 +5485,22 @@ function Library:Window(p)
 								end)
 							end
 						end
+						
+						if hasNew and writefile then
+							task.spawn(function()
+								local saveData = {
+									Announcements = Tabs.Announcements,
+									ReceivedAnnouncements = Tabs.ReceivedAnnouncements
+								}
+								pcall(function()
+									local json = HttpService:JSONEncode(saveData)
+									writefile(saveFilePath, json)
+								end)
+							end)
+						end
 					end
 				end
-				task.wait(2)
+				task.wait(3)
 			end
 		end
 		

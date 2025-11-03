@@ -240,8 +240,9 @@ if not getgenv().LunarisX then
 end
 
 local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
-	MacroTab:Section({Title = "Macro Configuration"})
+	MacroTab:Section({Title = "Auto farm"})
 	
+	MacroTab:Label({Title = "Macro Url"})
 	local MacroUrlInput = MacroTab:Textbox({
 		Title = "Macro URL",
 		Desc = "enter the raw link to your macro script",
@@ -261,7 +262,7 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		end
 	})
 	
-	MacroTab:Section({Title = "Wave Settings"})
+	MacroTab:Label({Title = "Wave Settings"})
 	local AtWaveInput = MacroTab:Textbox({
 		Title = "At Wave",
 		Desc = "set the wave number (1-50)",
@@ -289,7 +290,7 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		end
 	})
 	
-	MacroTab:Section({Title = "Tower Settings"})
+	MacroTab:Label({Title = "Settings"})
 	local SellAllTowerToggle = MacroTab:Toggle({
 		Title = "Sell All Tower",
 		Desc = "toggle to sell all towers",
@@ -299,7 +300,6 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		end
 	})
 	
-	MacroTab:Section({Title = "Run Macro"})
 	MacroTab:Button({
 		Title = "Run",
 		Desc = "run the macro script with current settings",
@@ -549,11 +549,55 @@ local AnnouncementTab = Window:Tab({Title = "Announce", Icon = "bell"}) do
                                 end)
                             end
                             
-                            task.wait(0.1)
-                            local announcements = Window:GetAnnouncements()
-                            for id, message in pairs(announcements) do
-                                Window:AddAnnouncementToUI(message)
+                            local function loadSavedAnnouncements()
+                                if readfile then
+                                    local Players = game:GetService("Players")
+                                    local HttpService = game:GetService("HttpService")
+                                    local localPlayer = Players.LocalPlayer
+                                    if localPlayer then
+                                        local client_id = tostring(localPlayer.UserId)
+                                        local saveFilePath = "LunarisX_Announcements_" .. client_id .. ".json"
+                                        local success, fileData = pcall(function()
+                                            return readfile(saveFilePath)
+                                        end)
+                                        
+                                        if success and fileData and fileData ~= "" then
+                                            local success2, savedData = pcall(function()
+                                                return HttpService:JSONDecode(fileData)
+                                            end)
+                                            
+                                            if success2 and savedData and type(savedData.Announcements) == "table" then
+                                                for _, child in pairs(scrollingFrame:GetChildren()) do
+                                                    if child:IsA("Frame") and child.Name == "AnnouncementMessage" then
+                                                        child:Destroy()
+                                                    end
+                                                end
+                                                
+                                                local sortedIds = {}
+                                                for id, _ in pairs(savedData.Announcements) do
+                                                    table.insert(sortedIds, tonumber(id) or 0)
+                                                end
+                                                table.sort(sortedIds)
+                                                
+                                                for _, id in ipairs(sortedIds) do
+                                                    local message = savedData.Announcements[tostring(id)]
+                                                    if message then
+                                                        Window:AddAnnouncementToUI(message)
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
                             end
+                            
+                            task.wait(0.1)
+                            loadSavedAnnouncements()
+                            
+                            tabButton.MouseButton1Click:Connect(function()
+                                task.wait(0.2)
+                                loadSavedAnnouncements()
+                            end)
                             
                             break
                         end
@@ -566,20 +610,111 @@ end
 
 Window:Line()
 
-local UpdateTab = Window:Tab({Title = "Update", Icon = "settings"}) do
-    UpdateTab:Section({Title = "Check for Updates"})
-    UpdateTab:Button({
-        Title = "Check Updates",
-        Desc = "check for latest version",
-        Callback = function()
-            Window:Notify({
-                Title = "Update Check",
-                Desc = "You are on the latest version!",
-                Time = 3,
-                Type = "normal"
-            })
+local LogTab = Window:Tab({Title = "Log", Icon = "settings"}) do
+    task.spawn(function()
+        task.wait(0.2)
+        
+        local tabs = Window.List
+        local logScrollingFrame = nil
+        
+        for _, tabData in pairs(tabs) do
+            if tabData.Page and tabData.Button then
+                local tabButton = tabData.Button
+                local funcFrame = tabButton:FindFirstChild("Func")
+                if funcFrame then
+                    local titleLabel = funcFrame:FindFirstChild("Title")
+                    if titleLabel and titleLabel.Text == "Log" then
+                        local scrollingFrame = tabData.Page:FindFirstChild("ScrollingFrame")
+                        if scrollingFrame then
+                            logScrollingFrame = scrollingFrame
+                            scrollingFrame.Size = UDim2.new(1, 0, 1, 0)
+                            scrollingFrame.Position = UDim2.new(0, 0, 0, 0)
+                            scrollingFrame.ScrollBarThickness = 4
+                            
+                            local existingPadding = scrollingFrame:FindFirstChild("UIPadding")
+                            if existingPadding then
+                                existingPadding:Destroy()
+                            end
+                            
+                            local logUIPadding = Instance.new("UIPadding")
+                            logUIPadding.Parent = scrollingFrame
+                            logUIPadding.PaddingBottom = UDim.new(0, 10)
+                            logUIPadding.PaddingLeft = UDim.new(0, 10)
+                            logUIPadding.PaddingRight = UDim.new(0, 10)
+                            logUIPadding.PaddingTop = UDim.new(0, 10)
+                            
+                            local listLayout = scrollingFrame:FindFirstChild("UIListLayout")
+                            if listLayout then
+                                listLayout.Padding = UDim.new(0, 5)
+                                listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                                    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 20)
+                                end)
+                            end
+                            
+                            local function addLogEntry(text, date)
+                                if not logScrollingFrame then return end
+                                
+                                local logFrame = Instance.new("Frame")
+                                local UICorner = Instance.new("UICorner")
+                                local UIPadding = Instance.new("UIPadding")
+                                local MessageLabel = Instance.new("TextLabel")
+                                local TimeLabel = Instance.new("TextLabel")
+                                
+                                logFrame.Name = "LogEntry"
+                                logFrame.Parent = logScrollingFrame
+                                logFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+                                logFrame.BorderSizePixel = 0
+                                logFrame.Size = UDim2.new(1, -10, 0, 0)
+                                logFrame.AutomaticSize = Enum.AutomaticSize.Y
+                                
+                                UICorner.Parent = logFrame
+                                UICorner.CornerRadius = UDim.new(0, 5)
+                                
+                                UIPadding.Parent = logFrame
+                                UIPadding.PaddingBottom = UDim.new(0, 8)
+                                UIPadding.PaddingLeft = UDim.new(0, 10)
+                                UIPadding.PaddingRight = UDim.new(0, 10)
+                                UIPadding.PaddingTop = UDim.new(0, 8)
+                                
+                                MessageLabel.Name = "Message"
+                                MessageLabel.Parent = logFrame
+                                MessageLabel.BackgroundTransparency = 1
+                                MessageLabel.Size = UDim2.new(1, -60, 0, 0)
+                                MessageLabel.Font = Enum.Font.Gotham
+                                MessageLabel.Text = text
+                                MessageLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                                MessageLabel.TextSize = 12
+                                MessageLabel.TextWrapped = true
+                                MessageLabel.TextXAlignment = Enum.TextXAlignment.Left
+                                MessageLabel.TextYAlignment = Enum.TextYAlignment.Top
+                                MessageLabel.AutomaticSize = Enum.AutomaticSize.Y
+                                
+                                TimeLabel.Name = "Time"
+                                TimeLabel.Parent = logFrame
+                                TimeLabel.AnchorPoint = Vector2.new(1, 0)
+                                TimeLabel.BackgroundTransparency = 1
+                                TimeLabel.Position = UDim2.new(1, -5, 0, 5)
+                                TimeLabel.Size = UDim2.new(0, 50, 0, 10)
+                                TimeLabel.Font = Enum.Font.Gotham
+                                TimeLabel.Text = date or os.date("%m/%d")
+                                TimeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                                TimeLabel.TextTransparency = 0.5
+                                TimeLabel.TextSize = 10
+                                TimeLabel.TextXAlignment = Enum.TextXAlignment.Right
+                            end
+                            
+                            addLogEntry("Optimized The Ui", "Today")
+                            addLogEntry("Fixed webhook not working", "Today")
+                            addLogEntry("Annoucement Added YAYY", "Today")
+
+                            
+                            break
+                        end
+                    end
+                end
+            end
         end
-    })
+    end)
 end
 
 Window:Notify({
