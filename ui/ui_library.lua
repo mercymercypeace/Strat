@@ -1234,6 +1234,7 @@ function Library:Window(p)
 	Page_1.BorderColor3 = Color3.fromRGB(0,0,0)
 	Page_1.BorderSizePixel = 0
 	Page_1.Size = UDim2.new(1, 0,1, 0)
+	Page_1.Visible = true
 
 	UIPadding_2.Parent = Page_1
 	UIPadding_2.PaddingBottom = UDim.new(0,5)
@@ -1562,6 +1563,7 @@ function Library:Window(p)
 	TabP_1.BorderColor3 = Color3.fromRGB(0,0,0)
 	TabP_1.BorderSizePixel = 0
 	TabP_1.Size = UDim2.new(1, 0,1, 0)
+	TabP_1.Visible = true
 
 	Frame_6.Parent = TabP_1
 	Frame_6.BackgroundColor3 = Color3.fromRGB(255,255,255)
@@ -1569,6 +1571,7 @@ function Library:Window(p)
 	Frame_6.BorderColor3 = Color3.fromRGB(0,0,0)
 	Frame_6.BorderSizePixel = 0
 	Frame_6.Size = UDim2.new(0, 110,1, 0)
+	Frame_6.Visible = true
 
 	ScrollingFrame_2.Name = "ScrollingFrame"
 	ScrollingFrame_2.Parent = Frame_6
@@ -1578,6 +1581,7 @@ function Library:Window(p)
 	ScrollingFrame_2.BorderColor3 = Color3.fromRGB(0,0,0)
 	ScrollingFrame_2.BorderSizePixel = 0
 	ScrollingFrame_2.Size = UDim2.new(1, 0,1, 0)
+	ScrollingFrame_2.Visible = true
 	ScrollingFrame_2.ClipsDescendants = true
 	ScrollingFrame_2.AutomaticCanvasSize = Enum.AutomaticSize.None
 	ScrollingFrame_2.BottomImage = "rbxasset://textures/ui/Scroll/scroll-bottom.png"
@@ -1602,6 +1606,7 @@ function Library:Window(p)
 	TabList_1.BorderColor3 = Color3.fromRGB(0,0,0)
 	TabList_1.BorderSizePixel = 0
 	TabList_1.Size = UDim2.new(1, 0,1, 0)
+	TabList_1.Visible = true
 
 	UIListLayout_10.Parent = TabList_1
 	UIListLayout_10.SortOrder = Enum.SortOrder.LayoutOrder
@@ -1703,6 +1708,7 @@ function Library:Window(p)
 		Tab_1.BorderColor3 = Color3.fromRGB(0,0,0)
 		Tab_1.BorderSizePixel = 0
 		Tab_1.Size = UDim2.new(1, 0,0, 30)
+		Tab_1.Visible = true
 
 		Func.Name = "Func"
 		Func.Parent = Tab_1
@@ -1787,6 +1793,7 @@ function Library:Window(p)
 		ScrollingFrame_1.BorderSizePixel = 0
 		ScrollingFrame_1.Size = UDim2.new(1, 0,1, 0)
 		ScrollingFrame_1.ClipsDescendants = true
+		ScrollingFrame_1.Visible = true
 		ScrollingFrame_1.AutomaticCanvasSize = Enum.AutomaticSize.None
 		ScrollingFrame_1.BottomImage = "rbxasset://textures/ui/Scroll/scroll-bottom.png"
 		ScrollingFrame_1.CanvasPosition = Vector2.new(0, 0)
@@ -1817,6 +1824,10 @@ function Library:Window(p)
 			Button = Tab_1
 		})
 		local MyIndex = #self.List
+		
+		if MyIndex == 1 then
+			InPage_1.Visible = true
+		end
 
 		local function twSelect()
 			local scrollingFrame = Select_1.Parent
@@ -1844,7 +1855,9 @@ function Library:Window(p)
 
 		local function chg()
 			for i, v in pairs(self.List) do
-				v.Page.Visible = false
+				if v.Page then
+					v.Page.Visible = false
+				end
 				for i, v in pairs(ScrollingFrame_1:GetChildren()) do
 					if v:IsA('Frame') and v:FindFirstChild('Background') then
 						v.Background.Position = UDim2.new(0, 0, 0,0)
@@ -1865,7 +1878,9 @@ function Library:Window(p)
 						end
 					end
 				end)
-				InPage_1.Visible = true
+				if InPage_1 then
+					InPage_1.Visible = true
+				end
 			end
 			for i, v in pairs(TabList_1:GetChildren()) do
 				if v:IsA('Frame') and v.Name ~= 'Line' then
@@ -1907,7 +1922,8 @@ function Library:Window(p)
 
 		changecanvas(ScrollingFrame_1, UIListLayout_1, 5)
 
-		delay(.1, function()
+		task.spawn(function()
+			task.wait(0.1)
 			if not self.Value then
 				local total = #self.List
 				local index = self.DefaultIndex
@@ -1922,6 +1938,24 @@ function Library:Window(p)
 				end
 			end
 		end)
+		
+		if MyIndex == 1 then
+			task.spawn(function()
+				task.wait(0.15)
+				if not self.Value then
+					for i, v in pairs(self.List) do
+						if v.Page then
+							v.Page.Visible = false
+						end
+					end
+					if InPage_1 then
+						InPage_1.Visible = true
+					end
+					Page_1.Visible = true
+					self.Value = true
+				end
+			end)
+		end
 
 		local Func = {}
 		local currentSection = nil
