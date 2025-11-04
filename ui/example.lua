@@ -482,61 +482,186 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		end
 	})
 	
-	MacroTab:Section({Title = "Exploit Functions"})
-	MacroTab:Label({Title = "Available Functions"})
+	-- Recorder Section
+	MacroTab:Section({Title = "Recorder"})
 	
-	local function checkExploitFunction(funcName, func)
-		if func then
-			return funcName .. " ✓"
-		else
-			return funcName .. " ✗"
+	-- Recorder Log Box
+	local RecorderLogBox = MacroTab:Code({
+		Title = "Recorder Log",
+		Code = "-- Recorder Log\n-- Ready to start recording..."
+	})
+	
+	-- Initialize recorder if not already initialized
+	local RecorderModule = nil
+	local RecorderLogMessages = {}
+	local RecorderRecordToggle = nil
+	
+	-- Function to update recorder log
+	local function UpdateRecorderLog(message)
+		if message then
+			local timestamp = os.date("%H:%M:%S")
+			local logEntry = string.format("[%s] %s", timestamp, tostring(message))
+			table.insert(RecorderLogMessages, logEntry)
+			
+			-- Keep only last 50 log entries
+			if #RecorderLogMessages > 50 then
+				table.remove(RecorderLogMessages, 1)
+			end
+			
+			local logText = table.concat(RecorderLogMessages, "\n")
+			RecorderLogBox:SetCode(logText)
 		end
 	end
 	
-	local functionList = {
-		checkExploitFunction("getgenv()", getgenv),
-		checkExploitFunction("setclipboard()", setclipboard),
-		checkExploitFunction("readfile()", readfile),
-		checkExploitFunction("writefile()", writefile),
-		checkExploitFunction("http_request()", http_request),
-		checkExploitFunction("request()", request),
-		checkExploitFunction("syn.request()", syn and syn.request),
-		checkExploitFunction("hookfunction()", hookfunction),
-		checkExploitFunction("getrawmetatable()", getrawmetatable),
-	}
+	-- Initialize recorder module
+	task.spawn(function()
+		RecorderModule = Library:Recorder(Window)
+		if RecorderModule then
+			UpdateRecorderLog("Recorder module loaded!")
+		end
+	end)
 	
+	-- Store reference to the actual recorder's RecordToggle
+	local ActualRecorderToggle = nil
+	
+	-- Try to find the actual recorder toggle after a delay
+	task.spawn(function()
+		task.wait(1)
+		-- The recorder module creates a RecordToggle in its own tab
+		-- We'll try to access it through the Window's tab structure
+		-- Since we can't directly access it, we'll use a shared state approach
+	end)
+	
+	-- Start/Stop Recorder Toggle
+	-- This will control the actual recorder's RecordToggle
+	local RecorderToggle = MacroTab:Toggle({
+		Title = "Start Recording",
+		Desc = "Enable to start recording tower actions",
+		Value = false,
+		Callback = function(v)
+			-- Wait for recorder module to be initialized if needed
+			if not RecorderModule then
+				RecorderModule = Library:Recorder(Window)
+				task.wait(0.3)
+			end
+			
+			-- The recorder module uses IsRecording variable internally
+			-- We need to trigger the actual RecordToggle in the Recorder tab
+			-- Since RecordToggle is created in the Recorder module, we'll use a hook
+			-- Store a reference in getgenv so the recorder can access it
+			getgenv().MacroRecorderToggleValue = v
+			
+			if v then
+				-- Start recording - trigger the recorder's InitializeStratFile and set IsRecording
+				if RecorderModule and RecorderModule.SetStatus then
+					RecorderModule.SetStatus("Recording...")
+				end
+				
+				UpdateRecorderLog("Recording started!")
+				RecorderToggle:SetTitle("Stop Recording")
+				RecorderToggle:SetDesc("Disable to stop recording tower actions")
+			else
+				-- Stop recording
+				if RecorderModule and RecorderModule.SetStatus then
+					RecorderModule.SetStatus("Stopped")
+				end
+				
+				UpdateRecorderLog("Recording stopped!")
+				RecorderToggle:SetTitle("Start Recording")
+				RecorderToggle:SetDesc("Enable to start recording tower actions")
+			end
+			
+			-- Trigger the actual recorder toggle if we can find it
+			-- The recorder creates its own tab, so we need to search for it
+			task.spawn(function()
+				-- Wait a bit for the UI to be ready
+				task.wait(0.1)
+				-- Try to find the Recorder tab and its RecordToggle
+				-- This is a workaround since we can't directly access the local variable
+				-- The recorder will check getgenv().MacroRecorderToggleValue
+			end)
+		end
+	})
+	
+	-- Clear Log Button
 	MacroTab:Button({
-		Title = "Check Exploit Functions",
-		Desc = "view available exploit functions",
+		Title = "Clear Log",
+		Desc = "Clear the recorder log",
 		Callback = function()
-			local available = {}
-			local unavailable = {}
+			RecorderLogMessages = {}
+			RecorderLogBox:SetCode("-- Recorder Log\n-- Ready to start recording...")
+			UpdateRecorderLog("Log cleared!")
+		end
+	})
+	
+	-- Copy Script Button
+	MacroTab:Button({
+		Title = "Copy Script",
+		Desc = "Copy the recorded script to clipboard",
+		Callback = function()
+			local Players = game:GetService("Players")
+			local LocalPlayer = Players.LocalPlayer
+			local stratFilePath = "StrategiesX/TDS/Recorder/" .. LocalPlayer.Name .. "'s strat.txt"
 			
-			if getgenv then table.insert(available, "getgenv()") else table.insert(unavailable, "getgenv()") end
-			if setclipboard then table.insert(available, "setclipboard()") else table.insert(unavailable, "setclipboard()") end
-			if readfile then table.insert(available, "readfile()") else table.insert(unavailable, "readfile()") end
-			if writefile then table.insert(available, "writefile()") else table.insert(unavailable, "writefile()") end
-			if http_request then table.insert(available, "http_request()") else table.insert(unavailable, "http_request()") end
-			if request then table.insert(available, "request()") else table.insert(unavailable, "request()") end
-			if syn and syn.request then table.insert(available, "syn.request()") else table.insert(unavailable, "syn.request()") end
-			if hookfunction then table.insert(available, "hookfunction()") else table.insert(unavailable, "hookfunction()") end
-			if getrawmetatable then table.insert(available, "getrawmetatable()") else table.insert(unavailable, "getrawmetatable()") end
-			
-			local message = "Available: " .. #available .. "\n"
-			if #available > 0 then
-				message = message .. table.concat(available, ", ")
+			if readfile and isfile and isfile(stratFilePath) then
+				local success, fileContent = pcall(function()
+					return readfile(stratFilePath)
+				end)
+				
+				if success and fileContent then
+					if setclipboard then
+						setclipboard(fileContent)
+						UpdateRecorderLog("Script copied to clipboard!")
+						Window:Notify({
+							Title = "Success",
+							Desc = "Recorded script copied to clipboard!",
+							Time = 3,
+							Type = "normal"
+						})
+					else
+						UpdateRecorderLog("Clipboard function not available!")
+						Window:Notify({
+							Title = "Error",
+							Desc = "Clipboard function not available",
+							Time = 3,
+							Type = "error"
+						})
+					end
+				else
+					UpdateRecorderLog("Failed to read script file!")
+					Window:Notify({
+						Title = "Error",
+						Desc = "Failed to read recorded script file",
+						Time = 3,
+						Type = "error"
+					})
+				end
+			else
+				-- Try to copy log content as fallback
+				local logContent = table.concat(RecorderLogMessages, "\n")
+				if logContent and #logContent > 0 then
+					if setclipboard then
+						setclipboard(logContent)
+						UpdateRecorderLog("Log content copied to clipboard!")
+						Window:Notify({
+							Title = "Info",
+							Desc = "Log content copied (script file not found)",
+							Time = 3,
+							Type = "normal"
+						})
+					else
+						UpdateRecorderLog("Clipboard function not available!")
+					end
+				else
+					UpdateRecorderLog("No script or log content to copy!")
+					Window:Notify({
+						Title = "Error",
+						Desc = "No recorded script found. Please start recording first!",
+						Time = 3,
+						Type = "error"
+					})
+				end
 			end
-			if #unavailable > 0 then
-				message = message .. "\n\nUnavailable: " .. #unavailable .. "\n"
-				message = message .. table.concat(unavailable, ", ")
-			end
-			
-			Window:Notify({
-				Title = "Exploit Functions",
-				Desc = message,
-				Time = 8,
-				Type = "normal"
-			})
 		end
 	})
 	

@@ -5936,6 +5936,12 @@ function Library:Recorder(Window)
 		Desc = "Enable to start recording tower actions",
 		Value = false,
 		Callback = function(v)
+			-- Check if triggered from Macro tab
+			if getgenv().MacroRecorderToggleValue ~= nil then
+				v = getgenv().MacroRecorderToggleValue
+				getgenv().MacroRecorderToggleValue = nil
+			end
+			
 			IsRecording = v
 			if v then
 				recordingStartTime = os.time()
@@ -5950,6 +5956,19 @@ function Library:Recorder(Window)
 			end
 		end
 	})
+	
+	-- Sync with Macro tab toggle if it exists
+	task.spawn(function()
+		while task.wait(0.5) do
+			if getgenv().MacroRecorderToggleValue ~= nil then
+				local value = getgenv().MacroRecorderToggleValue
+				if RecordToggle and RecordToggle.Value ~= value then
+					RecordToggle:SetValue(value)
+				end
+				getgenv().MacroRecorderToggleValue = nil
+			end
+		end
+	end)
 	
 	-- Add buttons for recorder control
 	RecorderTab:Section({Title = "Actions"})
