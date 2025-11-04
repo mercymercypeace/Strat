@@ -4895,11 +4895,15 @@ function Library:Window(p)
 		
 		setupKeybindListener()
 		
+		local lastKeybindNotificationTime = 0
 		function Tabs:SetUIToggleKeybind(newKeybind)
 			Tabs.UIToggleKeybind = newKeybind
 			setupKeybindListener()
-			if not firsttime then
+			-- Only show notification if it's been more than 5 seconds since last notification
+			local currentTime = tick()
+			if not firsttime and (currentTime - lastKeybindNotificationTime) > 5 then
 				firsttime = true
+				lastKeybindNotificationTime = currentTime
 				Tabs:Notify({
 					Title = 'LunarisX',
 					Desc = 'Press the <font color="#FF77A5" size="14">('..tostring(newKeybind):gsub("Enum.KeyCode.", "")..')</font> button to hide and show the UI',
@@ -5668,6 +5672,8 @@ function Library:Recorder(Window)
 
 	RecorderTab:Section({Title = "Control"})
 	local IsRecording = false
+	-- Store in getgenv so it can be accessed from Macro tab
+	getgenv().RecorderIsRecording = false
 	local RecordToggle = nil
 
 	function SetStatus(string)
@@ -5708,7 +5714,9 @@ function Library:Recorder(Window)
 
 	local GenerateFunction = {
 		Place = function(Args, Timer, RemoteCheck)
-			if not IsRecording or IsPaused then return end
+			-- Check both local and global IsRecording
+			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
+			if not isRecActive or IsPaused then return end
 			if typeof(RemoteCheck) ~= "Instance" then
 				return
 			end
@@ -5735,7 +5743,9 @@ function Library:Recorder(Window)
 			appendstrat(`TDS:Place("{TowerName}", {Position.X}, {Position.Y}, {Position.Z}, {TimerStr}, {RotateX}, {RotateY}, {RotateZ})`)
 		end,
 		Upgrade = function(Args, Timer, RemoteCheck)
-			if not IsRecording or IsPaused then return end
+			-- Check both local and global IsRecording
+			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
+			if not isRecActive or IsPaused then return end
 			local TowerIndex = Args[4].Troop.Name
 			local PathTarget = Args[4].Path
 			if RemoteCheck ~= true then
@@ -5748,7 +5758,9 @@ function Library:Recorder(Window)
 			appendstrat(`TDS:Upgrade({TowerIndex}, {TimerStr}, {PathTarget})`)
 		end,
 		Sell = function(Args, Timer, RemoteCheck)
-			if not IsRecording or IsPaused then return end
+			-- Check both local and global IsRecording
+			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
+			if not isRecActive or IsPaused then return end
 			local TowerIndex = Args[3].Troop.Name
 			if not RemoteCheck or (TowersList[tonumber(TowerIndex)] and TowersList[tonumber(TowerIndex)].Instance:FindFirstChild("HumanoidRootPart")) then
 				SetStatus(`Sell Failed ID: {TowerIndex}`)
@@ -5760,7 +5772,9 @@ function Library:Recorder(Window)
 			appendstrat(`TDS:Sell({TowerIndex}, {TimerStr})`)
 		end,
 		Target = function(Args, Timer, RemoteCheck)
-			if not IsRecording or IsPaused then return end
+			-- Check both local and global IsRecording
+			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
+			if not isRecActive or IsPaused then return end
 			local TowerIndex = Args[4].Troop.Name
 			local Target = Args[4].Target
 			if RemoteCheck ~= true then
@@ -5772,7 +5786,9 @@ function Library:Recorder(Window)
 			appendstrat(`TDS:Target({TowerIndex}, "{Target}", {TimerStr})`)
 		end,
 		Abilities = function(Args, Timer, RemoteCheck)
-			if not IsRecording or IsPaused then return end
+			-- Check both local and global IsRecording
+			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
+			if not isRecActive or IsPaused then return end
 			local TowerIndex = Args[4].Troop.Name
 			local AbilityName = Args[4].Name
 			local Data = Args[4].Data
@@ -5800,7 +5816,9 @@ function Library:Recorder(Window)
 			appendstrat(`TDS:Ability({TowerIndex}, "{AbilityName}", {TimerStr}, {formattedData})`)
 		end,
 		Option = function(Args, Timer, RemoteCheck)
-			if not IsRecording or IsPaused then return end
+			-- Check both local and global IsRecording
+			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
+			if not isRecActive or IsPaused then return end
 			local TowerIndex = Args[4].Troop.Name
 			local OptionName = Args[4].Name
 			local Value = Args[4].Value
@@ -5814,13 +5832,17 @@ function Library:Recorder(Window)
 			appendstrat(`TDS:Option({TowerIndex}, "{OptionName}", "{Value}", {TimerStr})`)
 		end,
 		Skip = function(Args, Timer, RemoteCheck)
-			if not IsRecording or IsPaused then return end
+			-- Check both local and global IsRecording
+			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
+			if not isRecActive or IsPaused then return end
 			SetStatus(`Skipped Wave`)
 			local TimerStr = table.concat(Timer, ", ")
 			appendstrat(`TDS:Skip({TimerStr})`)
 		end,
 		Vote = function(Args, Timer, RemoteCheck)
-			if not IsRecording or IsPaused then return end
+			-- Check both local and global IsRecording
+			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
+			if not isRecActive or IsPaused then return end
 			local Difficulty = Args[3]
 			local DiffTable = {
 				["Easy"] = "Easy",
@@ -5837,7 +5859,8 @@ function Library:Recorder(Window)
 	local Skipped = false
 	local voteConnection = nil
 	voteConnection = VoteGUI:GetPropertyChangedSignal("Position"):Connect(function()
-		if not IsRecording or IsPaused then return end
+		local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
+		if not isRecActive or IsPaused then return end
 		repeat task.wait() until AutoSkipValue
 		if Skipped then
 			local count = VoteGUI:FindFirstChild("count")
@@ -5872,7 +5895,9 @@ function Library:Recorder(Window)
 		}
 		local waveConnection = nil
 		waveConnection = GameWave:GetPropertyChangedSignal("Text"):Connect(function()
-			if not IsRecording or IsPaused then return end
+			-- Check both local and global IsRecording
+			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
+			if not isRecActive or IsPaused then return end
 			local difficulty = RSDifficulty.Value
 			local FinalWave = FinalWaveAtDifferentMode[difficulty]
 			if FinalWave and tonumber(GameWave.Text) == FinalWave then
@@ -5943,6 +5968,7 @@ function Library:Recorder(Window)
 			end
 			
 			IsRecording = v
+			getgenv().RecorderIsRecording = v
 			if v then
 				recordingStartTime = os.time()
 				local startTimeStr = os.date("%H:%M:%S")
@@ -5959,11 +5985,42 @@ function Library:Recorder(Window)
 	
 	-- Sync with Macro tab toggle if it exists
 	task.spawn(function()
-		while task.wait(0.5) do
+		while task.wait(0.1) do
 			if getgenv().MacroRecorderToggleValue ~= nil then
 				local value = getgenv().MacroRecorderToggleValue
-				if RecordToggle and RecordToggle.Value ~= value then
-					RecordToggle:SetValue(value)
+				local wasRecording = IsRecording
+				
+				-- Update IsRecording directly
+				IsRecording = value
+				getgenv().RecorderIsRecording = value
+				
+				-- Trigger the toggle callback to initialize strat file
+				if RecordToggle then
+					if RecordToggle.Value ~= value then
+						-- Value is different, trigger the callback
+						RecordToggle:SetValue(value)
+					elseif value and not wasRecording then
+						-- Value is same but we're starting recording (was false, now true)
+						-- Manually trigger the recording start logic
+						IsRecording = true
+						getgenv().RecorderIsRecording = true
+						recordingStartTime = os.time()
+						local startTimeStr = os.date("%H:%M:%S")
+						InitializeStratFile()
+						AddLog("Recording started!")
+						SetStatus(`Recording... (Started at {startTimeStr})`)
+					end
+				else
+					-- RecordToggle not created yet, but still set the state
+					if value and not wasRecording then
+						IsRecording = true
+						getgenv().RecorderIsRecording = true
+						recordingStartTime = os.time()
+						local startTimeStr = os.date("%H:%M:%S")
+						InitializeStratFile()
+						AddLog("Recording started!")
+						SetStatus(`Recording... (Started at {startTimeStr})`)
+					end
 				end
 				getgenv().MacroRecorderToggleValue = nil
 			end
@@ -6022,6 +6079,7 @@ function Library:Recorder(Window)
 					-- Resume
 					IsPaused = false
 					IsRecording = true
+					getgenv().RecorderIsRecording = true
 					AddLog("Recording resumed!")
 					SetStatus("Recording...")
 					ResumeButton:SetTitle("Pause Recording")
@@ -6088,7 +6146,9 @@ function Library:Recorder(Window)
 					local success, RemoteFired = pcall(function()
 						return OldNamecall(Self, unpack(Args))
 					end)
-					if success and IsRecording then
+					-- Check both local and global IsRecording state
+					local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
+					if success and isRecActive then
 						local Timer = GetTimer()
 						if GenerateFunction[Args[2]] then
 							GenerateFunction[Args[2]](Args, Timer, RemoteFired)

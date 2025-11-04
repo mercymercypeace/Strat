@@ -129,12 +129,15 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
                         writefile("LunarisX_UIKeybind.json", HttpService:JSONEncode(saveData))
                     end)
                 end
-                Window:Notify({
-                    Title = "Keybind Changed",
-                    Desc = "UI toggle keybind set to: " .. tostring(key):gsub("Enum.KeyCode.", ""),
-                    Time = 3,
-                    Type = "normal"
-                })
+                -- Only show notification if value is true (key was actually set, not just when UI opens)
+                if value then
+                    Window:Notify({
+                        Title = "Keybind Changed",
+                        Desc = "UI toggle keybind set to: " .. tostring(key):gsub("Enum.KeyCode.", ""),
+                        Time = 3,
+                        Type = "normal"
+                    })
+                end
             end
         end
     })
@@ -485,10 +488,225 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 	-- Recorder Section
 	MacroTab:Section({Title = "Recorder"})
 	
-	-- Recorder Log Box
+	-- Create draggable, expandable log window
+	local LogWindowGui = Instance.new("ScreenGui")
+	LogWindowGui.Name = "RecorderLogWindow"
+	LogWindowGui.ResetOnSpawn = false
+	LogWindowGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	LogWindowGui.DisplayOrder = 1000
+	LogWindowGui.Parent = game:GetService("CoreGui")
+	
+	local LogWindow = Instance.new("Frame")
+	LogWindow.Name = "LogWindow"
+	LogWindow.Parent = LogWindowGui
+	LogWindow.BackgroundColor3 = Color3.fromRGB(29, 28, 38)
+	LogWindow.BorderSizePixel = 0
+	LogWindow.Position = UDim2.new(0.5, -250, 0.5, -150)
+	LogWindow.Size = UDim2.new(0, 500, 0, 300)
+	LogWindow.Visible = false
+	
+	local UICorner_Log = Instance.new("UICorner")
+	UICorner_Log.CornerRadius = UDim.new(0, 8)
+	UICorner_Log.Parent = LogWindow
+	
+	local UIStroke_Log = Instance.new("UIStroke")
+	UIStroke_Log.Parent = LogWindow
+	UIStroke_Log.Color = Color3.fromRGB(91, 68, 209)
+	UIStroke_Log.Thickness = 2
+	
+	-- Title bar (draggable)
+	local TitleBar = Instance.new("Frame")
+	TitleBar.Name = "TitleBar"
+	TitleBar.Parent = LogWindow
+	TitleBar.BackgroundColor3 = Color3.fromRGB(36, 35, 48)
+	TitleBar.BorderSizePixel = 0
+	TitleBar.Size = UDim2.new(1, 0, 0, 35)
+	
+	local UICorner_Title = Instance.new("UICorner")
+	UICorner_Title.CornerRadius = UDim.new(0, 8)
+	UICorner_Title.Parent = TitleBar
+	
+	local TitleLabel = Instance.new("TextLabel")
+	TitleLabel.Parent = TitleBar
+	TitleLabel.BackgroundTransparency = 1
+	TitleLabel.Size = UDim2.new(1, -70, 1, 0)
+	TitleLabel.Font = Enum.Font.GothamBold
+	TitleLabel.Text = "Recorder Log"
+	TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	TitleLabel.TextSize = 14
+	
+	-- Close button
+	local CloseButton = Instance.new("TextButton")
+	CloseButton.Parent = TitleBar
+	CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+	CloseButton.BorderSizePixel = 0
+	CloseButton.Position = UDim2.new(1, -30, 0, 5)
+	CloseButton.Size = UDim2.new(0, 25, 0, 25)
+	CloseButton.Font = Enum.Font.GothamBold
+	CloseButton.Text = "×"
+	CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	CloseButton.TextSize = 18
+	
+	local UICorner_Close = Instance.new("UICorner")
+	UICorner_Close.CornerRadius = UDim.new(0, 4)
+	UICorner_Close.Parent = CloseButton
+	
+	-- Minimize/Maximize button
+	local ExpandButton = Instance.new("TextButton")
+	ExpandButton.Parent = TitleBar
+	ExpandButton.BackgroundColor3 = Color3.fromRGB(91, 68, 209)
+	ExpandButton.BorderSizePixel = 0
+	ExpandButton.Position = UDim2.new(1, -60, 0, 5)
+	ExpandButton.Size = UDim2.new(0, 25, 0, 25)
+	ExpandButton.Font = Enum.Font.GothamBold
+	ExpandButton.Text = "□"
+	ExpandButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	ExpandButton.TextSize = 14
+	
+	local UICorner_Expand = Instance.new("UICorner")
+	UICorner_Expand.CornerRadius = UDim.new(0, 4)
+	UICorner_Expand.Parent = ExpandButton
+	
+	-- Content frame
+	local ContentFrame = Instance.new("Frame")
+	ContentFrame.Name = "ContentFrame"
+	ContentFrame.Parent = LogWindow
+	ContentFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 31)
+	ContentFrame.BorderSizePixel = 0
+	ContentFrame.Position = UDim2.new(0, 0, 0, 35)
+	ContentFrame.Size = UDim2.new(1, 0, 1, -35)
+	
+	local UICorner_Content = Instance.new("UICorner")
+	UICorner_Content.CornerRadius = UDim.new(0, 8)
+	UICorner_Content.Parent = ContentFrame
+	
+	-- Scrolling frame for log content
+	local LogScrollingFrame = Instance.new("ScrollingFrame")
+	LogScrollingFrame.Parent = ContentFrame
+	LogScrollingFrame.BackgroundTransparency = 1
+	LogScrollingFrame.BorderSizePixel = 0
+	LogScrollingFrame.Size = UDim2.new(1, -10, 1, -10)
+	LogScrollingFrame.Position = UDim2.new(0, 5, 0, 5)
+	LogScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+	LogScrollingFrame.ScrollBarThickness = 4
+	LogScrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(91, 68, 209)
+	
+	local LogLayout = Instance.new("UIListLayout")
+	LogLayout.Parent = LogScrollingFrame
+	LogLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	LogLayout.Padding = UDim.new(0, 2)
+	
+	local LogPadding = Instance.new("UIPadding")
+	LogPadding.Parent = LogScrollingFrame
+	LogPadding.PaddingLeft = UDim.new(0, 8)
+	LogPadding.PaddingRight = UDim.new(0, 8)
+	LogPadding.PaddingTop = UDim.new(0, 8)
+	LogPadding.PaddingBottom = UDim.new(0, 8)
+	
+	-- Drag functionality
+	local dragging = false
+	local dragStart = nil
+	local startPos = nil
+	
+	TitleBar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = LogWindow.Position
+		end
+	end)
+	
+	game:GetService("UserInputService").InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local delta = input.Position - dragStart
+			LogWindow.Position = startPos + UDim2.new(0, delta.X, 0, delta.Y)
+		end
+	end)
+	
+	game:GetService("UserInputService").InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+	
+	-- Close button functionality
+	CloseButton.MouseButton1Click:Connect(function()
+		LogWindow.Visible = false
+	end)
+	
+	-- Expand button functionality
+	local isExpanded = false
+	local originalSize = LogWindow.Size
+	local originalPosition = LogWindow.Position
+	ExpandButton.MouseButton1Click:Connect(function()
+		isExpanded = not isExpanded
+		if isExpanded then
+			LogWindow.Size = UDim2.new(0, 800, 0, 600)
+			LogWindow.Position = UDim2.new(0.5, -400, 0.5, -300)
+			ExpandButton.Text = "▣"
+		else
+			LogWindow.Size = originalSize
+			LogWindow.Position = originalPosition
+			ExpandButton.Text = "□"
+		end
+	end)
+	
+	-- Update canvas size when content changes
+	LogLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		LogScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, LogLayout.AbsoluteContentSize.Y + 16)
+	end)
+	
+	-- Function to add log entries
+	local function AddLogEntry(text)
+		local LogEntry = Instance.new("TextLabel")
+		LogEntry.Parent = LogScrollingFrame
+		LogEntry.BackgroundTransparency = 1
+		LogEntry.Size = UDim2.new(1, -16, 0, 20)
+		LogEntry.Font = Enum.Font.Code
+		LogEntry.Text = text
+		LogEntry.TextColor3 = Color3.fromRGB(255, 255, 255)
+		LogEntry.TextSize = 11
+		LogEntry.TextXAlignment = Enum.TextXAlignment.Left
+		LogEntry.TextYAlignment = Enum.TextYAlignment.Top
+		LogEntry.TextWrapped = true
+		LogEntry.AutomaticSize = Enum.AutomaticSize.Y
+		
+		-- Auto-scroll to bottom
+		task.wait()
+		LogScrollingFrame.CanvasPosition = Vector2.new(0, LogScrollingFrame.AbsoluteCanvasSize.Y)
+	end
+	
+	-- Recorder Log Box (embedded in tab, but also has separate window)
 	local RecorderLogBox = MacroTab:Code({
 		Title = "Recorder Log",
-		Code = "-- Recorder Log\n-- Ready to start recording..."
+		Code = "-- Recorder Log\n-- Ready to start recording...\n-- Click to open log window"
+	})
+	
+	-- Make the code box clickable to open log window
+	task.spawn(function()
+		task.wait(0.5)
+		-- Find the Code element in the UI
+		local uiScreenGui = game.CoreGui:FindFirstChild("LunarisX")
+		if uiScreenGui then
+			local codeFrame = uiScreenGui:FindFirstChild("Real Background", true)
+			if codeFrame then
+				-- Make it clickable to toggle log window
+				codeFrame.InputBegan:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						LogWindow.Visible = not LogWindow.Visible
+					end
+				end)
+			end
+		end
+	end)
+	
+	-- Button to toggle log window
+	MacroTab:Button({
+		Title = "Toggle Log Window",
+		Desc = "Open or close the recorder log window",
+		Callback = function()
+			LogWindow.Visible = not LogWindow.Visible
+		end
 	})
 	
 	-- Initialize recorder if not already initialized
@@ -503,13 +721,19 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 			local logEntry = string.format("[%s] %s", timestamp, tostring(message))
 			table.insert(RecorderLogMessages, logEntry)
 			
-			-- Keep only last 50 log entries
-			if #RecorderLogMessages > 50 then
+			-- Keep only last 100 log entries
+			if #RecorderLogMessages > 100 then
 				table.remove(RecorderLogMessages, 1)
 			end
 			
+			-- Update embedded log box
 			local logText = table.concat(RecorderLogMessages, "\n")
 			RecorderLogBox:SetCode(logText)
+			
+			-- Add to separate log window
+			if LogScrollingFrame then
+				AddLogEntry(logEntry)
+			end
 		end
 	end
 	
@@ -545,17 +769,23 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 				task.wait(0.3)
 			end
 			
-			-- The recorder module uses IsRecording variable internally
-			-- We need to trigger the actual RecordToggle in the Recorder tab
-			-- Since RecordToggle is created in the Recorder module, we'll use a hook
-			-- Store a reference in getgenv so the recorder can access it
+			-- Set the global IsRecording flag that the recorder checks
+			getgenv().RecorderIsRecording = v
 			getgenv().MacroRecorderToggleValue = v
 			
 			if v then
-				-- Start recording - trigger the recorder's InitializeStratFile and set IsRecording
-				if RecorderModule and RecorderModule.SetStatus then
-					RecorderModule.SetStatus("Recording...")
-				end
+				-- Start recording - initialize the strat file
+				-- Call InitializeStratFile if available through RecorderModule
+				task.spawn(function()
+					-- Wait for recorder module to fully initialize
+					task.wait(0.2)
+					
+					-- Trigger the actual recorder toggle through the sync mechanism
+					-- This will call InitializeStratFile and set IsRecording properly
+					if RecorderModule and RecorderModule.SetStatus then
+						RecorderModule.SetStatus("Recording...")
+					end
+				end)
 				
 				UpdateRecorderLog("Recording started!")
 				RecorderToggle:SetTitle("Stop Recording")
@@ -570,16 +800,6 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 				RecorderToggle:SetTitle("Start Recording")
 				RecorderToggle:SetDesc("Enable to start recording tower actions")
 			end
-			
-			-- Trigger the actual recorder toggle if we can find it
-			-- The recorder creates its own tab, so we need to search for it
-			task.spawn(function()
-				-- Wait a bit for the UI to be ready
-				task.wait(0.1)
-				-- Try to find the Recorder tab and its RecordToggle
-				-- This is a workaround since we can't directly access the local variable
-				-- The recorder will check getgenv().MacroRecorderToggleValue
-			end)
 		end
 	})
 	
@@ -589,8 +809,16 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		Desc = "Clear the recorder log",
 		Callback = function()
 			RecorderLogMessages = {}
-			RecorderLogBox:SetCode("-- Recorder Log\n-- Ready to start recording...")
-			UpdateRecorderLog("Log cleared!")
+			RecorderLogBox:SetCode("-- Recorder Log\n-- Ready to start recording...\n-- Click to open log window")
+			-- Clear the separate log window
+			if LogScrollingFrame then
+				for _, child in pairs(LogScrollingFrame:GetChildren()) do
+					if child:IsA("TextLabel") then
+						child:Destroy()
+					end
+				end
+			end
+			-- Don't log this action
 		end
 	})
 	
@@ -611,7 +839,7 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 				if success and fileContent then
 					if setclipboard then
 						setclipboard(fileContent)
-						UpdateRecorderLog("Script copied to clipboard!")
+						-- Don't log this action
 						Window:Notify({
 							Title = "Success",
 							Desc = "Recorded script copied to clipboard!",
@@ -619,7 +847,6 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 							Type = "normal"
 						})
 					else
-						UpdateRecorderLog("Clipboard function not available!")
 						Window:Notify({
 							Title = "Error",
 							Desc = "Clipboard function not available",
@@ -628,7 +855,6 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 						})
 					end
 				else
-					UpdateRecorderLog("Failed to read script file!")
 					Window:Notify({
 						Title = "Error",
 						Desc = "Failed to read recorded script file",
@@ -642,18 +868,14 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 				if logContent and #logContent > 0 then
 					if setclipboard then
 						setclipboard(logContent)
-						UpdateRecorderLog("Log content copied to clipboard!")
 						Window:Notify({
 							Title = "Info",
 							Desc = "Log content copied (script file not found)",
 							Time = 3,
 							Type = "normal"
 						})
-					else
-						UpdateRecorderLog("Clipboard function not available!")
 					end
 				else
-					UpdateRecorderLog("No script or log content to copy!")
 					Window:Notify({
 						Title = "Error",
 						Desc = "No recorded script found. Please start recording first!",
