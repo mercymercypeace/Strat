@@ -5479,7 +5479,7 @@ function Library:Window(p)
 end
 
 -- Recorder Module
-function Library:Recorder(Window)
+function Library:Recorder(Window, Tab)
 	local Workspace = game:GetService("Workspace")
 	local Players = game:GetService("Players")
 	local LocalPlayer = Players.LocalPlayer
@@ -5585,7 +5585,8 @@ function Library:Recorder(Window)
 	local AutoSellFarmsValue = true
 	local IsPaused = false  -- Declare IsPaused early so GenerateFunction can access it
 
-	local RecorderTab = Window:Tab({Title = "Recorder", Icon = "record"})
+	-- Use provided Tab if available, otherwise create a new tab
+	local RecorderTab = Tab or Window:Tab({Title = "Recorder", Icon = "record"})
 	
 	RecorderTab:Section({Title = "Status"})
 	local StatusLabel = RecorderTab:Label({
