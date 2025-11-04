@@ -3081,7 +3081,6 @@ function Library:Window(p)
 			local Title = p.Title or 'null'
 			local Desc = p.Desc or ''
 			local Image = p.Image or ''
-			local Value = p.Value or false
 			local Key = p.Key or Enum.KeyCode.E
 			local Callback = p.Callback or function() end
 
@@ -3093,11 +3092,6 @@ function Library:Window(p)
 			local F = Instance.new("TextButton")
 			local UIListLayout_1 = Instance.new("UIListLayout")
 			local UIPadding_1 = Instance.new("UIPadding")
-			local ToggleValue_1 = Instance.new("Frame")
-			local UICorner_1 = Instance.new("UICorner")
-			local Frame_1 = Instance.new("Frame")
-			local UICorner_2 = Instance.new("UICorner")
-			local UIPadding_2 = Instance.new("UIPadding")
 			local KeybindValue_1 = Instance.new("Frame")
 			local UICorner_3 = Instance.new("UICorner")
 			local UIStroke_1 = Instance.new("UIStroke")
@@ -3124,34 +3118,6 @@ function Library:Window(p)
 
 			UIPadding_1.Parent = F
 			UIPadding_1.PaddingRight = UDim.new(0,13)
-
-			ToggleValue_1.Name = "ToggleValue"
-			ToggleValue_1.Parent = F
-			ToggleValue_1.BackgroundColor3 = Color3.fromRGB(44,34,103)
-			ToggleValue_1.BorderColor3 = Color3.fromRGB(0,0,0)
-			ToggleValue_1.BorderSizePixel = 0
-			ToggleValue_1.LayoutOrder = 1
-			ToggleValue_1.Size = UDim2.new(0, 34,0, 17)
-
-			UICorner_1.Parent = ToggleValue_1
-			UICorner_1.CornerRadius = UDim.new(1,0)
-
-			Frame_1.Parent = ToggleValue_1
-			Frame_1.AnchorPoint = Vector2.new(1, 0.5)
-			Frame_1.BackgroundColor3 = Color3.fromRGB(91,68,209)
-			Frame_1.BorderColor3 = Color3.fromRGB(0,0,0)
-			Frame_1.BorderSizePixel = 0
-			Frame_1.Position = UDim2.new(1, 0,0.5, 0)
-			Frame_1.Size = UDim2.new(0, 13,0, 13)
-
-			addToTheme('Main', Frame_1)
-
-			UICorner_2.Parent = Frame_1
-			UICorner_2.CornerRadius = UDim.new(1,0)
-
-			UIPadding_2.Parent = ToggleValue_1
-			UIPadding_2.PaddingLeft = UDim.new(0,2)
-			UIPadding_2.PaddingRight = UDim.new(0,2)
 
 			KeybindValue_1.Name = "KeybindValue"
 			KeybindValue_1.Parent = F
@@ -3192,38 +3158,8 @@ function Library:Window(p)
 			UIPadding_3.PaddingLeft = UDim.new(0,5)
 			UIPadding_3.PaddingRight = UDim.new(0,5)
 
-			local Click = click(Keybind)
 			KeybindValue_1.ZIndex = 2
 			F.ZIndex = 2
-
-			Value = not Value
-
-			local function change()
-				Value = not Value
-				if Value then
-					Config:SetTextTransparencyTitle(0)
-					tw({v = ToggleValue_1, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {BackgroundColor3 = themes[IsTheme].Function.Keybind.True['Toggle Background']}}):Play()
-					tw({v = Frame_1, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out",
-						g = {
-							BackgroundColor3 = themes[IsTheme].Function.Keybind.True['Toggle Value'],
-							AnchorPoint = Vector2.new(1, 0.5),
-							Position = UDim2.new(1, 0,0.5, 0)
-						}}):Play()
-				else
-					Config:SetTextTransparencyTitle(0.7)
-					tw({v = ToggleValue_1, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out", g = {BackgroundColor3 = themes[IsTheme].Function.Keybind.False['Toggle Background']}}):Play()
-					tw({v = Frame_1, t = 0.15, s = Enum.EasingStyle.Linear, d = "Out",
-						g = {
-							BackgroundColor3 = themes[IsTheme].Function.Keybind.False['Toggle Value'],
-							AnchorPoint = Vector2.new(0, 0.5),
-							Position = UDim2.new(0, 0,0.5, 0)
-						}}):Play()
-				end
-			end
-
-			Click.MouseButton1Click:Connect(change)
-
-			delay(0.1, change)
 
 			local changeing = false
 
@@ -3244,33 +3180,12 @@ function Library:Window(p)
 						TextLabel_1.Text = tostring(Key):gsub("Enum.KeyCode.", "")
 						adjustBoxBindSize()
 						inputConnection:Disconnect()
-						pcall(Callback, Key, Value)
+						pcall(Callback, Key)
 						task.wait(.1)
 						changeing = false
 					end
 				end)
 			end
-
-			U.InputBegan:Connect(function(input, gameProcessed)
-				if input.KeyCode == Key and not changeing then
-					change()
-					pcall(Callback, Key, Value)
-				end
-			end)
-
-			delay(0, function()
-				pcall(Callback, Key, Value)
-			end)
-
-			Keybind:GetPropertyChangedSignal("BackgroundColor3"):Connect(function()
-				if Value then
-					ToggleValue_1.BackgroundColor3 = themes[IsTheme].Function.Keybind.True['Toggle Background']
-					Frame_1.BackgroundColor3 = themes[IsTheme].Function.Keybind.True['Toggle Value']
-				else
-					ToggleValue_1.BackgroundColor3 = themes[IsTheme].Function.Keybind.False['Toggle Background']
-					Frame_1.BackgroundColor3 = themes[IsTheme].Function.Keybind.False['Toggle Value']
-				end
-			end)
 
 			F.MouseButton1Click:Connect(changeKey)
 
@@ -3288,16 +3203,11 @@ function Library:Window(p)
 				Keybind.Visible = t
 			end
 
-			function New:SetValue(t)
-				Value = not t
-				change()
-			end
-
 			function New:SetKey(t)
 				Key = t
 				TextLabel_1.Text = tostring(Key):gsub("Enum.KeyCode.", "")
 				adjustBoxBindSize()
-				pcall(Callback, Key, Value)
+				pcall(Callback, Key)
 			end
 
 			return New
@@ -4256,22 +4166,22 @@ function Library:Window(p)
 
 	Notification.Name = "Notification"
 	Notification.Parent = ScreenGui
-	Notification.AnchorPoint = Vector2.new(1, 0)
+	Notification.AnchorPoint = Vector2.new(1, 1)
 	Notification.BackgroundColor3 = Color3.fromRGB(255,255,255)
 	Notification.BackgroundTransparency = 1
 	Notification.BorderColor3 = Color3.fromRGB(0,0,0)
 	Notification.BorderSizePixel = 0
-	Notification.Position = UDim2.new(1, 0, 0, 80)
+	Notification.Position = UDim2.new(1, 0, 1, 0)
 	Notification.Size = UDim2.new(0, 100,0, 100)
 
 	UIPaddingUIListLayoutNotification_1.Parent = Notification
-	UIPaddingUIListLayoutNotification_1.PaddingTop = UDim.new(0,20)
+	UIPaddingUIListLayoutNotification_1.PaddingBottom = UDim.new(0,20)
 	UIPaddingUIListLayoutNotification_1.PaddingRight = UDim.new(0,5)
 
 	UIListLayoutNotification_1.Parent = Notification
 	UIListLayoutNotification_1.HorizontalAlignment = Enum.HorizontalAlignment.Right
 	UIListLayoutNotification_1.SortOrder = Enum.SortOrder.LayoutOrder
-	UIListLayoutNotification_1.VerticalAlignment = Enum.VerticalAlignment.Top
+	UIListLayoutNotification_1.VerticalAlignment = Enum.VerticalAlignment.Bottom
 
 	function Tabs:Notify(p)
 		local Title = p.Title or 'null'
@@ -4830,9 +4740,14 @@ function Library:Window(p)
 				close:Play()
 				close.Completed:Wait()
 				Shadow_1.Visible = false
-				if hideDraggable ~= false then
-					local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
-					if closeUIButton then
+				local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
+				if closeUIButton then
+					if hideDraggable == false then
+						closeUIButton.Visible = true
+						tw({v = closeUIButton, t = 0.2, s = Enum.EasingStyle.Linear, d = "Out", g = {
+							ImageTransparency = 0.5
+						}}):Play()
+					else
 						closeUIButton.Visible = false
 					end
 				end
@@ -4849,19 +4764,9 @@ function Library:Window(p)
 					}
 				})
 				open:Play()
-				if hideDraggable == false then
-					local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
-					if closeUIButton then
-						closeUIButton.Visible = true
-						tw({v = closeUIButton, t = 0.2, s = Enum.EasingStyle.Linear, d = "Out", g = {
-							ImageTransparency = 0.5
-						}}):Play()
-					end
-				else
-					local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
-					if closeUIButton then
-						closeUIButton.Visible = false
-					end
+				local closeUIButton = ScreenGui:FindFirstChild("CloseUIShadow")
+				if closeUIButton then
+					closeUIButton.Visible = false
 				end
 			end
 
@@ -4899,7 +4804,6 @@ function Library:Window(p)
 		function Tabs:SetUIToggleKeybind(newKeybind)
 			Tabs.UIToggleKeybind = newKeybind
 			setupKeybindListener()
-			-- Only show notification if it's been more than 5 seconds since last notification
 			local currentTime = tick()
 			if not firsttime and (currentTime - lastKeybindNotificationTime) > 5 then
 				firsttime = true
@@ -5487,26 +5391,117 @@ function Library:Window(p)
 	end
 	
 	function Tabs:AddAnnouncementToUI(message)
-		if not Tabs.AnnouncementScrollingFrame then
-			for _, tabData in pairs(Tabs.List) do
-				if tabData.Page then
-					local scrollingFrame = tabData.Page:FindFirstChild("ScrollingFrame")
-					if scrollingFrame then
-						local tabButton = tabData.Button
-						if tabButton and tabButton:FindFirstChild("Func") then
-							local titleLabel = tabButton.Func:FindFirstChild("Title")
-							if titleLabel and (titleLabel.Text == "Announce" or titleLabel.Text == "Announcement") then
-								Tabs.AnnouncementScrollingFrame = scrollingFrame
-								break
-							end
-						end
-					end
-				end
-			end
-		end
+		local announcementGui = Instance.new("ScreenGui")
+		announcementGui.Name = "AnnouncementPopup"
+		announcementGui.ResetOnSpawn = false
+		announcementGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		announcementGui.Parent = game:GetService("CoreGui")
+		
+		local overlay = Instance.new("Frame")
+		overlay.Name = "Overlay"
+		overlay.Parent = announcementGui
+		overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		overlay.BackgroundTransparency = 0.5
+		overlay.BorderSizePixel = 0
+		overlay.Size = UDim2.new(1, 0, 1, 0)
+		overlay.ZIndex = 999
+		
+		local announcementFrame = Instance.new("Frame")
+		local canvasGroup = Instance.new("CanvasGroup")
+		canvasGroup.Parent = announcementFrame
+		canvasGroup.GroupTransparency = 1
+		canvasGroup.Size = UDim2.new(1, 0, 1, 0)
+		
+		announcementFrame.Name = "AnnouncementFrame"
+		announcementFrame.Parent = announcementGui
+		announcementFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+		announcementFrame.BackgroundColor3 = themes[IsTheme].Function.Button.Background
+		announcementFrame.BorderSizePixel = 0
+		announcementFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+		announcementFrame.Size = UDim2.new(0, 400, 0, 0)
+		announcementFrame.AutomaticSize = Enum.AutomaticSize.Y
+		announcementFrame.ZIndex = 1000
+		
+		addToTheme('Function.Button.Background', announcementFrame)
+		
+		local UICorner = Instance.new("UICorner")
+		UICorner.Parent = announcementFrame
+		UICorner.CornerRadius = UDim.new(0, 8)
+		
+		local UIPadding = Instance.new("UIPadding")
+		UIPadding.Parent = canvasGroup
+		UIPadding.PaddingBottom = UDim.new(0, 20)
+		UIPadding.PaddingLeft = UDim.new(0, 20)
+		UIPadding.PaddingRight = UDim.new(0, 20)
+		UIPadding.PaddingTop = UDim.new(0, 20)
+		
+		local MessageLabel = Instance.new("TextLabel")
+		MessageLabel.Name = "Message"
+		MessageLabel.Parent = canvasGroup
+		MessageLabel.BackgroundTransparency = 1
+		MessageLabel.Size = UDim2.new(1, 0, 0, 0)
+		MessageLabel.Font = Enum.Font.GothamBold
+		MessageLabel.Text = tostring(message)
+		MessageLabel.TextColor3 = themes[IsTheme]['Text & Icon']
+		MessageLabel.TextSize = 16
+		MessageLabel.TextWrapped = true
+		MessageLabel.TextXAlignment = Enum.TextXAlignment.Center
+		MessageLabel.TextYAlignment = Enum.TextYAlignment.Center
+		MessageLabel.AutomaticSize = Enum.AutomaticSize.Y
+		
+		addToTheme('Text & Icon', MessageLabel)
+		
+		announcementFrame.Size = UDim2.new(0, 0, 0, 0)
+		canvasGroup.GroupTransparency = 1
+		overlay.BackgroundTransparency = 1
+		
+		local TweenService = game:GetService("TweenService")
+		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		
+		task.wait(0.05)
+		local targetHeight = MessageLabel.AbsoluteSize.Y + 40
+		
+		local sizeTween = TweenService:Create(announcementFrame, tweenInfo, {
+			Size = UDim2.new(0, 400, 0, targetHeight)
+		})
+		
+		local transparencyTween = TweenService:Create(canvasGroup, tweenInfo, {
+			GroupTransparency = 0
+		})
+		
+		local overlayTween = TweenService:Create(overlay, tweenInfo, {
+			BackgroundTransparency = 0.5
+		})
+		
+		task.wait(0.05)
+		sizeTween:Play()
+		transparencyTween:Play()
+		overlayTween:Play()
+		
+		task.spawn(function()
+			task.wait(5)
+			
+			local closeTween = TweenService:Create(canvasGroup, tweenInfo, {
+				GroupTransparency = 1
+			})
+			
+			local sizeCloseTween = TweenService:Create(announcementFrame, tweenInfo, {
+				Size = UDim2.new(0, 0, 0, 0)
+			})
+			
+			local overlayCloseTween = TweenService:Create(overlay, tweenInfo, {
+				BackgroundTransparency = 1
+			})
+			
+			closeTween:Play()
+			sizeCloseTween:Play()
+			overlayCloseTween:Play()
+			
+			closeTween.Completed:Wait()
+			announcementGui:Destroy()
+		end)
 		
 		if not Tabs.AnnouncementScrollingFrame then
-			task.wait(0.5)
 			for _, tabData in pairs(Tabs.List) do
 				if tabData.Page then
 					local scrollingFrame = tabData.Page:FindFirstChild("ScrollingFrame")
@@ -5526,9 +5521,9 @@ function Library:Window(p)
 		
 		if Tabs.AnnouncementScrollingFrame then
 			local messageFrame = Instance.new("Frame")
-			local UICorner = Instance.new("UICorner")
-			local UIPadding = Instance.new("UIPadding")
-			local MessageLabel = Instance.new("TextLabel")
+			local UICorner2 = Instance.new("UICorner")
+			local UIPadding2 = Instance.new("UIPadding")
+			local MessageLabel2 = Instance.new("TextLabel")
 			local TimeLabel = Instance.new("TextLabel")
 			
 			messageFrame.Name = "AnnouncementMessage"
@@ -5540,29 +5535,29 @@ function Library:Window(p)
 			
 			addToTheme('Function.Button.Background', messageFrame)
 			
-			UICorner.Parent = messageFrame
-			UICorner.CornerRadius = UDim.new(0, 5)
+			UICorner2.Parent = messageFrame
+			UICorner2.CornerRadius = UDim.new(0, 5)
 			
-			UIPadding.Parent = messageFrame
-			UIPadding.PaddingBottom = UDim.new(0, 8)
-			UIPadding.PaddingLeft = UDim.new(0, 10)
-			UIPadding.PaddingRight = UDim.new(0, 10)
-			UIPadding.PaddingTop = UDim.new(0, 8)
+			UIPadding2.Parent = messageFrame
+			UIPadding2.PaddingBottom = UDim.new(0, 8)
+			UIPadding2.PaddingLeft = UDim.new(0, 10)
+			UIPadding2.PaddingRight = UDim.new(0, 10)
+			UIPadding2.PaddingTop = UDim.new(0, 8)
 			
-			MessageLabel.Name = "Message"
-			MessageLabel.Parent = messageFrame
-			MessageLabel.BackgroundTransparency = 1
-			MessageLabel.Size = UDim2.new(1, 0, 0, 0)
-			MessageLabel.Font = Enum.Font.Gotham
-			MessageLabel.Text = tostring(message)
-			MessageLabel.TextColor3 = themes[IsTheme]['Text & Icon']
-			MessageLabel.TextSize = 12
-			MessageLabel.TextWrapped = true
-			MessageLabel.TextXAlignment = Enum.TextXAlignment.Left
-			MessageLabel.TextYAlignment = Enum.TextYAlignment.Top
-			MessageLabel.AutomaticSize = Enum.AutomaticSize.Y
+			MessageLabel2.Name = "Message"
+			MessageLabel2.Parent = messageFrame
+			MessageLabel2.BackgroundTransparency = 1
+			MessageLabel2.Size = UDim2.new(1, 0, 0, 0)
+			MessageLabel2.Font = Enum.Font.Gotham
+			MessageLabel2.Text = tostring(message)
+			MessageLabel2.TextColor3 = themes[IsTheme]['Text & Icon']
+			MessageLabel2.TextSize = 12
+			MessageLabel2.TextWrapped = true
+			MessageLabel2.TextXAlignment = Enum.TextXAlignment.Left
+			MessageLabel2.TextYAlignment = Enum.TextYAlignment.Top
+			MessageLabel2.AutomaticSize = Enum.AutomaticSize.Y
 			
-			addToTheme('Text & Icon', MessageLabel)
+			addToTheme('Text & Icon', MessageLabel2)
 			
 			TimeLabel.Name = "Time"
 			TimeLabel.Parent = messageFrame

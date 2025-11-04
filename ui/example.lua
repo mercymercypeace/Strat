@@ -116,26 +116,26 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
         Title = "UI Toggle Keybind",
         Desc = "press to change the keybind for opening/closing the ui",
         Key = currentKeybind,
-        Value = false,
-        Callback = function(key, value)
+        Callback = function(key)
             if Window.SetUIToggleKeybind then
-                Window:SetUIToggleKeybind(key)
-                if writefile then
-                    pcall(function()
-                        local saveData = {
-                            UIToggleKeybind = tostring(key)
-                        }
-                        local HttpService = game:GetService("HttpService")
-                        writefile("LunarisX_UIKeybind.json", HttpService:JSONEncode(saveData))
-                    end)
-                end
-				if value then
-                Window:Notify({
-                    Title = "Keybind Changed",
-                    Desc = "UI toggle keybind set to: " .. tostring(key):gsub("Enum.KeyCode.", ""),
-                    Time = 3,
-                    Type = "normal"
-                })
+                local oldKeybind = Window:GetUIToggleKeybind()
+                if oldKeybind ~= key then
+                    Window:SetUIToggleKeybind(key)
+                    if writefile then
+                        pcall(function()
+                            local saveData = {
+                                UIToggleKeybind = tostring(key)
+                            }
+                            local HttpService = game:GetService("HttpService")
+                            writefile("LunarisX_UIKeybind.json", HttpService:JSONEncode(saveData))
+                        end)
+                    end
+                    Window:Notify({
+                        Title = "Keybind Changed",
+                        Desc = "UI toggle keybind set to: " .. tostring(key):gsub("Enum.KeyCode.", ""),
+                        Time = 3,
+                        Type = "normal"
+                    })
                 end
             end
         end
@@ -780,9 +780,14 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 									currentWave = wave
 								end
 								
-								if type(args[3]) == "table" and args[3].Position and args[4] then
-									local pos = args[3].Position
-									local towerName = tostring(args[4])
+								local success, pos, towerName = pcall(function()
+									if args[1] == "Troops" and args[2] == "Place" and type(args[3]) == "table" and args[3].Position and args[4] then
+										return args[3].Position, tostring(args[4])
+									end
+									return nil, nil
+								end)
+								
+								if success and pos and towerName then
 									local cashBefore = getCash()
 									local cost = getTowerCost(towerName)
 									
@@ -793,37 +798,64 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 									
 									if waited and cost > 0 then
 										task.spawn(function()
-											local startTime = tick()
-											local startCash = cashBefore
-											
-											while getCash() < cost and isRecording do
-												task.wait(0.1)
-											end
-											
-											local finalCash = getCash()
-											local actualCost = startCash - finalCash
-											
-											if actualCost > 0 then
-												if actualCost ~= cost then
-													learnTowerCost(towerName, actualCost)
+											pcall(function()
+												local startTime = tick()
+												local startCash = cashBefore
+												
+												while getCash() < cost and isRecording do
+													task.wait(0.1)
 												end
-												cost = actualCost
-											end
-											
-											local waitTime = tick() - startTime
-											if waitTime > 0.1 then
-												table.insert(actionLog, {
-													type = "place",
-													pos = {pos.X, pos.Y, pos.Z},
-													name = towerName,
-													wave = currentWave,
-													timestamp = timestamp,
-													waited = true,
-													waitTime = waitTime,
-													startCash = startCash,
-													cost = cost
-												})
-											else
+												
+												local finalCash = getCash()
+												local actualCost = startCash - finalCash
+												
+												if actualCost > 0 then
+													if actualCost ~= cost then
+														learnTowerCost(towerName, actualCost)
+													end
+													cost = actualCost
+												end
+												
+												local waitTime = tick() - startTime
+												if waitTime > 0.1 then
+													table.insert(actionLog, {
+														type = "place",
+														pos = {pos.X, pos.Y, pos.Z},
+														name = towerName,
+														wave = currentWave,
+														timestamp = timestamp,
+														waited = true,
+														waitTime = waitTime,
+														startCash = startCash,
+														cost = cost
+													})
+												else
+													table.insert(actionLog, {
+														type = "place",
+														pos = {pos.X, pos.Y, pos.Z},
+														name = towerName,
+														wave = currentWave,
+														timestamp = timestamp,
+														waited = false,
+														cost = cost
+													})
+												end
+												UpdateRecorderLog()
+											end)
+										end)
+									else
+										task.spawn(function()
+											pcall(function()
+												local cashAfter = getCash()
+												task.wait(0.2)
+												cashAfter = getCash()
+												local actualCost = cashBefore - cashAfter
+												
+												if actualCost > 0 then
+													learnTowerCost(towerName, actualCost)
+													cost = actualCost
+												end
+												
 												table.insert(actionLog, {
 													type = "place",
 													pos = {pos.X, pos.Y, pos.Z},
@@ -833,88 +865,77 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 													waited = false,
 													cost = cost
 												})
-											end
-											UpdateRecorderLog()
-										end)
-									else
-										task.spawn(function()
-											local cashAfter = getCash()
-											task.wait(0.2)
-											cashAfter = getCash()
-											local actualCost = cashBefore - cashAfter
-											
-											if actualCost > 0 then
-												learnTowerCost(towerName, actualCost)
-												cost = actualCost
-											end
-											
-											table.insert(actionLog, {
-												type = "place",
-												pos = {pos.X, pos.Y, pos.Z},
-												name = towerName,
-												wave = currentWave,
-												timestamp = timestamp,
-												waited = false,
-												cost = cost
-											})
-											UpdateRecorderLog()
+												UpdateRecorderLog()
+											end)
 										end)
 									end
 								end
 								
-								if args[1] == "Troops" and args[2] == "Upgrade" and typeof(args[4]) == "table" then
+								if args[1] == "Troops" and args[2] == "Upgrade" and typeof(args[4]) == "table" and args[4].Troop then
 									local tower = args[4].Troop
 									local cashBefore = getCash()
 									local result = originalNamecall(self, ...)
 									
 									task.spawn(function()
-										if tower and tower.Parent then
-											local success, root = pcall(function()
-												return tower:FindFirstChild("HumanoidRootPart") or tower:FindFirstChildWhichIsA("BasePart")
-											end)
-											
-											if success and root then
-												local level = 1
-												local success2, towerLevel = pcall(function()
-													return tower:GetAttribute("Level") or (tower:FindFirstChild("Level") and tower.Level.Value) or 1
+										pcall(function()
+											if tower and tower.Parent then
+												local success, root = pcall(function()
+													return tower:FindFirstChild("HumanoidRootPart") or tower:FindFirstChildWhichIsA("BasePart")
 												end)
-												if success2 and towerLevel then
-													level = tonumber(towerLevel) or 1
-												end
 												
-												task.wait(0.2)
-												local cashAfter = getCash()
-												local actualCost = cashBefore - cashAfter
-												
-												local cost = getUpgradeCost(level)
-												if actualCost > 0 then
-													cost = actualCost
-												end
-												
-												local currentCash = getCash()
-												local waited = cashBefore < cost
-												
-												if waited then
-													local startTime = tick()
-													local startCash = cashBefore
-													
-													while getCash() < cost and isRecording do
-														task.wait(0.1)
+												if success and root then
+													local level = 1
+													local success2, towerLevel = pcall(function()
+														return tower:GetAttribute("Level") or (tower:FindFirstChild("Level") and tower.Level.Value) or 1
+													end)
+													if success2 and towerLevel then
+														level = tonumber(towerLevel) or 1
 													end
 													
-													local waitTime = tick() - startTime
-													if waitTime > 0.1 then
-														table.insert(actionLog, {
-															type = "upgrade",
-															pos = {root.Position.X, root.Position.Y, root.Position.Z},
-															wave = currentWave,
-															level = level,
-															timestamp = timestamp,
-															waited = true,
-															waitTime = waitTime,
-															startCash = startCash,
-															cost = cost
-														})
+													task.wait(0.2)
+													local cashAfter = getCash()
+													local actualCost = cashBefore - cashAfter
+													
+													local cost = getUpgradeCost(level)
+													if actualCost > 0 then
+														cost = actualCost
+													end
+													
+													local currentCash = getCash()
+													local waited = cashBefore < cost
+													
+													if waited then
+														local startTime = tick()
+														local startCash = cashBefore
+														
+														while getCash() < cost and isRecording do
+															task.wait(0.1)
+														end
+														
+														local waitTime = tick() - startTime
+														if waitTime > 0.1 then
+															table.insert(actionLog, {
+																type = "upgrade",
+																pos = {root.Position.X, root.Position.Y, root.Position.Z},
+																wave = currentWave,
+																level = level,
+																timestamp = timestamp,
+																waited = true,
+																waitTime = waitTime,
+																startCash = startCash,
+																cost = cost
+															})
+														else
+															table.insert(actionLog, {
+																type = "upgrade",
+																pos = {root.Position.X, root.Position.Y, root.Position.Z},
+																wave = currentWave,
+																level = level,
+																timestamp = timestamp,
+																waited = false,
+																cost = cost
+															})
+														end
 													else
 														table.insert(actionLog, {
 															type = "upgrade",
@@ -926,20 +947,10 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 															cost = cost
 														})
 													end
-												else
-													table.insert(actionLog, {
-														type = "upgrade",
-														pos = {root.Position.X, root.Position.Y, root.Position.Z},
-														wave = currentWave,
-														level = level,
-														timestamp = timestamp,
-														waited = false,
-														cost = cost
-													})
+													UpdateRecorderLog()
 												end
-												UpdateRecorderLog()
 											end
-										end
+										end)
 									end)
 									
 									return result
