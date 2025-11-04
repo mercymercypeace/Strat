@@ -131,12 +131,12 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
                 end
                 -- Only show notification if value is true (key was actually set, not just when UI opens)
                 if value then
-                    Window:Notify({
-                        Title = "Keybind Changed",
-                        Desc = "UI toggle keybind set to: " .. tostring(key):gsub("Enum.KeyCode.", ""),
-                        Time = 3,
-                        Type = "normal"
-                    })
+                Window:Notify({
+                    Title = "Keybind Changed",
+                    Desc = "UI toggle keybind set to: " .. tostring(key):gsub("Enum.KeyCode.", ""),
+                    Time = 3,
+                    Type = "normal"
+                })
                 end
             end
         end
@@ -840,12 +840,12 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 					if setclipboard then
 						setclipboard(fileContent)
 						-- Don't log this action
-						Window:Notify({
+			Window:Notify({
 							Title = "Success",
 							Desc = "Recorded script copied to clipboard!",
 							Time = 3,
-							Type = "normal"
-						})
+				Type = "normal"
+			})
 					else
 						Window:Notify({
 							Title = "Error",
@@ -1332,6 +1332,321 @@ local LogTab = Window:Tab({Title = "Log", Icon = "settings"}) do
             end
         end
     end)
+end
+
+-- Remote Spy Tab
+local RemoteTab = Window:Tab({Title = "Remote", Icon = "satellite"}) do
+    RemoteTab:Section({Title = "Remote Spy"})
+    
+    -- Remote Spy State
+    local RemoteSpyEnabled = false
+    local RemoteSpyLogs = {} -- Store full log data
+    local RemoteSpyLogEntries = {} -- Store formatted log entries
+    local MaxLogEntries = 500
+    local AutoExecuteEnabled = false
+    local FilterText = ""
+    local SelectedRemote = nil
+    local RemoteCounts = {} -- Track counts for duplicate numbering
+    local oldFireServer = nil
+    local oldInvokeServer = nil
+    
+    -- Create log display
+    local RemoteSpyLogBox = RemoteTab:Code({
+        Title = "Remote Spy Log",
+        Code = "-- Remote Spy Log\n-- Enable Remote Spy to start intercepting remotes..."
+    })
+    
+    -- Remote selection dropdown
+    local RemoteDropdown = RemoteTab:Dropdown({
+        Title = "Select Remote",
+        Desc = "Choose a remote to view its logs",
+        List = {"All Remotes"},
+        Value = "All Remotes",
+        Callback = function(selected)
+            SelectedRemote = selected
+            UpdateRemoteSpyLog()
+        end
+    })
+    
+    -- Function to update remote dropdown list
+    local function UpdateRemoteDropdown()
+        local remoteNames = {}
+        local nameCounts = {}
+        
+        -- Count occurrences of each remote name
+        for _, logData in ipairs(RemoteSpyLogs) do
+            local remoteName = logData.remoteName
+            nameCounts[remoteName] = (nameCounts[remoteName] or 0) + 1
+        end
+        
+        -- Build list with numbering for duplicates
+        local seen = {}
+        for _, logData in ipairs(RemoteSpyLogs) do
+            local remoteName = logData.remoteName
+            if not seen[remoteName] then
+                seen[remoteName] = true
+                if nameCounts[remoteName] > 1 then
+                    table.insert(remoteNames, remoteName .. " (" .. nameCounts[remoteName] .. ")")
+                else
+                    table.insert(remoteNames, remoteName)
+                end
+            end
+        end
+        
+        -- Update dropdown
+        RemoteDropdown:Clear()
+        RemoteDropdown:Add("All Remotes")
+        for _, name in ipairs(remoteNames) do
+            RemoteDropdown:Add(name)
+        end
+    end
+    
+    -- Function to update log
+    local function UpdateRemoteSpyLog()
+        if #RemoteSpyLogEntries == 0 then
+            RemoteSpyLogBox:SetCode("-- Remote Spy Log\n-- No remotes intercepted yet...")
+            return
+        end
+        
+        local logText = ""
+        local displayLogs = {}
+        
+        if SelectedRemote and SelectedRemote ~= "All Remotes" then
+            -- Filter by selected remote
+            local remoteName = SelectedRemote:gsub("%s%(%d+%)", "") -- Remove count suffix
+            for i, logData in ipairs(RemoteSpyLogs) do
+                if logData.remoteName == remoteName then
+                    table.insert(displayLogs, RemoteSpyLogEntries[i])
+                end
+            end
+            logText = "-- Remote Spy Log (" .. #displayLogs .. " entries for " .. remoteName .. ")\n\n"
+        else
+            -- Show all logs
+            displayLogs = RemoteSpyLogEntries
+            logText = "-- Remote Spy Log (" .. #displayLogs .. " entries)\n\n"
+        end
+        
+        -- Show last 100 entries
+        local startIndex = math.max(1, #displayLogs - 99)
+        for i = startIndex, #displayLogs do
+            logText = logText .. displayLogs[i] .. "\n"
+        end
+        
+        RemoteSpyLogBox:SetCode(logText)
+    end
+    
+    -- Function to format remote data
+    local function FormatRemoteData(remoteName, remoteType, args, path)
+        local timestamp = os.date("%H:%M:%S")
+        local pathStr = path or "Unknown"
+        local argsStr = ""
+        
+        if args and #args > 0 then
+            local argsTable = {}
+            for i, arg in ipairs(args) do
+                local argType = typeof(arg)
+                if argType == "string" then
+                    table.insert(argsTable, string.format('"%s"', tostring(arg):gsub('"', '\\"')))
+                elseif argType == "Instance" then
+                    table.insert(argsTable, string.format("Instance: %s", arg.Name))
+                elseif argType == "table" then
+                    table.insert(argsTable, "table {...}")
+                else
+                    table.insert(argsTable, tostring(arg))
+                end
+            end
+            argsStr = table.concat(argsTable, ", ")
+        else
+            argsStr = "(no arguments)"
+        end
+        
+        local formattedLog = string.format("[%s] %s: %s\n   Path: %s\n   Args: %s", 
+            timestamp, remoteType, remoteName, pathStr, argsStr)
+        
+        -- Store full data
+        table.insert(RemoteSpyLogs, {
+            remoteName = remoteName,
+            remoteType = remoteType,
+            args = args,
+            path = pathStr,
+            timestamp = timestamp
+        })
+        
+        -- Store formatted entry
+        table.insert(RemoteSpyLogEntries, formattedLog)
+        
+        -- Trim if needed
+        if #RemoteSpyLogs > MaxLogEntries then
+            table.remove(RemoteSpyLogs, 1)
+            table.remove(RemoteSpyLogEntries, 1)
+        end
+        
+        return formattedLog
+    end
+    
+    -- Enable/Disable Remote Spy Toggle
+    local RemoteSpyToggle = RemoteTab:Toggle({
+        Title = "Enable Remote Spy",
+        Desc = "Start intercepting remote events and functions",
+        Value = false,
+        Callback = function(v)
+            RemoteSpyEnabled = v
+            
+            if v then
+                -- Hook RemoteEvent:FireServer and RemoteFunction:InvokeServer
+                local originalNamecall = nil
+                originalNamecall = hookmetamethod(game, "__namecall", function(...)
+                    local self = (...)
+                    local method = getnamecallmethod()
+                    local args = {select(2, ...)}
+                    
+                    if RemoteSpyEnabled and (method == "FireServer" or method == "InvokeServer") then
+                        local success, remoteName = pcall(function()
+                            return self.Name
+                        end)
+                        
+                        if success then
+                            local isRemoteEvent = self:IsA("RemoteEvent")
+                            local isRemoteFunction = self:IsA("RemoteFunction")
+                            
+                            if (isRemoteEvent and method == "FireServer") or (isRemoteFunction and method == "InvokeServer") then
+                                local path = self:GetFullName()
+                                local remoteType = isRemoteEvent and "RemoteEvent" or "RemoteFunction"
+                                
+                                -- Check filter
+                                if FilterText == "" or string.find(string.lower(remoteName), string.lower(FilterText)) then
+                                    FormatRemoteData(remoteName, remoteType, args, path)
+                                    UpdateRemoteDropdown()
+                                    UpdateRemoteSpyLog()
+                                    
+                                    -- Auto-execute RemoteFunctions if enabled
+                                    if AutoExecuteEnabled and isRemoteFunction and method == "InvokeServer" then
+                                        local capturedArgs = {...}
+                                        task.spawn(function()
+                                            local success, result = pcall(function()
+                                                return originalNamecall(unpack(capturedArgs))
+                                            end)
+                                            if success then
+                                                local execLog = string.format("[%s] Auto-executed: %s\n   Result: %s", 
+                                                    os.date("%H:%M:%S"), remoteName, tostring(result))
+                                                table.insert(RemoteSpyLogEntries, execLog)
+                                                table.insert(RemoteSpyLogs, {
+                                                    remoteName = remoteName,
+                                                    remoteType = "AutoExecute",
+                                                    args = {},
+                                                    path = "",
+                                                    timestamp = os.date("%H:%M:%S")
+                                                })
+                                                if #RemoteSpyLogs > MaxLogEntries then
+                                                    table.remove(RemoteSpyLogs, 1)
+                                                    table.remove(RemoteSpyLogEntries, 1)
+                                                end
+                                                UpdateRemoteDropdown()
+                                                UpdateRemoteSpyLog()
+                                            end
+                                        end)
+                                        -- Don't call originalNamecall here since we're auto-executing in the task
+                                        return
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
+                    return originalNamecall(...)
+                end)
+                
+                oldFireServer = originalNamecall
+                oldInvokeServer = originalNamecall
+                
+                Window:Notify({
+                    Title = "Remote Spy",
+                    Desc = "Remote Spy enabled!",
+                    Time = 2,
+                    Type = "normal"
+                })
+            else
+                Window:Notify({
+                    Title = "Remote Spy",
+                    Desc = "Remote Spy disabled!",
+                    Time = 2,
+                    Type = "normal"
+                })
+            end
+        end
+    })
+    
+    -- Auto-Execute Toggle
+    local AutoExecuteToggle = RemoteTab:Toggle({
+        Title = "Auto-Execute RemoteFunctions",
+        Desc = "Automatically execute intercepted RemoteFunctions",
+        Value = false,
+        Callback = function(v)
+            AutoExecuteEnabled = v
+        end
+    })
+    
+    -- Filter Textbox
+    RemoteTab:Textbox({
+        Title = "Filter",
+        Desc = "Filter remotes by name (leave empty for all)",
+        Placeholder = "Enter remote name to filter...",
+        Value = "",
+        ClearTextOnFocus = false,
+        Callback = function(text)
+            FilterText = text
+            Window:Notify({
+                Title = "Filter",
+                Desc = text ~= "" and ("Filter set to: " .. text) or "Filter cleared",
+                Time = 2,
+                Type = "normal"
+            })
+        end
+    })
+    
+    -- Clear Log Button
+    RemoteTab:Button({
+        Title = "Clear Log",
+        Desc = "Clear all intercepted remote logs",
+        Callback = function()
+            RemoteSpyLogs = {}
+            RemoteSpyLogEntries = {}
+            RemoteDropdown:Clear()
+            RemoteDropdown:Add("All Remotes")
+            SelectedRemote = "All Remotes"
+            RemoteDropdown:SetValue("All Remotes")
+            UpdateRemoteSpyLog()
+            Window:Notify({
+                Title = "Remote Spy",
+                Desc = "Log cleared!",
+                Time = 2,
+                Type = "normal"
+            })
+        end
+    })
+    
+    -- Max Log Entries Slider
+    RemoteTab:Slider({
+        Title = "Max Log Entries",
+        Desc = "Maximum number of log entries to keep",
+        Min = 50,
+        Max = 1000,
+        Value = 500,
+        Callback = function(v)
+            MaxLogEntries = math.floor(v)
+            -- Trim logs if necessary
+            while #RemoteSpyLogs > MaxLogEntries do
+                table.remove(RemoteSpyLogs, 1)
+            end
+            UpdateRemoteSpyLog()
+            Window:Notify({
+                Title = "Remote Spy",
+                Desc = "Max log entries set to: " .. MaxLogEntries,
+                Time = 2,
+                Type = "normal"
+            })
+        end
+    })
 end
 
 Window:Notify({
