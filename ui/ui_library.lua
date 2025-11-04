@@ -4256,22 +4256,22 @@ function Library:Window(p)
 
 	Notification.Name = "Notification"
 	Notification.Parent = ScreenGui
-	Notification.AnchorPoint = Vector2.new(1, 1)
+	Notification.AnchorPoint = Vector2.new(1, 0)
 	Notification.BackgroundColor3 = Color3.fromRGB(255,255,255)
 	Notification.BackgroundTransparency = 1
 	Notification.BorderColor3 = Color3.fromRGB(0,0,0)
 	Notification.BorderSizePixel = 0
-	Notification.Position = UDim2.new(1, 0,1, 0)
+	Notification.Position = UDim2.new(1, 0, 0, 80)
 	Notification.Size = UDim2.new(0, 100,0, 100)
 
 	UIPaddingUIListLayoutNotification_1.Parent = Notification
-	UIPaddingUIListLayoutNotification_1.PaddingBottom = UDim.new(0,20)
+	UIPaddingUIListLayoutNotification_1.PaddingTop = UDim.new(0,20)
 	UIPaddingUIListLayoutNotification_1.PaddingRight = UDim.new(0,5)
 
 	UIListLayoutNotification_1.Parent = Notification
 	UIListLayoutNotification_1.HorizontalAlignment = Enum.HorizontalAlignment.Right
 	UIListLayoutNotification_1.SortOrder = Enum.SortOrder.LayoutOrder
-	UIListLayoutNotification_1.VerticalAlignment = Enum.VerticalAlignment.Bottom
+	UIListLayoutNotification_1.VerticalAlignment = Enum.VerticalAlignment.Top
 
 	function Tabs:Notify(p)
 		local Title = p.Title or 'null'
@@ -5276,42 +5276,153 @@ function Library:Window(p)
 			end
 		end)
 		
+		local announcementHistory = {}
+		
+		local function getAnnouncement(url)
+			if syn and syn.request then
+				local result = syn.request({Url = url, Method = "GET"})
+				return result.Body
+			elseif http_request then
+				local result = http_request({Url = url, Method = "GET"})
+				return result.Body
+			elseif request then
+				local result = request({Url = url, Method = "GET"})
+				return result.Body
+			else
+				local success, result = pcall(function()
+					return game:HttpGet(url, true)
+				end)
+				if success then
+					return result
+				end
+			end
+			return nil
+		end
+		
+		local function hasInHistory(msg)
+			for _, savedMsg in ipairs(announcementHistory) do
+				if tostring(savedMsg) == tostring(msg) then
+					return true
+				end
+			end
+			return false
+		end
+		
+		local function loadSavedHistory()
+			if readfile and isfile then
+				local historyFile = "LunarisX_AnnouncementHistory_" .. client_id .. ".json"
+				if isfile(historyFile) then
+					local success, fileData = pcall(function()
+						return readfile(historyFile)
+					end)
+					if success and fileData and fileData ~= "" then
+						local success2, savedHistory = pcall(function()
+							return HttpService:JSONDecode(fileData)
+						end)
+						if success2 and type(savedHistory) == "table" then
+							announcementHistory = savedHistory
+							for _, msg in ipairs(savedHistory) do
+								local msgStr = tostring(msg)
+								local found = false
+								for id, savedMsg in pairs(Tabs.Announcements) do
+									if tostring(savedMsg) == msgStr then
+										found = true
+										break
+									end
+								end
+								if not found then
+									local id = tostring(#Tabs.Announcements + 1)
+									Tabs.Announcements[id] = msgStr
+									Tabs.ReceivedAnnouncements[id] = true
+									task.spawn(function()
+										Tabs:AddAnnouncementToUI(msgStr)
+									end)
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+		
+		local function saveHistory()
+			if writefile then
+				local historyFile = "LunarisX_AnnouncementHistory_" .. client_id .. ".json"
+				pcall(function()
+					local json = HttpService:JSONEncode(announcementHistory)
+					writefile(historyFile, json)
+				end)
+			end
+		end
+		
+		loadSavedHistory()
+		
 		local function pollAnnouncements()
 			while true do
-				local success, result = pcall(function()
-					return game:HttpGet(API_URL, true)
-				end)
+				local result = getAnnouncement(API_URL)
 				
-				if success and result then
-					local announcements = nil
-					pcall(function()
-						announcements = HttpService:JSONDecode(result)
+				if result then
+					local success, data = pcall(function()
+						return HttpService:JSONDecode(result)
 					end)
 					
-					if announcements and type(announcements) == "table" then
+					if success and data then
 						local hasNew = false
-						for id, message in pairs(announcements) do
-							if not Tabs.ReceivedAnnouncements[id] then
+						
+						if data.announcement and type(data.announcement) == "string" then
+							local msg = data.announcement
+							if not hasInHistory(msg) then
+								table.insert(announcementHistory, msg)
+								local id = tostring(#Tabs.Announcements + 1)
 								Tabs.ReceivedAnnouncements[id] = true
-								Tabs.Announcements[id] = tostring(message)
+								Tabs.Announcements[id] = msg
 								hasNew = true
 								
+								saveHistory()
+								
 								task.spawn(function()
-									Tabs:AddAnnouncementToUI(tostring(message))
+									Tabs:AddAnnouncementToUI(msg)
 								end)
 								
 								pcall(function()
 									Tabs:Notify({
 										Title = "Announcement",
-										Desc = tostring(message),
+										Desc = msg,
 										Time = 10,
 										Type = "normal"
 									})
 								end)
 							end
+						elseif type(data) == "table" then
+							for id, message in pairs(data) do
+								if not Tabs.ReceivedAnnouncements[id] then
+									Tabs.ReceivedAnnouncements[id] = true
+									Tabs.Announcements[id] = tostring(message)
+									hasNew = true
+									
+									local msgStr = tostring(message)
+									if not hasInHistory(msgStr) then
+										table.insert(announcementHistory, msgStr)
+									end
+									
+									task.spawn(function()
+										Tabs:AddAnnouncementToUI(msgStr)
+									end)
+									
+									pcall(function()
+										Tabs:Notify({
+											Title = "Announcement",
+											Desc = msgStr,
+											Time = 10,
+											Type = "normal"
+										})
+									end)
+								end
+							end
 						end
 						
 						if hasNew and writefile then
+							saveHistory()
 							task.spawn(function()
 								local saveData = {
 									Announcements = Tabs.Announcements,
@@ -5325,7 +5436,7 @@ function Library:Window(p)
 						end
 					end
 				end
-				task.wait(3)
+				task.wait(10)
 			end
 		end
 		
@@ -5478,796 +5589,5 @@ function Library:Window(p)
 	return Tabs
 end
 
--- Recorder Module
-function Library:Recorder(Window, Tab)
-	local Workspace = game:GetService("Workspace")
-	local Players = game:GetService("Players")
-	local LocalPlayer = Players.LocalPlayer
-	local ReplicatedStorage = game:GetService("ReplicatedStorage")
-	local RemoteFunction = if not GameSpoof then ReplicatedStorage:WaitForChild("RemoteFunction") else SpoofEvent
-	local RemoteEvent = if not GameSpoof then ReplicatedStorage:WaitForChild("RemoteEvent") else SpoofEvent
-	local RSTimer = ReplicatedStorage:WaitForChild("State"):WaitForChild("Timer"):WaitForChild("Time")
-	local RSMode = ReplicatedStorage:WaitForChild("State"):WaitForChild("Mode")
-	local RSDifficulty = ReplicatedStorage:WaitForChild("State"):WaitForChild("Difficulty")
-	local RSMap = ReplicatedStorage:WaitForChild("State"):WaitForChild("Map")
-	local VoteGUI = LocalPlayer.PlayerGui:WaitForChild("ReactOverridesVote"):WaitForChild("Frame"):WaitForChild("votes"):WaitForChild("vote")
-	local GameWave = LocalPlayer.PlayerGui:WaitForChild("ReactGameTopGameDisplay"):WaitForChild("Frame"):WaitForChild("wave"):WaitForChild("container"):WaitForChild("value")
-
-	getgenv().WriteFile = function(check, name, location, str)
-		if not check then
-			return
-		end
-		if type(name) == "string" then
-			if not type(location) == "string" then
-				location = ""
-			end
-			if not isfolder(location) then
-				makefolder(location)
-			end
-			if type(str) ~= "string" then
-				error("Argument 4 must be a string got " .. tostring(number))
-			end
-			writefile(location .. "/" .. name .. ".txt", str)
-		else
-			error("Argument 2 must be a string got " .. tostring(number))
-		end
-	end
-
-	getgenv().AppendFile = function(check, name, location, str)
-		if not check then
-			return
-		end
-		if type(name) == "string" then
-			if not type(location) == "string" then
-				location = ""
-			end
-			if not isfolder(location) then
-				WriteFile(check, name, location, str)
-			end
-			if type(str) ~= "string" then
-				error("Argument 4 must be a string got " .. tostring(number))
-			end
-			if isfile(location .. "/" .. name .. ".txt") then
-				appendfile(location .. "/" .. name .. ".txt", str)
-			else
-				WriteFile(check, name, location, str)
-			end
-		else
-			error("Argument 2 must be a string got " .. tostring(number))
-		end
-	end
-
-	local writestrat = function(...)
-		local TableText = {...}
-		task.spawn(function()
-			if not game:GetService("Players").LocalPlayer then
-				repeat task.wait() until game:GetService("Players").LocalPlayer
-			end
-			for i, v in next, TableText do
-				if type(v) ~= "string" then
-					TableText[i] = tostring(v)
-				end
-			end
-			local Text = table.concat(TableText, " ")
-			print(Text)
-			return WriteFile(true, LocalPlayer.Name .. "'s strat", "StrategiesX/TDS/Recorder", tostring(Text) .. "\n")
-		end)
-	end
-
-	local appendstrat = function(...)
-		local TableText = {...}
-		task.spawn(function()
-			if not game:GetService("Players").LocalPlayer then
-				repeat task.wait() until game:GetService("Players").LocalPlayer
-			end
-			for i, v in next, TableText do
-				if type(v) ~= "string" then
-					TableText[i] = tostring(v)
-				end
-			end
-			local Text = table.concat(TableText, " ")
-			print(Text)
-			return AppendFile(true, LocalPlayer.Name .. "'s strat", "StrategiesX/TDS/Recorder", tostring(Text) .. "\n")
-		end)
-	end
-
-	getgenv().Recorder = {
-		Troops = {},
-		TowersList = {},
-	}
-	Recorder.Troops.Golden = {}
-
-	getgenv().TowersList = Recorder.TowersList
-
-	local TowerCount = 0
-	local GetMode = nil
-	local AutoSkipValue = false
-	local AutoSellFarmsValue = true
-	local IsPaused = false  -- Declare IsPaused early so GenerateFunction can access it
-
-	-- Use provided Tab if available, otherwise create a new tab
-	local RecorderTab = Tab or Window:Tab({Title = "Recorder", Icon = "record"})
-	
-	RecorderTab:Section({Title = "Status"})
-	local StatusLabel = RecorderTab:Label({
-		Title = "Status",
-		Desc = "Loading"
-	})
-
-	RecorderTab:Section({Title = "Time"})
-	local timeSection = RecorderTab:Label({
-		Title = "Time Passed",
-		Desc = "00:00"
-	})
-
-	-- Declare recordingStartTime outside so it can be accessed from both places
-	local recordingStartTime = nil
-	
-	task.spawn(function()
-		function TimeConverter(v)
-			if v <= 9 then
-				local conv = "0" .. v
-				return conv
-			else
-				return v
-			end
-		end
-		while task.wait(0.1) do
-			if recordingStartTime then
-				local t = os.time() - recordingStartTime
-				local seconds = t % 60
-				local minutes = math.floor(t / 60) % 60
-				timeSection:SetDesc("Recording Time: " .. TimeConverter(minutes) .. ":" .. TimeConverter(seconds))
-			else
-				timeSection:SetDesc("Recording Time: 00:00 (Not Recording)")
-			end
-		end
-	end)
-
-	RecorderTab:Section({Title = "Settings"})
-	local AutoSkipToggle = RecorderTab:Toggle({
-		Title = "Auto Skip",
-		Desc = "Automatically skip waves",
-		Value = false,
-		Callback = function(v)
-			AutoSkipValue = v
-		end
-	})
-
-	RecorderTab:Section({Title = "\\/ LAST WAVE \\/"})
-	local AutoSellFarmsToggle = RecorderTab:Toggle({
-		Title = "Auto Sell Farms",
-		Desc = "Automatically sell farms on last wave",
-		Value = true,
-		Callback = function(v)
-			AutoSellFarmsValue = v
-		end
-	})
-
-	RecorderTab:Section({Title = "Log"})
-	local LogBox = RecorderTab:Code({
-		Title = "Recorder Log",
-		Code = "-- Recorder Log\n-- Ready to start recording..."
-	})
-
-	local LogMessages = {}
-	local function AddLog(message)
-		local timestamp = os.date("%H:%M:%S")
-		local logEntry = string.format("[%s] %s", timestamp, tostring(message))
-		table.insert(LogMessages, logEntry)
-		
-		-- Keep only last 50 log entries
-		if #LogMessages > 50 then
-			table.remove(LogMessages, 1)
-		end
-		
-		local logText = table.concat(LogMessages, "\n")
-		LogBox:SetCode(logText)
-		
-		-- Auto-scroll to bottom
-		task.wait()
-		if LogBox and LogBox.ScrollingFrame then
-			LogBox.ScrollingFrame.CanvasPosition = Vector2.new(0, LogBox.ScrollingFrame.AbsoluteCanvasSize.Y)
-		end
-	end
-
-	RecorderTab:Section({Title = "Control"})
-	local IsRecording = false
-	-- Store in getgenv so it can be accessed from Macro tab
-	getgenv().RecorderIsRecording = false
-	local RecordToggle = nil
-
-	function SetStatus(string)
-		StatusLabel:SetDesc(string)
-		AddLog(string)
-	end
-
-	function ConvertTimer(number)
-		return math.floor(number / 60), number % 60
-	end
-
-	local TimerCheck = false
-	function CheckTimer(bool)
-		return (bool and TimerCheck) or true
-	end
-
-	RSTimer.Changed:Connect(function(time)
-		if time == 5 then
-			TimerCheck = true
-		elseif time and time > 5 then
-			TimerCheck = false
-		end
-	end)
-
-	function GetTimer()
-		local Min, Sec = ConvertTimer(RSTimer.Value)
-		return {tonumber(GameWave.Text), Min, Sec + Recorder.SecondMili, tostring(TimerCheck)}
-	end
-
-	Recorder.SecondMili = 0
-	RSTimer.Changed:Connect(function()
-		Recorder.SecondMili = 0
-		for i = 1, 9 do
-			task.wait(0.09)
-			Recorder.SecondMili += 0.1
-		end
-	end)
-
-	local GenerateFunction = {
-		Place = function(Args, Timer, RemoteCheck)
-			-- Check both local and global IsRecording
-			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
-			if not isRecActive or IsPaused then return end
-			if typeof(RemoteCheck) ~= "Instance" then
-				return
-			end
-			local TowerName = Args[3]
-			local Position = Args[4].Position
-			local Rotation = Args[4].Rotation
-			local RotateX, RotateY, RotateZ = Rotation:ToEulerAnglesYXZ()
-			TowerCount += 1
-			RemoteCheck.Name = TowerCount
-			TowersList[TowerCount] = {
-				["TowerName"] = Args[3],
-				["Instance"] = RemoteCheck,
-				["Position"] = Position,
-				["Rotation"] = Rotation,
-			}
-			local success, upgradeHandler = pcall(function()
-				return require(ReplicatedStorage.Client.Modules.Game.Interface.Elements.Upgrade.upgradeHandler)
-			end)
-			if success and upgradeHandler then
-				upgradeHandler:selectTroop(RemoteCheck)
-			end
-			SetStatus(`Placed {TowerName}`)
-			local TimerStr = table.concat(Timer, ", ")
-			appendstrat(`TDS:Place("{TowerName}", {Position.X}, {Position.Y}, {Position.Z}, {TimerStr}, {RotateX}, {RotateY}, {RotateZ})`)
-		end,
-		Upgrade = function(Args, Timer, RemoteCheck)
-			-- Check both local and global IsRecording
-			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
-			if not isRecActive or IsPaused then return end
-			local TowerIndex = Args[4].Troop.Name
-			local PathTarget = Args[4].Path
-			if RemoteCheck ~= true then
-				SetStatus(`Upgraded Failed ID: {TowerIndex}`)
-				print(`Upgraded Failed ID: {TowerIndex}`, RemoteCheck)
-				return
-			end
-			SetStatus(`Upgraded ID: {TowerIndex}`)
-			local TimerStr = table.concat(Timer, ", ")
-			appendstrat(`TDS:Upgrade({TowerIndex}, {TimerStr}, {PathTarget})`)
-		end,
-		Sell = function(Args, Timer, RemoteCheck)
-			-- Check both local and global IsRecording
-			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
-			if not isRecActive or IsPaused then return end
-			local TowerIndex = Args[3].Troop.Name
-			if not RemoteCheck or (TowersList[tonumber(TowerIndex)] and TowersList[tonumber(TowerIndex)].Instance:FindFirstChild("HumanoidRootPart")) then
-				SetStatus(`Sell Failed ID: {TowerIndex}`)
-				print(`Sell Failed ID: {TowerIndex}`, RemoteCheck)
-				return
-			end
-			SetStatus(`Sold TowerIndex {TowerIndex}`)
-			local TimerStr = table.concat(Timer, ", ")
-			appendstrat(`TDS:Sell({TowerIndex}, {TimerStr})`)
-		end,
-		Target = function(Args, Timer, RemoteCheck)
-			-- Check both local and global IsRecording
-			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
-			if not isRecActive or IsPaused then return end
-			local TowerIndex = Args[4].Troop.Name
-			local Target = Args[4].Target
-			if RemoteCheck ~= true then
-				SetStatus(`Target Failed ID: {TowerIndex}`)
-				print(`Target Failed ID: {TowerIndex}`, RemoteCheck)
-			end
-			SetStatus(`Changed Target ID: {TowerIndex}`)
-			local TimerStr = table.concat(Timer, ", ")
-			appendstrat(`TDS:Target({TowerIndex}, "{Target}", {TimerStr})`)
-		end,
-		Abilities = function(Args, Timer, RemoteCheck)
-			-- Check both local and global IsRecording
-			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
-			if not isRecActive or IsPaused then return end
-			local TowerIndex = Args[4].Troop.Name
-			local AbilityName = Args[4].Name
-			local Data = Args[4].Data
-			if RemoteCheck ~= true then
-				SetStatus(`Ability Failed ID: {TowerIndex}`)
-				print(`Ability Failed ID: {TowerIndex}`, RemoteCheck)
-				return
-			end
-			local function formatData(Data)
-				local formattedData = {}
-				for key, value in pairs(Data) do
-					if key == "directionCFrame" then
-						table.insert(formattedData, string.format('["%s"] = CFrame.new(%s)', key, tostring(value)))
-					elseif key == "position" then
-						table.insert(formattedData, string.format('["%s"] = Vector3.new(%s)', key, tostring(value)))
-					else
-						table.insert(formattedData, string.format('["%s"] = %s', key, tostring(value)))
-					end
-				end
-				return "{" .. table.concat(formattedData, ", ") .. "}"
-			end
-			local formattedData = formatData(Data)
-			SetStatus(`Used Ability On TowerIndex {TowerIndex}`)
-			local TimerStr = table.concat(Timer, ", ")
-			appendstrat(`TDS:Ability({TowerIndex}, "{AbilityName}", {TimerStr}, {formattedData})`)
-		end,
-		Option = function(Args, Timer, RemoteCheck)
-			-- Check both local and global IsRecording
-			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
-			if not isRecActive or IsPaused then return end
-			local TowerIndex = Args[4].Troop.Name
-			local OptionName = Args[4].Name
-			local Value = Args[4].Value
-			if RemoteCheck ~= true then
-				SetStatus(`Option Failed ID; {TowerIndex}`)
-				print(`Option Failed ID: {TowerIndex}`, RemoteCheck)
-				return
-			end
-			SetStatus(`Used Option On TowerIndex {TowerIndex}`)
-			local TimerStr = table.concat(Timer, ", ")
-			appendstrat(`TDS:Option({TowerIndex}, "{OptionName}", "{Value}", {TimerStr})`)
-		end,
-		Skip = function(Args, Timer, RemoteCheck)
-			-- Check both local and global IsRecording
-			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
-			if not isRecActive or IsPaused then return end
-			SetStatus(`Skipped Wave`)
-			local TimerStr = table.concat(Timer, ", ")
-			appendstrat(`TDS:Skip({TimerStr})`)
-		end,
-		Vote = function(Args, Timer, RemoteCheck)
-			-- Check both local and global IsRecording
-			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
-			if not isRecActive or IsPaused then return end
-			local Difficulty = Args[3]
-			local DiffTable = {
-				["Easy"] = "Easy",
-				["Casual"] = "Casual",
-				["Intermediate"] = "Intermediate",
-				["Molten"] = "Molten",
-				["Fallen"] = "Fallen"
-			}
-			GetMode = DiffTable[Difficulty] or Difficulty
-			SetStatus(`Vote {GetMode}`)
-		end,
-		}
-
-	local Skipped = false
-	local voteConnection = nil
-	voteConnection = VoteGUI:GetPropertyChangedSignal("Position"):Connect(function()
-		local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
-		if not isRecActive or IsPaused then return end
-		repeat task.wait() until AutoSkipValue
-		if Skipped then
-			local count = VoteGUI:FindFirstChild("count")
-			if count and count.Text ~= "0/1 Required" then
-				return
-			end
-		end
-		local prompt = VoteGUI:FindFirstChild("prompt")
-		if prompt and prompt.Text == "Skip Wave?" and tonumber(GameWave.Text) ~= 0 then
-			Skipped = true
-			local Timer = GetTimer()
-			task.spawn(GenerateFunction["Skip"], true, Timer)
-			local success = pcall(function()
-				return ReplicatedStorage.RemoteFunction:InvokeServer("Voting", "Skip")
-			end)
-			if success then
-				task.wait(2.5)
-				Skipped = false
-			end
-		end
-	end)
-
-	task.spawn(function()
-		GameWave:GetPropertyChangedSignal("Text"):Wait()
-		local FinalWaveAtDifferentMode = {
-			["Easy"] = 25,
-			["Casual"] = 30,
-			["Intermediate"] = 30,
-			["Molten"] = 35,
-			["Fallen"] = 40,
-			["Hardcore"] = 50
-		}
-		local waveConnection = nil
-		waveConnection = GameWave:GetPropertyChangedSignal("Text"):Connect(function()
-			-- Check both local and global IsRecording
-			local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
-			if not isRecActive or IsPaused then return end
-			local difficulty = RSDifficulty.Value
-			local FinalWave = FinalWaveAtDifferentMode[difficulty]
-			if FinalWave and tonumber(GameWave.Text) == FinalWave then
-				repeat task.wait() until AutoSellFarmsValue
-				for i, v in ipairs(game.Workspace.Towers:GetChildren()) do
-					local owner = v:FindFirstChild("Owner")
-					local towerReplicator = v:FindFirstChild("TowerReplicator")
-					if owner and owner.Value == LocalPlayer.UserId and towerReplicator then
-						local towerType = towerReplicator:GetAttribute("Type")
-						if towerType == "Farm" then
-							local success = pcall(function()
-								return ReplicatedStorage.RemoteFunction:InvokeServer("Troops", "Sell", {["Troop"] = v})
-							end)
-							if success then
-								SetStatus(`Sold All Farms`)
-							end
-						end
-					end
-				end
-			end
-		end)
-	end)
-
-	task.spawn(function()
-		local success, inventory = pcall(function()
-			return ReplicatedStorage.RemoteFunction:InvokeServer("Session", "Search", "Inventory.Troops")
-		end)
-		if success and inventory then
-			for TowerName, Tower in next, inventory do
-				if (Tower.Equipped) then
-					table.insert(Recorder.Troops, TowerName)
-					if (Tower.GoldenPerks) then
-						table.insert(Recorder.Troops.Golden, TowerName)
-					end
-				end
-			end
-		end
-		
-		-- Initialize strat file when recording starts
-	end)
-	
-	-- Initialize strat file when recording starts
-	local function InitializeStratFile()
-		writestrat("getgenv().StratCreditsAuthor = \"Optional\"")
-		local mapValue = RSMap and RSMap.Value or "Unknown"
-		local modeValue = RSMode and RSMode.Value or "Unknown"
-		
-		-- Use GitHub link for Main.lua
-		local loadString = "loadstring(game:HttpGet(\"https://raw.githubusercontent.com/mercymercypeace/Strat/refs/heads/main/ui/main.lua\", true))()"
-		
-		appendstrat("local TDS = " .. loadString .. "\nTDS:Map(\""
-			.. mapValue .. "\", true, \"" .. modeValue .. "\")\nTDS:Loadout({\""
-			.. table.concat(Recorder.Troops, `", "`) .. if #Recorder.Troops.Golden ~= 0 then "\", [\"Golden\"] = {\""
-				.. table.concat(Recorder.Troops.Golden, `", "`) .. "\"}})" else "\"})"
-		)
-	end
-	
-	-- Create RecordToggle with callback
-	RecordToggle = RecorderTab:Toggle({
-		Title = "Start Recording",
-		Desc = "Enable to start recording tower actions",
-		Value = false,
-		Callback = function(v)
-			-- Check if triggered from Macro tab
-			if getgenv().MacroRecorderToggleValue ~= nil then
-				v = getgenv().MacroRecorderToggleValue
-				getgenv().MacroRecorderToggleValue = nil
-			end
-			
-			IsRecording = v
-			getgenv().RecorderIsRecording = v
-			if v then
-				recordingStartTime = os.time()
-				local startTimeStr = os.date("%H:%M:%S")
-				InitializeStratFile()
-				AddLog("Recording started!")
-				SetStatus(`Recording... (Started at {startTimeStr})`)
-			else
-				AddLog("Recording stopped!")
-				SetStatus("Stopped")
-				recordingStartTime = nil
-			end
-		end
-	})
-	
-	-- Sync with Macro tab toggle if it exists
-	task.spawn(function()
-		while task.wait(0.1) do
-			if getgenv().MacroRecorderToggleValue ~= nil then
-				local value = getgenv().MacroRecorderToggleValue
-				local wasRecording = IsRecording
-				
-				-- Update IsRecording directly
-				IsRecording = value
-				getgenv().RecorderIsRecording = value
-				
-				-- Trigger the toggle callback to initialize strat file
-				if RecordToggle then
-					if RecordToggle.Value ~= value then
-						-- Value is different, trigger the callback
-						RecordToggle:SetValue(value)
-					elseif value and not wasRecording then
-						-- Value is same but we're starting recording (was false, now true)
-						-- Manually trigger the recording start logic
-						IsRecording = true
-						getgenv().RecorderIsRecording = true
-						recordingStartTime = os.time()
-						local startTimeStr = os.date("%H:%M:%S")
-						InitializeStratFile()
-						AddLog("Recording started!")
-						SetStatus(`Recording... (Started at {startTimeStr})`)
-					end
-				else
-					-- RecordToggle not created yet, but still set the state
-					if value and not wasRecording then
-						IsRecording = true
-						getgenv().RecorderIsRecording = true
-						recordingStartTime = os.time()
-						local startTimeStr = os.date("%H:%M:%S")
-						InitializeStratFile()
-						AddLog("Recording started!")
-						SetStatus(`Recording... (Started at {startTimeStr})`)
-					end
-				end
-				getgenv().MacroRecorderToggleValue = nil
-			end
-		end
-	end)
-	
-	-- Add buttons for recorder control
-	RecorderTab:Section({Title = "Actions"})
-	
-	-- Clear Log Button
-	RecorderTab:Button({
-		Title = "Clear Log",
-		Desc = "Clear the recorder log",
-		Callback = function()
-			LogMessages = {}
-			LogBox:SetCode("-- Recorder Log\n-- Ready to start recording...")
-			AddLog("Log cleared!")
-		end
-	})
-	
-	-- Copy Strat Button
-	RecorderTab:Button({
-		Title = "Copy Strat",
-		Desc = "Copy the recorded strat to clipboard",
-		Callback = function()
-			local stratContent = table.concat(LogMessages, "\n")
-			if stratContent and #stratContent > 0 then
-				-- Try to get the actual strat file content
-				local stratFilePath = "StrategiesX/TDS/Recorder/" .. LocalPlayer.Name .. "'s strat.txt"
-				if isfile and isfile(stratFilePath) then
-					local fileContent = readfile(stratFilePath)
-					if fileContent then
-						setclipboard(fileContent)
-						AddLog("Strat copied to clipboard!")
-					else
-						setclipboard(stratContent)
-						AddLog("Log content copied to clipboard!")
-					end
-				else
-					setclipboard(stratContent)
-					AddLog("Log content copied to clipboard!")
-				end
-			else
-				AddLog("No strat content to copy!")
-			end
-		end
-	})
-	
-	-- Pause/Resume Button
-	local ResumeButton = RecorderTab:Button({
-		Title = "Pause Recording",
-		Desc = "Pause or resume recording",
-		Callback = function()
-			if IsRecording then
-				if IsPaused then
-					-- Resume
-					IsPaused = false
-					IsRecording = true
-					getgenv().RecorderIsRecording = true
-					AddLog("Recording resumed!")
-					SetStatus("Recording...")
-					ResumeButton:SetTitle("Pause Recording")
-					ResumeButton:SetDesc("Pause or resume recording")
-				else
-					-- Pause
-					IsPaused = true
-					AddLog("Recording paused!")
-					SetStatus("Paused")
-					ResumeButton:SetTitle("Resume Recording")
-					ResumeButton:SetDesc("Pause or resume recording")
-				end
-			else
-				AddLog("Recording is not active!")
-			end
-		end
-	})
-	
-	-- Stats Button - declare UpdatePlayerStatsFunc variable first
-	local UpdatePlayerStatsFunc = nil
-	
-	-- Add Stats button in Recorder tab (will be connected after Stats section is created)
-	local StatsButton = RecorderTab:Button({
-		Title = "Check Player Stats",
-		Desc = "Update player statistics",
-		Callback = function()
-			AddLog("Checking player stats...")
-			if UpdatePlayerStatsFunc then
-				UpdatePlayerStatsFunc()
-			else
-				AddLog("Stats section not ready yet, please wait...")
-			end
-		end
-	})
-
-	task.spawn(function()
-		local DiffTable = {
-			["Easy"] = "Easy",
-			["Casual"] = "Casual",
-			["Intermediate"] = "Intermediate",
-			["Molten"] = "Molten",
-			["Fallen"] = "Fallen"
-		}
-		repeat task.wait() until GetMode ~= nil or RSDifficulty.Value ~= ""
-		if GetMode then
-			repeat task.wait() until GetMode == RSDifficulty.Value
-			appendstrat(`TDS:Mode("{GetMode}")`)
-		elseif DiffTable[RSDifficulty.Value] then
-			appendstrat(`TDS:Mode("{DiffTable[RSDifficulty.Value]}")`)
-		end
-	end)
-
-	local OldNamecall
-	OldNamecall = hookmetamethod(game, '__namecall', function(...)
-		local Self, Args = (...), ({select(2, ...)})
-		local method = getnamecallmethod()
-		if method == "InvokeServer" then
-			local success, remoteName = pcall(function()
-				return Self.Name
-			end)
-			if success and remoteName == "RemoteFunction" then
-				local thread = coroutine.running()
-				coroutine.wrap(function(Args)
-					local success, RemoteFired = pcall(function()
-						return OldNamecall(Self, unpack(Args))
-					end)
-					-- Check both local and global IsRecording state
-					local isRecActive = IsRecording or (getgenv().RecorderIsRecording == true)
-					if success and isRecActive then
-						local Timer = GetTimer()
-						if GenerateFunction[Args[2]] then
-							GenerateFunction[Args[2]](Args, Timer, RemoteFired)
-						end
-					end
-					coroutine.resume(thread, RemoteFired)
-				end)(Args)
-				return coroutine.yield()
-			end
-		end
-		return OldNamecall(..., unpack(Args))
-	end)
-
-	-- Stats Section
-	local StatsTab = Window:Tab({Title = "Stats", Icon = "chart-bar"})
-	
-	StatsTab:Section({Title = "Player Statistics"})
-	
-	-- Create labels for player stats
-	local LevelLabel = StatsTab:Label({
-		Title = "Level",
-		Desc = "Loading..."
-	})
-	
-	local ExperienceLabel = StatsTab:Label({
-		Title = "Experience",
-		Desc = "Loading..."
-	})
-	
-	local CoinsLabel = StatsTab:Label({
-		Title = "Coins",
-		Desc = "Loading..."
-	})
-	
-	local GemsLabel = StatsTab:Label({
-		Title = "Gems",
-		Desc = "Loading..."
-	})
-	
-	local WinsLabel = StatsTab:Label({
-		Title = "Wins (Triumphs)",
-		Desc = "Loading..."
-	})
-	
-	local LosesLabel = StatsTab:Label({
-		Title = "Loses",
-		Desc = "Loading..."
-	})
-	
-	-- Function to update player stats
-	local function UpdatePlayerStats()
-		local success, stats = pcall(function()
-			local level = LocalPlayer:WaitForChild("Level", 5)
-			local experience = LocalPlayer:WaitForChild("Experience", 5)
-			local coins = LocalPlayer:WaitForChild("Coins", 5)
-			local gems = LocalPlayer:WaitForChild("Gems", 5)
-			local triumphs = LocalPlayer:WaitForChild("Triumphs", 5)
-			local loses = LocalPlayer:WaitForChild("Loses", 5)
-			
-			if level and experience and coins and gems and triumphs and loses then
-				return {
-					Level = level.Value,
-					Experience = experience.Value,
-					Coins = coins.Value,
-					Gems = gems.Value,
-					Triumphs = triumphs.Value,
-					Loses = loses.Value
-				}
-			end
-			return nil
-		end)
-		
-		if success and stats then
-			LevelLabel:SetDesc(tostring(stats.Level))
-			ExperienceLabel:SetDesc(tostring(stats.Experience))
-			CoinsLabel:SetDesc(tostring(stats.Coins))
-			GemsLabel:SetDesc(tostring(stats.Gems))
-			WinsLabel:SetDesc(tostring(stats.Triumphs))
-			LosesLabel:SetDesc(tostring(stats.Loses))
-			AddLog("Player stats updated!")
-		else
-			LevelLabel:SetDesc("Failed to load")
-			ExperienceLabel:SetDesc("Failed to load")
-			CoinsLabel:SetDesc("Failed to load")
-			GemsLabel:SetDesc("Failed to load")
-			WinsLabel:SetDesc("Failed to load")
-			LosesLabel:SetDesc("Failed to load")
-			AddLog("Failed to load player stats!")
-		end
-	end
-	
-	-- Update stats button
-	StatsTab:Section({Title = "Actions"})
-	StatsTab:Button({
-		Title = "Refresh Stats",
-		Desc = "Update player statistics",
-		Callback = function()
-			UpdatePlayerStats()
-		end
-	})
-	
-	-- Auto-update stats every 5 seconds
-	task.spawn(function()
-		UpdatePlayerStats() -- Initial load
-		while task.wait(5) do
-			UpdatePlayerStats()
-		end
-	end)
-	
-	-- Store UpdatePlayerStats function reference for the Stats button
-	UpdatePlayerStatsFunc = UpdatePlayerStats
-	
-	return {
-		SetStatus = SetStatus,
-		GetTimer = GetTimer,
-		Recorder = Recorder,
-		UpdatePlayerStats = UpdatePlayerStats
-	}
-end
 
 return Library

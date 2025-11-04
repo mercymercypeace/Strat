@@ -397,10 +397,23 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 			local atWave = getgenv().LunarisX.AtWave or 1
 			local sellAllTower = getgenv().LunarisX.SellAllTower or false
 			
-			if macroUrl == "" then
+			macroUrl = string.gsub(macroUrl, "^%s+", "")
+			macroUrl = string.gsub(macroUrl, "%s+$", "")
+			
+			if macroUrl == "" or macroUrl == nil or string.len(macroUrl) == 0 then
 				Window:Notify({
 					Title = "Error",
 					Desc = "Please enter a Macro URL first!",
+					Time = 3,
+					Type = "error"
+				})
+				return
+			end
+			
+			if not string.find(macroUrl, "http") then
+				Window:Notify({
+					Title = "Error",
+					Desc = "Invalid Macro URL! Please enter a valid URL.",
 					Time = 3,
 					Type = "error"
 				})
