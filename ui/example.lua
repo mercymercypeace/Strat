@@ -130,7 +130,7 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
                     end)
                 end
 				if value then
-					Window:Notify({
+                Window:Notify({
                     Title = "Keybind Changed",
                     Desc = "UI toggle keybind set to: " .. tostring(key):gsub("Enum.KeyCode.", ""),
                     Time = 3,
@@ -491,42 +491,22 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 	local hookEnabled = false
 	local originalNamecall = nil
 	local mt = nil
+	local currentWave = 1
 	
-	local function UpdateRecorderLog()
-		local logMessages = {}
-		for _, action in ipairs(actionLog) do
-			if action.type == "place" then
-				table.insert(logMessages, string.format("[%s] Tower Placed: %s at (%.2f, %.2f, %.2f) - Cash: %d", 
-					action.timestamp, action.name, action.pos[1], action.pos[2], action.pos[3], action.cash))
-			elseif action.type == "upgrade" then
-				table.insert(logMessages, string.format("[%s] Tower Upgraded at (%.2f, %.2f, %.2f) - Cash: %d", 
-					action.timestamp, action.pos[1], action.pos[2], action.pos[3], action.cash))
-			elseif action.type == "skip" then
-				table.insert(logMessages, string.format("[%s] Wave Skipped: Wave %d", action.timestamp, action.wave))
-			elseif action.type == "ability" then
-				table.insert(logMessages, string.format("[%s] Ability Used: %s", action.timestamp, action.ability))
+	local function getCurrentWave()
+		local ReplicatedStorage = game:GetService("ReplicatedStorage")
+		local success, wave = pcall(function()
+			local gameWave = ReplicatedStorage:FindFirstChild("GameWave")
+			if gameWave then
+				return tonumber(gameWave.Value) or 1
 			end
-		end
-		
-		if #logMessages == 0 then
-			RecorderLogBox:SetCode("-- Recorder Log\n-- No actions recorded yet...")
-		else
-			RecorderLogBox:SetCode(table.concat(logMessages, "\n"))
-		end
-	end
-	
-	local function formatLuaLog()
-		local lines = {}
-		for _, v in ipairs(actionLog) do
-			if v.type == "place" then
-				table.insert(lines, string.format('place(%.3f, %.3f, %.3f, "%s", %d)', 
-					v.pos[1], v.pos[2], v.pos[3], v.name, v.cash))
-			elseif v.type == "upgrade" then
-				table.insert(lines, string.format('upgrade(%.3f, %.3f, %.3f, %d)', 
-					v.pos[1], v.pos[2], v.pos[3], v.cash))
+			local timer = ReplicatedStorage:FindFirstChild("Timer")
+			if timer then
+				return math.floor(timer.Value / 60) + 1
 			end
-		end
-		return table.concat(lines, "\n")
+			return 1
+		end)
+		return success and wave or 1
 	end
 	
 	local function getCash()
@@ -549,6 +529,202 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		return 0
 	end
 	
+	local learnedTowerCosts = {}
+	
+	local function findTowerCostInGame(towerName)
+		local ReplicatedStorage = game:GetService("ReplicatedStorage")
+		
+		local possiblePaths = {
+			"Towers",
+			"TowerData",
+			"GameData",
+			"Data",
+			"TowerCatalog",
+			"TowerInfo"
+		}
+		
+		for _, pathName in ipairs(possiblePaths) do
+			local folder = ReplicatedStorage:FindFirstChild(pathName)
+			if folder then
+				local towerData = folder:FindFirstChild(towerName)
+				if towerData then
+					if towerData:IsA("ModuleScript") then
+						local success, module = pcall(function()
+							return require(towerData)
+						end)
+						if success and type(module) == "table" then
+							if module.Cost then
+								return tonumber(module.Cost) or 0
+							elseif module.Price then
+								return tonumber(module.Price) or 0
+							elseif module.BaseCost then
+								return tonumber(module.BaseCost) or 0
+							end
+						end
+					elseif towerData:IsA("Configuration") or towerData:IsA("BoolValue") or towerData:IsA("IntValue") or towerData:IsA("NumberValue") then
+						local cost = towerData:GetAttribute("Cost") or towerData:GetAttribute("Price") or towerData:GetAttribute("BaseCost")
+						if cost then
+							return tonumber(cost) or 0
+						end
+					end
+				end
+				
+				for _, child in ipairs(folder:GetChildren()) do
+					if child:IsA("ModuleScript") then
+						local success, module = pcall(function()
+							return require(child)
+						end)
+						if success and type(module) == "table" then
+							local name = module.Name or module.TowerName or child.Name
+							if name and string.lower(tostring(name)) == string.lower(towerName) then
+								if module.Cost then
+									return tonumber(module.Cost) or 0
+								elseif module.Price then
+									return tonumber(module.Price) or 0
+								elseif module.BaseCost then
+									return tonumber(module.BaseCost) or 0
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+		
+		return nil
+	end
+	
+	local function getTowerCost(towerName)
+		if learnedTowerCosts[towerName] then
+			return learnedTowerCosts[towerName]
+		end
+		
+		local cost = findTowerCostInGame(towerName)
+		if cost and cost > 0 then
+			learnedTowerCosts[towerName] = cost
+			return cost
+		end
+		
+		return 0
+	end
+	
+	local function learnTowerCost(towerName, cost)
+		if cost and cost > 0 then
+			learnedTowerCosts[towerName] = cost
+		end
+	end
+	
+	local function getUpgradeCost(level)
+		local upgradeCosts = {
+			[1] = 100,
+			[2] = 200,
+			[3] = 300,
+			[4] = 400,
+			[5] = 500,
+		}
+		return upgradeCosts[level] or (level * 100)
+	end
+	
+	local function UpdateRecorderLog()
+		local logMessages = {}
+		local waveActions = {}
+		
+		for _, action in ipairs(actionLog) do
+			if not waveActions[action.wave] then
+				waveActions[action.wave] = {}
+			end
+			table.insert(waveActions[action.wave], action)
+		end
+		
+		local sortedWaves = {}
+		for wave, _ in pairs(waveActions) do
+			table.insert(sortedWaves, wave)
+		end
+		table.sort(sortedWaves)
+		
+		for _, wave in ipairs(sortedWaves) do
+			local actions = waveActions[wave]
+			local waveLine = string.format("Wave %d:", wave)
+			local actionList = {}
+			
+			for _, action in ipairs(actions) do
+				if action.type == "place" then
+					if action.waited then
+						table.insert(actionList, string.format("wait for money, place %s", action.name))
+					else
+						table.insert(actionList, string.format("place %s", action.name))
+					end
+				elseif action.type == "upgrade" then
+					local level = action.level or 1
+					if action.waited then
+						table.insert(actionList, string.format("wait for money, upgrade to lvl %d", level))
+					else
+						table.insert(actionList, string.format("upgrade to lvl %d", level))
+					end
+				end
+			end
+			
+			if #actionList > 0 then
+				waveLine = waveLine .. " " .. table.concat(actionList, ", ")
+				table.insert(logMessages, waveLine)
+			end
+		end
+		
+		if #logMessages == 0 then
+			RecorderLogBox:SetCode("-- Recorder Log\n-- No actions recorded yet...")
+		else
+			RecorderLogBox:SetCode(table.concat(logMessages, "\n"))
+		end
+	end
+	
+	local function formatLuaLog()
+		local lines = {}
+		local waveActions = {}
+		
+		for _, v in ipairs(actionLog) do
+			if not waveActions[v.wave] then
+				waveActions[v.wave] = {}
+			end
+			table.insert(waveActions[v.wave], v)
+		end
+		
+		local sortedWaves = {}
+		for wave, _ in pairs(waveActions) do
+			table.insert(sortedWaves, wave)
+		end
+		table.sort(sortedWaves)
+		
+		for _, wave in ipairs(sortedWaves) do
+			local actions = waveActions[wave]
+			table.insert(lines, string.format("-- Wave %d", wave))
+			for _, v in ipairs(actions) do
+				if v.type == "place" then
+					if v.waited then
+						local cost = getTowerCost(v.name)
+						table.insert(lines, string.format('waitForMoney(%d) -- %s', cost, v.name))
+						table.insert(lines, string.format('place(%.3f, %.3f, %.3f, "%s")', 
+							v.pos[1], v.pos[2], v.pos[3], v.name))
+					else
+						table.insert(lines, string.format('place(%.3f, %.3f, %.3f, "%s")', 
+							v.pos[1], v.pos[2], v.pos[3], v.name))
+					end
+				elseif v.type == "upgrade" then
+					local level = v.level or 1
+					if v.waited then
+						local cost = getUpgradeCost(level)
+						table.insert(lines, string.format('waitForMoney(%d) -- upgrade to lvl %d', cost, level))
+						table.insert(lines, string.format('upgrade(%.3f, %.3f, %.3f, %d)', 
+							v.pos[1], v.pos[2], v.pos[3], level))
+					else
+						table.insert(lines, string.format('upgrade(%.3f, %.3f, %.3f, %d)', 
+							v.pos[1], v.pos[2], v.pos[3], level))
+					end
+				end
+			end
+		end
+		return table.concat(lines, "\n")
+	end
+	
 	local RecorderToggle = MacroTab:Toggle({
 		Title = "Start Recording",
 		Desc = "Enable to start recording tower actions",
@@ -562,6 +738,20 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 					local remoteFunction = ReplicatedStorage:WaitForChild("RemoteFunction", 10)
 					
 					if remoteFunction then
+						currentWave = getCurrentWave()
+						
+						task.spawn(function()
+							local ReplicatedStorage = game:GetService("ReplicatedStorage")
+							local gameWave = ReplicatedStorage:WaitForChild("GameWave", 10)
+							if gameWave then
+								gameWave:GetPropertyChangedSignal("Value"):Connect(function()
+									if isRecording then
+										currentWave = tonumber(gameWave.Value) or currentWave
+									end
+								end)
+							end
+						end)
+						
 						mt = getrawmetatable(game)
 						originalNamecall = mt.__namecall
 						setreadonly(mt, false)
@@ -572,35 +762,172 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 							
 							if isRecording and self == remoteFunction and (method == "FireServer" or method == "InvokeServer") then
 								local timestamp = os.date("%H:%M:%S")
+								local wave = getCurrentWave()
+								if wave > 0 then
+									currentWave = wave
+								end
 								
 								if type(args[3]) == "table" and args[3].Position and args[4] then
 									local pos = args[3].Position
-									table.insert(actionLog, {
-										type = "place",
-										pos = {pos.X, pos.Y, pos.Z},
-										name = tostring(args[4]),
-										cash = getCash(),
-										timestamp = timestamp
-									})
-									UpdateRecorderLog()
+									local towerName = tostring(args[4])
+									local cashBefore = getCash()
+									local cost = getTowerCost(towerName)
+									
+									local waited = false
+									if cost > 0 then
+										waited = cashBefore < cost
+									end
+									
+									if waited and cost > 0 then
+										task.spawn(function()
+											local startTime = tick()
+											local startCash = cashBefore
+											
+											while getCash() < cost and isRecording do
+												task.wait(0.1)
+											end
+											
+											local finalCash = getCash()
+											local actualCost = startCash - finalCash
+											
+											if actualCost > 0 then
+												if actualCost ~= cost then
+													learnTowerCost(towerName, actualCost)
+												end
+												cost = actualCost
+											end
+											
+											local waitTime = tick() - startTime
+											if waitTime > 0.1 then
+												table.insert(actionLog, {
+													type = "place",
+													pos = {pos.X, pos.Y, pos.Z},
+													name = towerName,
+													wave = currentWave,
+													timestamp = timestamp,
+													waited = true,
+													waitTime = waitTime,
+													startCash = startCash,
+													cost = cost
+												})
+											else
+												table.insert(actionLog, {
+													type = "place",
+													pos = {pos.X, pos.Y, pos.Z},
+													name = towerName,
+													wave = currentWave,
+													timestamp = timestamp,
+													waited = false,
+													cost = cost
+												})
+											end
+											UpdateRecorderLog()
+										end)
+									else
+										task.spawn(function()
+											local cashAfter = getCash()
+											task.wait(0.2)
+											cashAfter = getCash()
+											local actualCost = cashBefore - cashAfter
+											
+											if actualCost > 0 then
+												learnTowerCost(towerName, actualCost)
+												cost = actualCost
+											end
+											
+											table.insert(actionLog, {
+												type = "place",
+												pos = {pos.X, pos.Y, pos.Z},
+												name = towerName,
+												wave = currentWave,
+												timestamp = timestamp,
+												waited = false,
+												cost = cost
+											})
+											UpdateRecorderLog()
+										end)
+									end
 								end
 								
 								if args[1] == "Troops" and args[2] == "Upgrade" and typeof(args[4]) == "table" then
 									local tower = args[4].Troop
+									local cashBefore = getCash()
 									local result = originalNamecall(self, ...)
 									
-									if tower and tower.Parent then
-										local root = tower:FindFirstChild("HumanoidRootPart") or tower:FindFirstChildWhichIsA("BasePart")
-										if root then
-											table.insert(actionLog, {
-												type = "upgrade",
-												pos = {root.Position.X, root.Position.Y, root.Position.Z},
-												cash = getCash(),
-												timestamp = timestamp
-											})
-											UpdateRecorderLog()
+									task.spawn(function()
+										if tower and tower.Parent then
+											local success, root = pcall(function()
+												return tower:FindFirstChild("HumanoidRootPart") or tower:FindFirstChildWhichIsA("BasePart")
+											end)
+											
+											if success and root then
+												local level = 1
+												local success2, towerLevel = pcall(function()
+													return tower:GetAttribute("Level") or (tower:FindFirstChild("Level") and tower.Level.Value) or 1
+												end)
+												if success2 and towerLevel then
+													level = tonumber(towerLevel) or 1
+												end
+												
+												task.wait(0.2)
+												local cashAfter = getCash()
+												local actualCost = cashBefore - cashAfter
+												
+												local cost = getUpgradeCost(level)
+												if actualCost > 0 then
+													cost = actualCost
+												end
+												
+												local currentCash = getCash()
+												local waited = cashBefore < cost
+												
+												if waited then
+													local startTime = tick()
+													local startCash = cashBefore
+													
+													while getCash() < cost and isRecording do
+														task.wait(0.1)
+													end
+													
+													local waitTime = tick() - startTime
+													if waitTime > 0.1 then
+														table.insert(actionLog, {
+															type = "upgrade",
+															pos = {root.Position.X, root.Position.Y, root.Position.Z},
+															wave = currentWave,
+															level = level,
+															timestamp = timestamp,
+															waited = true,
+															waitTime = waitTime,
+															startCash = startCash,
+															cost = cost
+														})
+													else
+														table.insert(actionLog, {
+															type = "upgrade",
+															pos = {root.Position.X, root.Position.Y, root.Position.Z},
+															wave = currentWave,
+															level = level,
+															timestamp = timestamp,
+															waited = false,
+															cost = cost
+														})
+													end
+												else
+													table.insert(actionLog, {
+														type = "upgrade",
+														pos = {root.Position.X, root.Position.Y, root.Position.Z},
+														wave = currentWave,
+														level = level,
+														timestamp = timestamp,
+														waited = false,
+														cost = cost
+													})
+												end
+												UpdateRecorderLog()
+											end
 										end
-									end
+									end)
 									
 									return result
 								end
@@ -610,13 +937,13 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 						end)
 						
 						hookEnabled = true
-						
-						Window:Notify({
+			
+			Window:Notify({
 							Title = "Recorder",
 							Desc = "Recording started!",
 							Time = 2,
-							Type = "normal"
-						})
+				Type = "normal"
+			})
 						
 						RecorderToggle:SetTitle("Stop Recording")
 						RecorderToggle:SetDesc("Disable to stop recording")
@@ -968,10 +1295,17 @@ local AnnouncementTab = Window:Tab({Title = "Announce", Icon = "bell"}) do
                             task.wait(0.1)
                             loadSavedAnnouncements()
                             
+                            if tabButton:IsA("GuiButton") then
+                                tabButton.Activated:Connect(function()
+                                    task.wait(0.2)
+                                    loadSavedAnnouncements()
+                                end)
+                            elseif tabButton:IsA("TextButton") or tabButton:IsA("ImageButton") then
                             tabButton.MouseButton1Click:Connect(function()
                                 task.wait(0.2)
                                 loadSavedAnnouncements()
                             end)
+                            end
                             
                             break
                         end
