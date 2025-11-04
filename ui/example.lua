@@ -637,57 +637,75 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 								currentWave = wave
 							end
 							
-							local successPlace, pos, towerName = pcall(function()
-								if args[1] == "Troops" and args[2] == "Place" and type(args[3]) == "table" and args[3].Position and args[4] then
-									return args[3].Position, tostring(args[4])
-								end
-								return nil, nil
-							end)
-								
-							if successPlace and pos and towerName then
-								local cashBefore = getCash()
-								local cost = getTowerCost(towerName)
-								local result = originalNamecall(self, ...)
-								
+							local isPlaceAction = false
+							local cashBefore = 0
+							
+							if args[1] == "Troops" and args[2] == "Place" then
+								isPlaceAction = true
+								cashBefore = getCash()
+							end
+							
+							local result = originalNamecall(self, ...)
+							
+							if isPlaceAction then
 								task.spawn(function()
 									pcall(function()
-										local cashAfter = getCash()
-										task.wait(0.2)
-										cashAfter = getCash()
-										local actualCost = cashBefore - cashAfter
+										local pos = nil
+										local towerName = nil
 										
-										if actualCost > 0 then
-											learnTowerCost(towerName, actualCost)
-											cost = actualCost
+										local successExtract = pcall(function()
+											if typeof(args[3]) == "table" and args[3].Position then
+												local position = args[3].Position
+												if typeof(position) == "Vector3" then
+													pos = position
+												end
+											end
+											if args[4] ~= nil then
+												towerName = tostring(args[4])
+											end
+										end)
+										
+										if successExtract and pos and towerName then
+											task.wait(0.2)
+											local cashAfter = getCash()
+											local cost = getTowerCost(towerName)
+											local actualCost = cashBefore - cashAfter
+											
+											if actualCost > 0 then
+												learnTowerCost(towerName, actualCost)
+												cost = actualCost
+											end
+											
+											local waited = cashBefore < cost
+											
+											if waited and cost > 0 then
+												table.insert(actionLog, {
+													type = "place",
+													pos = {pos.X, pos.Y, pos.Z},
+													name = towerName,
+													wave = currentWave,
+													timestamp = timestamp,
+													waited = true,
+													cost = cost
+												})
+											else
+												table.insert(actionLog, {
+													type = "place",
+													pos = {pos.X, pos.Y, pos.Z},
+													name = towerName,
+													wave = currentWave,
+													timestamp = timestamp,
+													waited = false,
+													cost = cost
+												})
+											end
+											UpdateRecorderLog()
 										end
-										
-										local waited = cashBefore < cost
-										
-										if waited and cost > 0 then
-											table.insert(actionLog, {
-												type = "place",
-												pos = {pos.X, pos.Y, pos.Z},
-												name = towerName,
-												wave = currentWave,
-												timestamp = timestamp,
-												waited = true,
-												cost = cost
-											})
-										else
-											table.insert(actionLog, {
-												type = "place",
-												pos = {pos.X, pos.Y, pos.Z},
-												name = towerName,
-												wave = currentWave,
-												timestamp = timestamp,
-												waited = false,
-												cost = cost
-											})
-										end
-										UpdateRecorderLog()
 									end)
 								end)
-								
+							end
+							
+							if isPlaceAction then
 								return result
 							end
 							
