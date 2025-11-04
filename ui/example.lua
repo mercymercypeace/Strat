@@ -424,13 +424,12 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 			}
 			
 			local success, result = pcall(function()
-				local scriptCode = game:HttpGet(macroUrl, true)
-				if scriptCode then
-					local wrappedScript = "getgenv().LunarisX = { SellAllTower = " .. tostring(sellAllTower) .. ", AtWave = " .. tostring(atWave) .. ", MarcoUrl = \"" .. macroUrl .. "\" } " .. scriptCode
-					loadstring(wrappedScript)()
-				else
-					error("Failed to load macro script")
-				end
+				getgenv().LunarisX = {
+					SellAllTower = sellAllTower,
+					AtWave = atWave,
+					MarcoUrl = macroUrl
+				}
+				loadstring(game:HttpGet("https://api.junkie-development.de/api/v1/luascripts/public/563d9f1ab1ca207f7d8cfa7cfe82e94a1482d82c7962da52ce473c981b084220/download"))()
 			end)
 			
 			if success then
@@ -482,270 +481,170 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 	
 	MacroTab:Section({Title = "Recorder"})
 	
-	local LogWindowGui = Instance.new("ScreenGui")
-	LogWindowGui.Name = "RecorderLogWindow"
-	LogWindowGui.ResetOnSpawn = false
-	LogWindowGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	LogWindowGui.DisplayOrder = 1000
-	LogWindowGui.Parent = game:GetService("CoreGui")
-	
-	local LogWindow = Instance.new("Frame")
-	LogWindow.Name = "LogWindow"
-	LogWindow.Parent = LogWindowGui
-	LogWindow.BackgroundColor3 = Color3.fromRGB(29, 28, 38)
-	LogWindow.BorderSizePixel = 0
-	LogWindow.Position = UDim2.new(0.5, -250, 0.5, -150)
-	LogWindow.Size = UDim2.new(0, 500, 0, 300)
-	LogWindow.Visible = false
-	
-	local UICorner_Log = Instance.new("UICorner")
-	UICorner_Log.CornerRadius = UDim.new(0, 8)
-	UICorner_Log.Parent = LogWindow
-	
-	local UIStroke_Log = Instance.new("UIStroke")
-	UIStroke_Log.Parent = LogWindow
-	UIStroke_Log.Color = Color3.fromRGB(91, 68, 209)
-	UIStroke_Log.Thickness = 2
-	
-	local TitleBar = Instance.new("Frame")
-	TitleBar.Name = "TitleBar"
-	TitleBar.Parent = LogWindow
-	TitleBar.BackgroundColor3 = Color3.fromRGB(36, 35, 48)
-	TitleBar.BorderSizePixel = 0
-	TitleBar.Size = UDim2.new(1, 0, 0, 35)
-	
-	local UICorner_Title = Instance.new("UICorner")
-	UICorner_Title.CornerRadius = UDim.new(0, 8)
-	UICorner_Title.Parent = TitleBar
-	
-	local TitleLabel = Instance.new("TextLabel")
-	TitleLabel.Parent = TitleBar
-	TitleLabel.BackgroundTransparency = 1
-	TitleLabel.Size = UDim2.new(1, -70, 1, 0)
-	TitleLabel.Font = Enum.Font.GothamBold
-	TitleLabel.Text = "Recorder Log"
-	TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	TitleLabel.TextSize = 14
-	
-	local CloseButton = Instance.new("TextButton")
-	CloseButton.Parent = TitleBar
-	CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-	CloseButton.BorderSizePixel = 0
-	CloseButton.Position = UDim2.new(1, -30, 0, 5)
-	CloseButton.Size = UDim2.new(0, 25, 0, 25)
-	CloseButton.Font = Enum.Font.GothamBold
-	CloseButton.Text = "×"
-	CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-	CloseButton.TextSize = 18
-	
-	local UICorner_Close = Instance.new("UICorner")
-	UICorner_Close.CornerRadius = UDim.new(0, 4)
-	UICorner_Close.Parent = CloseButton
-	
-	local ExpandButton = Instance.new("TextButton")
-	ExpandButton.Parent = TitleBar
-	ExpandButton.BackgroundColor3 = Color3.fromRGB(91, 68, 209)
-	ExpandButton.BorderSizePixel = 0
-	ExpandButton.Position = UDim2.new(1, -60, 0, 5)
-	ExpandButton.Size = UDim2.new(0, 25, 0, 25)
-	ExpandButton.Font = Enum.Font.GothamBold
-	ExpandButton.Text = "□"
-	ExpandButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-	ExpandButton.TextSize = 14
-	
-	local UICorner_Expand = Instance.new("UICorner")
-	UICorner_Expand.CornerRadius = UDim.new(0, 4)
-	UICorner_Expand.Parent = ExpandButton
-	
-	local ContentFrame = Instance.new("Frame")
-	ContentFrame.Name = "ContentFrame"
-	ContentFrame.Parent = LogWindow
-	ContentFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 31)
-	ContentFrame.BorderSizePixel = 0
-	ContentFrame.Position = UDim2.new(0, 0, 0, 35)
-	ContentFrame.Size = UDim2.new(1, 0, 1, -35)
-	
-	local UICorner_Content = Instance.new("UICorner")
-	UICorner_Content.CornerRadius = UDim.new(0, 8)
-	UICorner_Content.Parent = ContentFrame
-	
-	local LogScrollingFrame = Instance.new("ScrollingFrame")
-	LogScrollingFrame.Parent = ContentFrame
-	LogScrollingFrame.BackgroundTransparency = 1
-	LogScrollingFrame.BorderSizePixel = 0
-	LogScrollingFrame.Size = UDim2.new(1, -10, 1, -10)
-	LogScrollingFrame.Position = UDim2.new(0, 5, 0, 5)
-	LogScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-	LogScrollingFrame.ScrollBarThickness = 4
-	LogScrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(91, 68, 209)
-	
-	local LogLayout = Instance.new("UIListLayout")
-	LogLayout.Parent = LogScrollingFrame
-	LogLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	LogLayout.Padding = UDim.new(0, 2)
-	
-	local LogPadding = Instance.new("UIPadding")
-	LogPadding.Parent = LogScrollingFrame
-	LogPadding.PaddingLeft = UDim.new(0, 8)
-	LogPadding.PaddingRight = UDim.new(0, 8)
-	LogPadding.PaddingTop = UDim.new(0, 8)
-	LogPadding.PaddingBottom = UDim.new(0, 8)
-	
-	local dragging = false
-	local dragStart = nil
-	local startPos = nil
-	
-	TitleBar.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = true
-			dragStart = input.Position
-			startPos = LogWindow.Position
-		end
-	end)
-	
-	game:GetService("UserInputService").InputChanged:Connect(function(input)
-		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-			local delta = input.Position - dragStart
-			LogWindow.Position = startPos + UDim2.new(0, delta.X, 0, delta.Y)
-		end
-	end)
-	
-	game:GetService("UserInputService").InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = false
-		end
-	end)
-	
-	CloseButton.MouseButton1Click:Connect(function()
-		LogWindow.Visible = false
-	end)
-	
-	local isExpanded = false
-	local originalSize = LogWindow.Size
-	local originalPosition = LogWindow.Position
-	ExpandButton.MouseButton1Click:Connect(function()
-		isExpanded = not isExpanded
-		if isExpanded then
-			LogWindow.Size = UDim2.new(0, 800, 0, 600)
-			LogWindow.Position = UDim2.new(0.5, -400, 0.5, -300)
-			ExpandButton.Text = "▣"
-		else
-			LogWindow.Size = originalSize
-			LogWindow.Position = originalPosition
-			ExpandButton.Text = "□"
-		end
-	end)
-	
-	LogLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		LogScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, LogLayout.AbsoluteContentSize.Y + 16)
-	end)
-	
-	local function AddLogEntry(text)
-		local LogEntry = Instance.new("TextLabel")
-		LogEntry.Parent = LogScrollingFrame
-		LogEntry.BackgroundTransparency = 1
-		LogEntry.Size = UDim2.new(1, -16, 0, 20)
-		LogEntry.Font = Enum.Font.Code
-		LogEntry.Text = text
-		LogEntry.TextColor3 = Color3.fromRGB(255, 255, 255)
-		LogEntry.TextSize = 11
-		LogEntry.TextXAlignment = Enum.TextXAlignment.Left
-		LogEntry.TextYAlignment = Enum.TextYAlignment.Top
-		LogEntry.TextWrapped = true
-		LogEntry.AutomaticSize = Enum.AutomaticSize.Y
-		
-		task.wait()
-		LogScrollingFrame.CanvasPosition = Vector2.new(0, LogScrollingFrame.AbsoluteCanvasSize.Y)
-	end
-	
 	local RecorderLogBox = MacroTab:Code({
 		Title = "Recorder Log",
-		Code = "-- Recorder Log\n-- Ready to start recording...\n-- Click to open log window"
+		Code = "-- Recorder Log\n-- Ready to start recording..."
 	})
 	
-	task.spawn(function()
-		task.wait(0.5)
-		local uiScreenGui = game.CoreGui:FindFirstChild("LunarisX")
-		if uiScreenGui then
-			local codeFrame = uiScreenGui:FindFirstChild("Real Background", true)
-			if codeFrame then
-				codeFrame.InputBegan:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 then
-						LogWindow.Visible = not LogWindow.Visible
-					end
-				end)
+	local isRecording = false
+	local actionLog = {}
+	local hookEnabled = false
+	local originalNamecall = nil
+	local mt = nil
+	
+	local function UpdateRecorderLog()
+		local logMessages = {}
+		for _, action in ipairs(actionLog) do
+			if action.type == "place" then
+				table.insert(logMessages, string.format("[%s] Tower Placed: %s at (%.2f, %.2f, %.2f) - Cash: %d", 
+					action.timestamp, action.name, action.pos[1], action.pos[2], action.pos[3], action.cash))
+			elseif action.type == "upgrade" then
+				table.insert(logMessages, string.format("[%s] Tower Upgraded at (%.2f, %.2f, %.2f) - Cash: %d", 
+					action.timestamp, action.pos[1], action.pos[2], action.pos[3], action.cash))
+			elseif action.type == "skip" then
+				table.insert(logMessages, string.format("[%s] Wave Skipped: Wave %d", action.timestamp, action.wave))
+			elseif action.type == "ability" then
+				table.insert(logMessages, string.format("[%s] Ability Used: %s", action.timestamp, action.ability))
 			end
 		end
-	end)
-	
-	MacroTab:Button({
-		Title = "Toggle Log Window",
-		Desc = "Open or close the recorder log window",
-		Callback = function()
-			LogWindow.Visible = not LogWindow.Visible
-		end
-	})
-	
-	local RecorderModule = nil
-	local RecorderLogMessages = {}
-	local RecorderRecordToggle = nil
-	
-	local function UpdateRecorderLog(message)
-		if message then
-			local timestamp = os.date("%H:%M:%S")
-			local logEntry = string.format("[%s] %s", timestamp, tostring(message))
-			table.insert(RecorderLogMessages, logEntry)
-			
-			if #RecorderLogMessages > 100 then
-				table.remove(RecorderLogMessages, 1)
-			end
-			
-			local logText = table.concat(RecorderLogMessages, "\n")
-			RecorderLogBox:SetCode(logText)
-			
-			if LogScrollingFrame then
-				AddLogEntry(logEntry)
-			end
+		
+		if #logMessages == 0 then
+			RecorderLogBox:SetCode("-- Recorder Log\n-- No actions recorded yet...")
+		else
+			RecorderLogBox:SetCode(table.concat(logMessages, "\n"))
 		end
 	end
 	
-	task.spawn(function()
-		RecorderModule = Library:Recorder(Window, MacroTab)
-		if RecorderModule then
-			UpdateRecorderLog("Recorder module loaded!")
+	local function formatLuaLog()
+		local lines = {}
+		for _, v in ipairs(actionLog) do
+			if v.type == "place" then
+				table.insert(lines, string.format('place(%.3f, %.3f, %.3f, "%s", %d)', 
+					v.pos[1], v.pos[2], v.pos[3], v.name, v.cash))
+			elseif v.type == "upgrade" then
+				table.insert(lines, string.format('upgrade(%.3f, %.3f, %.3f, %d)', 
+					v.pos[1], v.pos[2], v.pos[3], v.cash))
+			end
 		end
-	end)
+		return table.concat(lines, "\n")
+	end
+	
+	local function getCash()
+		local Players = game:GetService("Players")
+		local player = Players.LocalPlayer
+		local success, cashLabel = pcall(function()
+			return player:WaitForChild("PlayerGui", 1)
+				:WaitForChild("ReactUniversalHotbar", 1)
+				:WaitForChild("Frame", 1)
+				:WaitForChild("values", 1)
+				:WaitForChild("cash", 1)
+				:WaitForChild("amount", 1)
+		end)
+		
+		if success and cashLabel then
+			local rawText = cashLabel.Text or ""
+			local cleaned = rawText:gsub("[^%d%-]", "")
+			return tonumber(cleaned) or 0
+		end
+		return 0
+	end
 	
 	local RecorderToggle = MacroTab:Toggle({
 		Title = "Start Recording",
 		Desc = "Enable to start recording tower actions",
 		Value = false,
 		Callback = function(v)
-			if not RecorderModule then
-				RecorderModule = Library:Recorder(Window, MacroTab)
-				task.wait(0.3)
-			end
-			
-			getgenv().RecorderIsRecording = v
-			getgenv().MacroRecorderToggleValue = v
+			isRecording = v
 			
 			if v then
-				task.spawn(function()
-					task.wait(0.2)
-					if RecorderModule and RecorderModule.SetStatus then
-						RecorderModule.SetStatus("Recording...")
+				if not hookEnabled then
+					local ReplicatedStorage = game:GetService("ReplicatedStorage")
+					local remoteFunction = ReplicatedStorage:WaitForChild("RemoteFunction", 10)
+					
+					if remoteFunction then
+						mt = getrawmetatable(game)
+						originalNamecall = mt.__namecall
+						setreadonly(mt, false)
+						
+						mt.__namecall = newcclosure(function(self, ...)
+							local method = getnamecallmethod()
+							local args = {...}
+							
+							if isRecording and self == remoteFunction and (method == "FireServer" or method == "InvokeServer") then
+								local timestamp = os.date("%H:%M:%S")
+								
+								if type(args[3]) == "table" and args[3].Position and args[4] then
+									local pos = args[3].Position
+									table.insert(actionLog, {
+										type = "place",
+										pos = {pos.X, pos.Y, pos.Z},
+										name = tostring(args[4]),
+										cash = getCash(),
+										timestamp = timestamp
+									})
+									UpdateRecorderLog()
+								end
+								
+								if args[1] == "Troops" and args[2] == "Upgrade" and typeof(args[4]) == "table" then
+									local tower = args[4].Troop
+									local result = originalNamecall(self, ...)
+									
+									if tower and tower.Parent then
+										local root = tower:FindFirstChild("HumanoidRootPart") or tower:FindFirstChildWhichIsA("BasePart")
+										if root then
+											table.insert(actionLog, {
+												type = "upgrade",
+												pos = {root.Position.X, root.Position.Y, root.Position.Z},
+												cash = getCash(),
+												timestamp = timestamp
+											})
+											UpdateRecorderLog()
+										end
+									end
+									
+									return result
+								end
+							end
+							
+							return originalNamecall(self, ...)
+						end)
+						
+						hookEnabled = true
+						
+						Window:Notify({
+							Title = "Recorder",
+							Desc = "Recording started!",
+							Time = 2,
+							Type = "normal"
+						})
+						
+						RecorderToggle:SetTitle("Stop Recording")
+						RecorderToggle:SetDesc("Disable to stop recording")
+					else
+						Window:Notify({
+							Title = "Error",
+							Desc = "Failed to find RemoteFunction",
+							Time = 3,
+							Type = "error"
+						})
+						isRecording = false
+						RecorderToggle:SetValue(false)
 					end
-				end)
-				
-				UpdateRecorderLog("Recording started!")
-				RecorderToggle:SetTitle("Stop Recording")
-				RecorderToggle:SetDesc("Disable to stop recording tower actions")
+				end
 			else
-				if RecorderModule and RecorderModule.SetStatus then
-					RecorderModule.SetStatus("Stopped")
+				if hookEnabled and mt and originalNamecall then
+					mt.__namecall = originalNamecall
+					setreadonly(mt, true)
+					hookEnabled = false
 				end
 				
-				UpdateRecorderLog("Recording stopped!")
+				Window:Notify({
+					Title = "Recorder",
+					Desc = "Recording stopped!",
+					Time = 2,
+					Type = "normal"
+				})
+				
 				RecorderToggle:SetTitle("Start Recording")
 				RecorderToggle:SetDesc("Enable to start recording tower actions")
 			end
@@ -756,15 +655,14 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		Title = "Clear Log",
 		Desc = "Clear the recorder log",
 		Callback = function()
-			RecorderLogMessages = {}
-			RecorderLogBox:SetCode("-- Recorder Log\n-- Ready to start recording...\n-- Click to open log window")
-			if LogScrollingFrame then
-				for _, child in pairs(LogScrollingFrame:GetChildren()) do
-					if child:IsA("TextLabel") then
-						child:Destroy()
-					end
-				end
-			end
+			actionLog = {}
+			UpdateRecorderLog()
+			Window:Notify({
+				Title = "Recorder",
+				Desc = "Log cleared!",
+				Time = 2,
+				Type = "normal"
+			})
 		end
 	})
 	
@@ -772,60 +670,31 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		Title = "Copy Script",
 		Desc = "Copy the recorded script to clipboard",
 		Callback = function()
-			local Players = game:GetService("Players")
-			local LocalPlayer = Players.LocalPlayer
-			local stratFilePath = "StrategiesX/TDS/Recorder/" .. LocalPlayer.Name .. "'s strat.txt"
-			
-			if readfile and isfile and isfile(stratFilePath) then
-				local success, fileContent = pcall(function()
-					return readfile(stratFilePath)
-				end)
-				
-				if success and fileContent then
-					if setclipboard then
-						setclipboard(fileContent)
-						Window:Notify({
-							Title = "Success",
-							Desc = "Recorded script copied to clipboard!",
-							Time = 3,
-							Type = "normal"
-						})
-					else
-						Window:Notify({
-							Title = "Error",
-							Desc = "Clipboard function not available",
-							Time = 3,
-							Type = "error"
-						})
-					end
+			local luaText = formatLuaLog()
+			if luaText and #luaText > 0 then
+				if setclipboard then
+					setclipboard(luaText)
+					Window:Notify({
+						Title = "Success",
+						Desc = "Recorded script copied to clipboard!",
+						Time = 3,
+						Type = "normal"
+					})
 				else
 					Window:Notify({
 						Title = "Error",
-						Desc = "Failed to read recorded script file",
+						Desc = "Clipboard function not available",
 						Time = 3,
 						Type = "error"
 					})
 				end
 			else
-				local logContent = table.concat(RecorderLogMessages, "\n")
-				if logContent and #logContent > 0 then
-					if setclipboard then
-						setclipboard(logContent)
-						Window:Notify({
-							Title = "Info",
-							Desc = "Log content copied (script file not found)",
-							Time = 3,
-							Type = "normal"
-						})
-					end
-				else
-					Window:Notify({
-						Title = "Error",
-						Desc = "No recorded script found. Please start recording first!",
-						Time = 3,
-						Type = "error"
-					})
-				end
+				Window:Notify({
+					Title = "Error",
+					Desc = "No actions recorded yet!",
+					Time = 3,
+					Type = "error"
+				})
 			end
 		end
 	})
@@ -1275,522 +1144,6 @@ local LogTab = Window:Tab({Title = "Log", Icon = "settings"}) do
             end
         end
     end)
-end
-
--- Remote Spy Tab
-local RemoteTab = Window:Tab({Title = "Remote", Icon = "satellite"}) do
-    RemoteTab:Section({Title = "Remote Spy"})
-    
-    local RemoteSpyEnabled = false
-    local RemoteSpyLogs = {}
-    local RemoteSpyLogEntries = {}
-    local MaxLogEntries = 500
-    local AutoExecuteEnabled = false
-    local FilterText = ""
-    local SelectedRemote = nil
-    local RemoteCounts = {}
-    local oldFireServer = nil
-    local oldInvokeServer = nil
-    
-    local RemoteSpyLogBox = RemoteTab:Code({
-        Title = "Remote Spy Log",
-        Code = "-- Remote Spy Log\n-- Enable Remote Spy to start intercepting remotes..."
-    })
-    
-    local RemoteDropdown = RemoteTab:Dropdown({
-        Title = "Select Remote",
-        Desc = "Choose a remote to view its logs",
-        List = {"All Remotes"},
-        Value = "All Remotes",
-        Callback = function(selected)
-            SelectedRemote = selected
-            UpdateRemoteSpyLog()
-            if selected ~= "All Remotes" then
-                local index = GetSelectedRemoteIndex()
-                if index then
-                    ShowRemoteDetails(index)
-                else
-                    SelectedRemoteDetails:SetCode("-- Select a remote from the dropdown to view details...")
-                end
-            else
-                SelectedRemoteDetails:SetCode("-- Select a remote from the dropdown to view details...")
-            end
-        end
-    })
-    
-    local SelectedRemoteDetails = RemoteTab:Code({
-        Title = "Selected Remote Details",
-        Code = "-- Select a remote from the dropdown to view details..."
-    })
-    
-    local function ShowRemoteDetails(logIndex)
-        if logIndex and logIndex > 0 and logIndex <= #RemoteSpyLogs then
-            local logData = RemoteSpyLogs[logIndex]
-            local details = string.format(
-                "-- Remote Details\n\n" ..
-                "Name: %s\n" ..
-                "Type: %s\n" ..
-                "Path: %s\n" ..
-                "Timestamp: %s\n\n" ..
-                "Arguments:\n",
-                logData.remoteName,
-                logData.remoteType,
-                logData.path,
-                logData.timestamp
-            )
-            
-            if logData.args and #logData.args > 0 then
-                for i, arg in ipairs(logData.args) do
-                    local argType = typeof(arg)
-                    local argStr = ""
-                    if argType == "string" then
-                        argStr = string.format('"%s"', tostring(arg):gsub('"', '\\"'))
-                    elseif argType == "Instance" then
-                        argStr = string.format("Instance: %s", arg.Name)
-                    elseif argType == "table" then
-                        argStr = "table {...}"
-                    else
-                        argStr = tostring(arg)
-                    end
-                    details = details .. string.format("  [%d] %s (%s)\n", i, argStr, argType)
-                end
-            else
-                details = details .. "  (no arguments)\n"
-            end
-            
-            SelectedRemoteDetails:SetCode(details)
-        end
-    end
-    
-    local function GetSelectedRemoteIndex()
-        if SelectedRemote and SelectedRemote ~= "All Remotes" then
-            local remoteName = SelectedRemote:gsub("%s%(%d+%)", "")
-            for i = #RemoteSpyLogs, 1, -1 do
-                if RemoteSpyLogs[i].remoteName == remoteName then
-                    return i
-                end
-            end
-        end
-        return nil
-    end
-    
-    local function UpdateRemoteDropdown()
-        local remoteNames = {}
-        local nameCounts = {}
-        
-        for _, logData in ipairs(RemoteSpyLogs) do
-            local remoteName = logData.remoteName
-            nameCounts[remoteName] = (nameCounts[remoteName] or 0) + 1
-        end
-        
-        local seen = {}
-        for _, logData in ipairs(RemoteSpyLogs) do
-            local remoteName = logData.remoteName
-            if not seen[remoteName] then
-                seen[remoteName] = true
-                if nameCounts[remoteName] > 1 then
-                    table.insert(remoteNames, remoteName .. " (" .. nameCounts[remoteName] .. ")")
-                else
-                    table.insert(remoteNames, remoteName)
-                end
-            end
-        end
-        
-        RemoteDropdown:Clear()
-        RemoteDropdown:Add("All Remotes")
-        for _, name in ipairs(remoteNames) do
-            RemoteDropdown:Add(name)
-        end
-        
-        if SelectedRemote and SelectedRemote ~= "All Remotes" then
-            local index = GetSelectedRemoteIndex()
-            if index then
-                ShowRemoteDetails(index)
-            end
-        end
-    end
-    
-    local function UpdateRemoteSpyLog()
-        if #RemoteSpyLogEntries == 0 then
-            RemoteSpyLogBox:SetCode("-- Remote Spy Log\n-- No remotes intercepted yet...")
-            return
-        end
-        
-        local logText = ""
-        local displayLogs = {}
-        
-        if SelectedRemote and SelectedRemote ~= "All Remotes" then
-            local remoteName = SelectedRemote:gsub("%s%(%d+%)", "")
-            for i, logData in ipairs(RemoteSpyLogs) do
-                if logData.remoteName == remoteName then
-                    table.insert(displayLogs, RemoteSpyLogEntries[i])
-                end
-            end
-            logText = "-- Remote Spy Log (" .. #displayLogs .. " entries for " .. remoteName .. ")\n\n"
-        else
-            displayLogs = RemoteSpyLogEntries
-            logText = "-- Remote Spy Log (" .. #displayLogs .. " entries)\n\n"
-        end
-        
-        local startIndex = math.max(1, #displayLogs - 99)
-        for i = startIndex, #displayLogs do
-            logText = logText .. displayLogs[i] .. "\n"
-        end
-        
-        RemoteSpyLogBox:SetCode(logText)
-    end
-    
-    local function FormatRemoteData(remoteName, remoteType, args, path)
-        local timestamp = os.date("%H:%M:%S")
-        local pathStr = path or "Unknown"
-        local argsStr = ""
-        
-        if args and #args > 0 then
-            local argsTable = {}
-            for i, arg in ipairs(args) do
-                local argType = typeof(arg)
-                if argType == "string" then
-                    table.insert(argsTable, string.format('"%s"', tostring(arg):gsub('"', '\\"')))
-                elseif argType == "Instance" then
-                    table.insert(argsTable, string.format("Instance: %s", arg.Name))
-                elseif argType == "table" then
-                    table.insert(argsTable, "table {...}")
-                else
-                    table.insert(argsTable, tostring(arg))
-                end
-            end
-            argsStr = table.concat(argsTable, ", ")
-        else
-            argsStr = "(no arguments)"
-        end
-        
-        local formattedLog = string.format("[%s] %s: %s\n   Path: %s\n   Args: %s", 
-            timestamp, remoteType, remoteName, pathStr, argsStr)
-        
-        table.insert(RemoteSpyLogs, {
-            remoteName = remoteName,
-            remoteType = remoteType,
-            args = args,
-            path = pathStr,
-            timestamp = timestamp
-        })
-        
-        table.insert(RemoteSpyLogEntries, formattedLog)
-        
-        if #RemoteSpyLogs > MaxLogEntries then
-            table.remove(RemoteSpyLogs, 1)
-            table.remove(RemoteSpyLogEntries, 1)
-        end
-        
-        return formattedLog
-    end
-    
-    local RemoteSpyToggle = RemoteTab:Toggle({
-        Title = "Enable Remote Spy",
-        Desc = "Start intercepting remote events and functions",
-        Value = false,
-        Callback = function(v)
-            RemoteSpyEnabled = v
-            
-            if v then
-                local originalNamecall = nil
-                originalNamecall = hookmetamethod(game, "__namecall", function(...)
-                    local self = (...)
-                    local method = getnamecallmethod()
-                    local args = {select(2, ...)}
-                    
-                    if RemoteSpyEnabled then
-                        local success, remoteName = pcall(function()
-                            return self.Name
-                        end)
-                        
-                        if success then
-                            local isRemoteEvent = self:IsA("RemoteEvent")
-                            local isRemoteFunction = self:IsA("RemoteFunction")
-                            
-                            local isClientToServer = false
-                            local remoteType = ""
-                            local direction = ""
-                            
-                            if isRemoteEvent and method == "FireServer" then
-                                isClientToServer = true
-                                remoteType = "RemoteEvent"
-                                direction = "Client → Server"
-                            elseif isRemoteFunction and method == "InvokeServer" then
-                                isClientToServer = true
-                                remoteType = "RemoteFunction"
-                                direction = "Client → Server"
-                            elseif isRemoteEvent and (method == "FireClient" or method == "FireAllClients") then
-                                isClientToServer = false
-                                remoteType = "RemoteEvent"
-                                direction = "Server → Client"
-                            end
-                            
-                            if isClientToServer or (isRemoteEvent and (method == "FireClient" or method == "FireAllClients")) then
-                                local path = self:GetFullName()
-                                
-                                if FilterText == "" or string.find(string.lower(remoteName), string.lower(FilterText)) then
-                                    local logName = remoteName .. " [" .. direction .. "]"
-                                    FormatRemoteData(logName, remoteType, args, path)
-                                    UpdateRemoteDropdown()
-                                    UpdateRemoteSpyLog()
-                                    
-                                    if AutoExecuteEnabled and isRemoteFunction and method == "InvokeServer" then
-                                        local capturedArgs = {...}
-                                        task.spawn(function()
-                                            local success, result = pcall(function()
-                                                return originalNamecall(unpack(capturedArgs))
-                                            end)
-                                            if success then
-                                                local execLog = string.format("[%s] Auto-executed: %s\n   Result: %s", 
-                                                    os.date("%H:%M:%S"), logName, tostring(result))
-                                                table.insert(RemoteSpyLogEntries, execLog)
-                                                table.insert(RemoteSpyLogs, {
-                                                    remoteName = logName,
-                                                    remoteType = "AutoExecute",
-                                                    args = {},
-                                                    path = "",
-                                                    timestamp = os.date("%H:%M:%S")
-                                                })
-                                                if #RemoteSpyLogs > MaxLogEntries then
-                                                    table.remove(RemoteSpyLogs, 1)
-                                                    table.remove(RemoteSpyLogEntries, 1)
-                                                end
-                                                UpdateRemoteDropdown()
-                                                UpdateRemoteSpyLog()
-                                            end
-                                        end)
-                                        return
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    
-                    return originalNamecall(...)
-                end)
-                
-                local originalIndex = nil
-                originalIndex = hookmetamethod(game, "__index", function(self, key)
-                    local result = originalIndex(self, key)
-                    
-                    if RemoteSpyEnabled then
-                        if self:IsA("RemoteEvent") and key == "OnClientEvent" then
-                            local success, remoteName = pcall(function()
-                                return self.Name
-                            end)
-                            
-                            if success then
-                                local remoteType = "RemoteEvent"
-                                local path = self:GetFullName()
-                                
-                                local originalConnect = result.Connect
-                                if originalConnect then
-                                    result.Connect = function(signal, func)
-                                        return originalConnect(signal, function(...)
-                                            local args = {...}
-                                            if FilterText == "" or string.find(string.lower(remoteName), string.lower(FilterText)) then
-                                                local logName = remoteName .. " [Server → Client]"
-                                                FormatRemoteData(logName, remoteType, args, path)
-                                                UpdateRemoteDropdown()
-                                                UpdateRemoteSpyLog()
-                                            end
-                                            return func(...)
-                                        end)
-                                    end
-                                end
-                            end
-                        elseif self:IsA("RemoteFunction") and key == "OnClientInvoke" then
-                            local success, remoteName = pcall(function()
-                                return self.Name
-                            end)
-                            
-                            if success then
-                                local remoteType = "RemoteFunction"
-                                local path = self:GetFullName()
-                                
-                                if type(result) == "function" then
-                                    local originalInvoke = result
-                                    return function(...)
-                                        local args = {...}
-                                        if FilterText == "" or string.find(string.lower(remoteName), string.lower(FilterText)) then
-                                            local logName = remoteName .. " [Server → Client]"
-                                            FormatRemoteData(logName, remoteType, args, path)
-                                            UpdateRemoteDropdown()
-                                            UpdateRemoteSpyLog()
-                                        end
-                                        return originalInvoke(...)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    
-                    return result
-                end)
-                
-                oldFireServer = originalNamecall
-                oldInvokeServer = originalNamecall
-                
-                Window:Notify({
-                    Title = "Remote Spy",
-                    Desc = "Remote Spy enabled!",
-                    Time = 2,
-                    Type = "normal"
-                })
-            else
-                Window:Notify({
-                    Title = "Remote Spy",
-                    Desc = "Remote Spy disabled!",
-                    Time = 2,
-                    Type = "normal"
-                })
-            end
-        end
-    })
-    
-    local AutoExecuteToggle = RemoteTab:Toggle({
-        Title = "Auto-Execute RemoteFunctions",
-        Desc = "Automatically execute intercepted RemoteFunctions",
-        Value = false,
-        Callback = function(v)
-            AutoExecuteEnabled = v
-        end
-    })
-    
-    RemoteTab:Textbox({
-        Title = "Filter",
-        Desc = "Filter remotes by name (leave empty for all)",
-        Placeholder = "Enter remote name to filter...",
-        Value = "",
-        ClearTextOnFocus = false,
-        Callback = function(text)
-            FilterText = text
-            Window:Notify({
-                Title = "Filter",
-                Desc = text ~= "" and ("Filter set to: " .. text) or "Filter cleared",
-                Time = 2,
-                Type = "normal"
-            })
-        end
-    })
-    
-    RemoteTab:Button({
-        Title = "View Selected Remote",
-        Desc = "View detailed information about the selected remote",
-        Callback = function()
-            if SelectedRemote and SelectedRemote ~= "All Remotes" then
-                local index = GetSelectedRemoteIndex()
-                if index then
-                    ShowRemoteDetails(index)
-                    Window:Notify({
-                        Title = "Remote Spy",
-                        Desc = "Showing details for selected remote",
-                        Time = 2,
-                        Type = "normal"
-                    })
-                else
-                    Window:Notify({
-                        Title = "Error",
-                        Desc = "Could not find selected remote!",
-                        Time = 2,
-                        Type = "error"
-                    })
-                end
-            else
-                Window:Notify({
-                    Title = "Error",
-                    Desc = "Please select a remote from the dropdown first!",
-                    Time = 2,
-                    Type = "error"
-                })
-            end
-        end
-    })
-    
-    RemoteTab:Button({
-        Title = "Copy Selected Remote",
-        Desc = "Copy the selected remote's details to clipboard",
-        Callback = function()
-            if SelectedRemote and SelectedRemote ~= "All Remotes" then
-                local index = GetSelectedRemoteIndex()
-                if index and RemoteSpyLogEntries[index] then
-                    if setclipboard then
-                        setclipboard(RemoteSpyLogEntries[index])
-                        Window:Notify({
-                            Title = "Remote Spy",
-                            Desc = "Selected remote copied to clipboard!",
-                            Time = 2,
-                            Type = "normal"
-                        })
-                    else
-                        Window:Notify({
-                            Title = "Error",
-                            Desc = "Clipboard function not available",
-                            Time = 2,
-                            Type = "error"
-                        })
-                    end
-                else
-                    Window:Notify({
-                        Title = "Error",
-                        Desc = "Could not find selected remote!",
-                        Time = 2,
-                        Type = "error"
-                    })
-                end
-            else
-                Window:Notify({
-                    Title = "Error",
-                    Desc = "Please select a remote from the dropdown first!",
-                    Time = 2,
-                    Type = "error"
-                })
-            end
-        end
-    })
-    
-    RemoteTab:Button({
-        Title = "Clear Log",
-        Desc = "Clear all intercepted remote logs",
-        Callback = function()
-            RemoteSpyLogs = {}
-            RemoteSpyLogEntries = {}
-            RemoteDropdown:Clear()
-            RemoteDropdown:Add("All Remotes")
-            SelectedRemote = "All Remotes"
-            RemoteDropdown:SetValue("All Remotes")
-            SelectedRemoteDetails:SetCode("-- Select a remote from the dropdown to view details...")
-            UpdateRemoteSpyLog()
-            Window:Notify({
-                Title = "Remote Spy",
-                Desc = "Log cleared!",
-                Time = 2,
-                Type = "normal"
-            })
-        end
-    })
-    
-    RemoteTab:Slider({
-        Title = "Max Log Entries",
-        Desc = "Maximum number of log entries to keep",
-        Min = 50,
-        Max = 1000,
-        Value = 500,
-        Callback = function(v)
-            MaxLogEntries = math.floor(v)
-            while #RemoteSpyLogs > MaxLogEntries do
-                table.remove(RemoteSpyLogs, 1)
-            end
-            UpdateRemoteSpyLog()
-            Window:Notify({
-                Title = "Remote Spy",
-                Desc = "Max log entries set to: " .. MaxLogEntries,
-                Time = 2,
-                Type = "normal"
-            })
-        end
-    })
 end
 
 Window:Notify({
