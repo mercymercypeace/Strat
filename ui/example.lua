@@ -120,22 +120,22 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
             if Window.SetUIToggleKeybind then
                 local oldKeybind = Window:GetUIToggleKeybind()
                 if oldKeybind ~= key then
-                    Window:SetUIToggleKeybind(key)
-                    if writefile then
-                        pcall(function()
-                            local saveData = {
-                                UIToggleKeybind = tostring(key)
-                            }
-                            local HttpService = game:GetService("HttpService")
-                            writefile("LunarisX_UIKeybind.json", HttpService:JSONEncode(saveData))
-                        end)
-                    end
-                    Window:Notify({
-                        Title = "Keybind Changed",
-                        Desc = "UI toggle keybind set to: " .. tostring(key):gsub("Enum.KeyCode.", ""),
-                        Time = 3,
-                        Type = "normal"
-                    })
+                Window:SetUIToggleKeybind(key)
+                if writefile then
+                    pcall(function()
+                        local saveData = {
+                            UIToggleKeybind = tostring(key)
+                        }
+                        local HttpService = game:GetService("HttpService")
+                        writefile("LunarisX_UIKeybind.json", HttpService:JSONEncode(saveData))
+                    end)
+                end
+                Window:Notify({
+                    Title = "Keybind Changed",
+                    Desc = "UI toggle keybind set to: " .. tostring(key):gsub("Enum.KeyCode.", ""),
+                    Time = 3,
+                    Type = "normal"
+                })
                 end
             end
         end
@@ -669,11 +669,17 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 					end
 				elseif action.type == "upgrade" then
 					local level = action.level or 1
+					local path = action.path or "Left"
+					local pathText = path == "Right" and " (Right)" or path == "Left" and " (Left)" or ""
 					if action.waited then
-						table.insert(actionList, string.format("wait for money, upgrade to lvl %d", level))
+						table.insert(actionList, string.format("wait for money, upgrade to lvl %d%s", level, pathText))
 					else
-						table.insert(actionList, string.format("upgrade to lvl %d", level))
+						table.insert(actionList, string.format("upgrade to lvl %d%s", level, pathText))
 					end
+				elseif action.type == "ability" then
+					table.insert(actionList, string.format("use ability: %s", action.ability or "Unknown"))
+				elseif action.type == "skip" then
+					table.insert(actionList, "skip wave")
 				end
 			end
 			
@@ -723,15 +729,31 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 					end
 				elseif v.type == "upgrade" then
 					local level = v.level or 1
+					local path = v.path or "Left"
 					if v.waited then
 						local cost = getUpgradeCost(level)
-						table.insert(lines, string.format('waitForMoney(%d) -- upgrade to lvl %d', cost, level))
-						table.insert(lines, string.format('upgrade(%.3f, %.3f, %.3f, %d)', 
-							v.pos[1], v.pos[2], v.pos[3], level))
+						table.insert(lines, string.format('waitForMoney(%d) -- upgrade to lvl %d (%s)', cost, level, path))
+						if path == "Right" then
+							table.insert(lines, string.format('upgradeRight(%.3f, %.3f, %.3f, %d)', 
+								v.pos[1], v.pos[2], v.pos[3], level))
+						else
+							table.insert(lines, string.format('upgrade(%.3f, %.3f, %.3f, %d)', 
+								v.pos[1], v.pos[2], v.pos[3], level))
+						end
 					else
-						table.insert(lines, string.format('upgrade(%.3f, %.3f, %.3f, %d)', 
-							v.pos[1], v.pos[2], v.pos[3], level))
+						if path == "Right" then
+							table.insert(lines, string.format('upgradeRight(%.3f, %.3f, %.3f, %d)', 
+								v.pos[1], v.pos[2], v.pos[3], level))
+						else
+							table.insert(lines, string.format('upgrade(%.3f, %.3f, %.3f, %d)', 
+								v.pos[1], v.pos[2], v.pos[3], level))
+						end
 					end
+				elseif v.type == "ability" then
+					table.insert(lines, string.format('ability(%.3f, %.3f, %.3f, "%s")', 
+						v.pos[1], v.pos[2], v.pos[3], v.ability or "Unknown"))
+				elseif v.type == "skip" then
+					table.insert(lines, string.format('skip() -- Wave %d', v.wave))
 				end
 			end
 		end
@@ -790,72 +812,33 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 								if success and pos and towerName then
 									local cashBefore = getCash()
 									local cost = getTowerCost(towerName)
+									local result = originalNamecall(self, ...)
 									
-									local waited = false
-									if cost > 0 then
-										waited = cashBefore < cost
-									end
-									
-									if waited and cost > 0 then
-										task.spawn(function()
-											pcall(function()
-												local startTime = tick()
-												local startCash = cashBefore
-												
-												while getCash() < cost and isRecording do
-													task.wait(0.1)
-												end
-												
-												local finalCash = getCash()
-												local actualCost = startCash - finalCash
-												
-												if actualCost > 0 then
-													if actualCost ~= cost then
-														learnTowerCost(towerName, actualCost)
-													end
-													cost = actualCost
-												end
-												
-												local waitTime = tick() - startTime
-												if waitTime > 0.1 then
-													table.insert(actionLog, {
-														type = "place",
-														pos = {pos.X, pos.Y, pos.Z},
-														name = towerName,
-														wave = currentWave,
-														timestamp = timestamp,
-														waited = true,
-														waitTime = waitTime,
-														startCash = startCash,
-														cost = cost
-													})
-												else
-													table.insert(actionLog, {
-														type = "place",
-														pos = {pos.X, pos.Y, pos.Z},
-														name = towerName,
-														wave = currentWave,
-														timestamp = timestamp,
-														waited = false,
-														cost = cost
-													})
-												end
-												UpdateRecorderLog()
-											end)
-										end)
-									else
-										task.spawn(function()
-											pcall(function()
-												local cashAfter = getCash()
-												task.wait(0.2)
-												cashAfter = getCash()
-												local actualCost = cashBefore - cashAfter
-												
-												if actualCost > 0 then
-													learnTowerCost(towerName, actualCost)
-													cost = actualCost
-												end
-												
+									task.spawn(function()
+										pcall(function()
+											local cashAfter = getCash()
+											task.wait(0.2)
+											cashAfter = getCash()
+											local actualCost = cashBefore - cashAfter
+											
+											if actualCost > 0 then
+												learnTowerCost(towerName, actualCost)
+												cost = actualCost
+											end
+											
+											local waited = cashBefore < cost
+											
+											if waited and cost > 0 then
+												table.insert(actionLog, {
+													type = "place",
+													pos = {pos.X, pos.Y, pos.Z},
+													name = towerName,
+													wave = currentWave,
+													timestamp = timestamp,
+													waited = true,
+													cost = cost
+												})
+											else
 												table.insert(actionLog, {
 													type = "place",
 													pos = {pos.X, pos.Y, pos.Z},
@@ -865,14 +848,25 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 													waited = false,
 													cost = cost
 												})
-												UpdateRecorderLog()
-											end)
+											end
+											UpdateRecorderLog()
 										end)
-									end
+									end)
+									
+									return result
 								end
 								
 								if args[1] == "Troops" and args[2] == "Upgrade" and typeof(args[4]) == "table" and args[4].Troop then
 									local tower = args[4].Troop
+									local upgradePath = args[4].Path
+									if not upgradePath then
+										local success, pathValue = pcall(function()
+											return args[4].Path or args[4].path or args[4].UpgradePath
+										end)
+										if success and pathValue then
+											upgradePath = pathValue
+										end
+									end
 									local cashBefore = getCash()
 									local result = originalNamecall(self, ...)
 									
@@ -901,47 +895,27 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 														cost = actualCost
 													end
 													
-													local currentCash = getCash()
 													local waited = cashBefore < cost
+													local path = upgradePath or "Left"
 													
 													if waited then
-														local startTime = tick()
-														local startCash = cashBefore
-														
-														while getCash() < cost and isRecording do
-															task.wait(0.1)
-														end
-														
-														local waitTime = tick() - startTime
-														if waitTime > 0.1 then
-															table.insert(actionLog, {
-																type = "upgrade",
-																pos = {root.Position.X, root.Position.Y, root.Position.Z},
-																wave = currentWave,
-																level = level,
-																timestamp = timestamp,
-																waited = true,
-																waitTime = waitTime,
-																startCash = startCash,
-																cost = cost
-															})
-														else
-															table.insert(actionLog, {
-																type = "upgrade",
-																pos = {root.Position.X, root.Position.Y, root.Position.Z},
-																wave = currentWave,
-																level = level,
-																timestamp = timestamp,
-																waited = false,
-																cost = cost
-															})
-														end
+														table.insert(actionLog, {
+															type = "upgrade",
+															pos = {root.Position.X, root.Position.Y, root.Position.Z},
+															wave = currentWave,
+															level = level,
+															path = path,
+															timestamp = timestamp,
+															waited = true,
+															cost = cost
+														})
 													else
 														table.insert(actionLog, {
 															type = "upgrade",
 															pos = {root.Position.X, root.Position.Y, root.Position.Z},
 															wave = currentWave,
 															level = level,
+															path = path,
 															timestamp = timestamp,
 															waited = false,
 															cost = cost
@@ -950,6 +924,60 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 													UpdateRecorderLog()
 												end
 											end
+										end)
+									end)
+									
+									return result
+								end
+								
+								if args[1] == "Troops" and args[2] == "Ability" and typeof(args[4]) == "table" and args[4].Troop then
+									local tower = args[4].Troop
+									local abilityName = args[4].Name
+									if not abilityName then
+										local success, nameValue = pcall(function()
+											return args[4].Name or args[4].name or args[4].AbilityName or args[4].Ability
+										end)
+										if success and nameValue then
+											abilityName = nameValue
+										end
+									end
+									local result = originalNamecall(self, ...)
+									
+									task.spawn(function()
+										pcall(function()
+											if tower and tower.Parent then
+												local success, root = pcall(function()
+													return tower:FindFirstChild("HumanoidRootPart") or tower:FindFirstChildWhichIsA("BasePart")
+												end)
+												
+												if success and root then
+													table.insert(actionLog, {
+														type = "ability",
+														pos = {root.Position.X, root.Position.Y, root.Position.Z},
+														wave = currentWave,
+														ability = abilityName or "Unknown",
+														timestamp = timestamp
+													})
+													UpdateRecorderLog()
+												end
+											end
+										end)
+									end)
+									
+									return result
+								end
+								
+								if args[1] == "Voting" and args[2] == "Skip" then
+									local result = originalNamecall(self, ...)
+									
+									task.spawn(function()
+										pcall(function()
+											table.insert(actionLog, {
+												type = "skip",
+												wave = currentWave,
+												timestamp = timestamp
+											})
+											UpdateRecorderLog()
 										end)
 									end)
 									
