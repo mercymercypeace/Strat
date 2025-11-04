@@ -1080,8 +1080,6 @@ function Library:Window(p)
 	local Size = p.Config.Size or UDim2.new(0, 530,0, 400)
 	local DiscordLink = p.DiscordLink or nil
 	local Version = p.Version or nil
-
-	Tabs.UIToggleKeybind = Keybind
 	
 	local keybindConnection = nil
 
@@ -1583,7 +1581,8 @@ function Library:Window(p)
 		List = {},
 		DefaultIndex = 1,
 		Announcements = {},
-		ReceivedAnnouncements = {}
+		ReceivedAnnouncements = {},
+		UIToggleKeybind = Keybind
 	}
 
 	function Tabs:SelectTab(p)
@@ -4881,8 +4880,11 @@ function Library:Window(p)
 			if keybindConnection then
 				keybindConnection:Disconnect()
 			end
+			if not Tabs or not Tabs.UIToggleKeybind then
+				return
+			end
 			keybindConnection = U.InputBegan:Connect(function(i)
-				if i.KeyCode == Tabs.UIToggleKeybind then
+				if Tabs and Tabs.UIToggleKeybind and i.KeyCode == Tabs.UIToggleKeybind then
 					local focusedTextBox = U:GetFocusedTextBox()
 					if not focusedTextBox then
 						closeui(false)
@@ -4907,7 +4909,7 @@ function Library:Window(p)
 		end
 		
 		function Tabs:GetUIToggleKeybind()
-			return Tabs.UIToggleKeybind
+			return Tabs and Tabs.UIToggleKeybind or nil
 		end
 
 		local CallTheme = function(v)
@@ -5910,7 +5912,11 @@ function Library:Recorder(Window)
 		writestrat("getgenv().StratCreditsAuthor = \"Optional\"")
 		local mapValue = RSMap and RSMap.Value or "Unknown"
 		local modeValue = RSMode and RSMode.Value or "Unknown"
-		appendstrat("local TDS = loadstring(game:HttpGet(\"https://raw.githubusercontent.com/Sigmanic/Strategies-X/main/TDS/MainSource.lua\", true))()\nTDS:Map(\""
+		
+		-- Use GitHub link for Main.lua
+		local loadString = "loadstring(game:HttpGet(\"https://raw.githubusercontent.com/mercymercypeace/Strat/refs/heads/main/ui/main.lua\", true))()"
+		
+		appendstrat("local TDS = " .. loadString .. "\nTDS:Map(\""
 			.. mapValue .. "\", true, \"" .. modeValue .. "\")\nTDS:Loadout({\""
 			.. table.concat(Recorder.Troops, `", "`) .. if #Recorder.Troops.Golden ~= 0 then "\", [\"Golden\"] = {\""
 				.. table.concat(Recorder.Troops.Golden, `", "`) .. "\"}})" else "\"})"
