@@ -134,8 +134,286 @@ local CurrentCamera = Workspace.CurrentCamera
 local OldCameraOcclusionMode = LocalPlayer.DevCameraOcclusionMode
 local VirtualUser = game:GetService("VirtualUser")
 
-local UILibrary = getgenv().UILibrary or loadstring(game:HttpGet("https://raw.githubusercontent.com/Sigmanic/ROBLOX/main/WallyUI.lua", true))()
+local Library = getgenv().UILibrary or loadstring(game:HttpGet("https://raw.githubusercontent.com/mercymercypeace/Strat/main/ui/ui_library.lua", true))()
+
+-- WallyUI compatibility wrapper
+local UILibrary = {}
+UILibrary.options = {}
 UILibrary.options.toggledisplay = 'Fill'
+
+function UILibrary:CreateWindow(title)
+	local window = Library:Window({
+		Title = title,
+		Desc = "",
+		Icon = "house",
+		Theme = "Dark",
+		Version = nil,
+		DiscordLink = nil,
+		Config = {
+			Keybind = Enum.KeyCode.RightShift,
+			Size = UDim2.new(0, 530, 0, 400)
+		},
+		CloseUIButton = {
+			Enabled = false
+		}
+	})
+	
+	-- Flags system for WallyUI compatibility
+	local flags = {}
+	
+	-- Compatibility wrapper for window methods
+	local windowWrapper = {}
+	local currentTab = nil
+	
+	-- Create a default tab if none exists
+	local defaultTabCreated = false
+	local function ensureDefaultTab()
+		if not defaultTabCreated then
+			currentTab = window:Tab({Title = "Main", Icon = "house"})
+			defaultTabCreated = true
+		end
+		return currentTab
+	end
+	
+	function windowWrapper:Section(title)
+		ensureDefaultTab()
+		local sectionObj = currentTab:Section({Title = title})
+		
+		-- Add .Text property support for WallyUI compatibility
+		local textProperty = {}
+		local sectionWrapper = {}
+		
+		-- Proxy to allow .Text property assignment
+		setmetatable(sectionWrapper, {
+			__index = function(self, key)
+				if key == "Text" then
+					return textProperty.value
+				end
+				return sectionObj[key]
+			end,
+			__newindex = function(self, key, value)
+				if key == "Text" then
+					textProperty.value = value
+					if sectionObj.SetTitle then
+						sectionObj:SetTitle(value)
+					end
+				else
+					rawset(self, key, value)
+				end
+			end
+		})
+		
+		textProperty.value = title
+		
+		return sectionWrapper
+	end
+	
+	function windowWrapper:Button(title, callback)
+		ensureDefaultTab()
+		return currentTab:Button({
+			Title = title,
+			Desc = "",
+			Callback = callback or function() end
+		})
+	end
+	
+	function windowWrapper:Toggle(title, options)
+		ensureDefaultTab()
+		local opts = options or {}
+		local flagName = opts.flag
+		local defaultValue = opts.default or false
+		local callback = opts.callback or function() end
+		local location = opts.location
+		
+		-- Initialize flag value
+		if flagName then
+			if location then
+				location[flagName] = defaultValue
+			else
+				flags[flagName] = defaultValue
+			end
+		end
+		
+		local toggleObj = currentTab:Toggle({
+			Title = title,
+			Desc = opts.desc or "",
+			Value = defaultValue,
+			Callback = function(v)
+				if flagName then
+					if location then
+						location[flagName] = v
+					else
+						flags[flagName] = v
+					end
+				end
+				pcall(callback, v)
+			end
+		})
+		
+		-- Store reference to toggle for flag access
+		if flagName then
+			toggleObj._flagName = flagName
+			toggleObj._location = location
+		end
+		
+		return toggleObj
+	end
+	
+	function windowWrapper:DropSection(title)
+		ensureDefaultTab()
+		-- Create a tab for the dropdown section
+		local tab = window:Tab({Title = title, Icon = "settings"})
+		local dropFlags = {}
+		
+		local dropWrapper = {
+			Section = function(self, title)
+				local sectionObj = tab:Section({Title = title})
+				
+				-- Add .Text property support for WallyUI compatibility
+				local textProperty = {}
+				local sectionWrapper = {}
+				
+				setmetatable(sectionWrapper, {
+					__index = function(self, key)
+						if key == "Text" then
+							return textProperty.value
+						end
+						return sectionObj[key]
+					end,
+					__newindex = function(self, key, value)
+						if key == "Text" then
+							textProperty.value = value
+							if sectionObj.SetTitle then
+								sectionObj:SetTitle(value)
+							end
+						else
+							rawset(self, key, value)
+						end
+					end
+				})
+				
+				textProperty.value = title
+				
+				return sectionWrapper
+			end,
+			Button = function(self, title, callback)
+				return tab:Button({
+					Title = title,
+					Desc = "",
+					Callback = callback or function() end
+				})
+			end,
+			Toggle = function(self, title, options)
+				local opts = options or {}
+				local flagName = opts.flag
+				local defaultValue = opts.default or false
+				local callback = opts.callback or function() end
+				
+				if flagName then
+					dropFlags[flagName] = defaultValue
+				end
+				
+				local toggleObj = tab:Toggle({
+					Title = title,
+					Desc = opts.desc or "",
+					Value = defaultValue,
+					Callback = function(v)
+						if flagName then
+							dropFlags[flagName] = v
+						end
+						pcall(callback, v)
+					end
+				})
+				
+				if flagName then
+					toggleObj._flagName = flagName
+				end
+				
+				return toggleObj
+			end,
+			TypeBox = function(self, title, options)
+				local opts = options or {}
+				local flagName = opts.flag
+				local defaultValue = opts.default or ""
+				local callback = opts.callback or function() end
+				
+				if flagName then
+					dropFlags[flagName] = defaultValue
+				end
+				
+				local textboxObj = tab:Textbox({
+					Title = title,
+					Desc = opts.desc or "",
+					Placeholder = opts.placeholder or "",
+					Value = defaultValue,
+					ClearTextOnFocus = opts.cleartext or false,
+					Callback = function(v)
+						if flagName then
+							dropFlags[flagName] = v
+						end
+						pcall(callback, v)
+					end
+				})
+				
+				if flagName then
+					textboxObj._flagName = flagName
+				end
+				
+				return textboxObj
+			end,
+			SetText = function(self, text)
+				-- Update tab title if needed - this would need tab title update functionality
+			end,
+			flags = dropFlags
+		}
+		
+		return dropWrapper
+	end
+	
+	function windowWrapper:TypeBox(title, options)
+		ensureDefaultTab()
+		local opts = options or {}
+		local flagName = opts.flag
+		local defaultValue = opts.default or ""
+		local callback = opts.callback or function() end
+		
+		if flagName then
+			flags[flagName] = defaultValue
+		end
+		
+		local textboxObj = currentTab:Textbox({
+			Title = title,
+			Desc = opts.desc or "",
+			Placeholder = opts.placeholder or "",
+			Value = defaultValue,
+			ClearTextOnFocus = opts.cleartext or false,
+			Callback = function(v)
+				if flagName then
+					flags[flagName] = v
+				end
+				pcall(callback, v)
+			end
+		})
+		
+		if flagName then
+			textboxObj._flagName = flagName
+		end
+		
+		return textboxObj
+	end
+	
+	-- Add flags property to window wrapper
+	windowWrapper.flags = flags
+	
+	-- Store the actual window for direct access if needed
+	windowWrapper._window = window
+	windowWrapper._tab = function() return ensureDefaultTab() end
+	
+	return windowWrapper
+end
+
+-- Set getgenv().UILibrary so it can be reused
+getgenv().UILibrary = UILibrary
 
 UI = StratXLibrary.UI
 UtilitiesConfig = StratXLibrary.UtilitiesConfig

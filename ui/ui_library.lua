@@ -5579,6 +5579,7 @@ function Library:Recorder(Window)
 	local GetMode = nil
 	local AutoSkipValue = false
 	local AutoSellFarmsValue = true
+	local IsPaused = false  -- Declare IsPaused early so GenerateFunction can access it
 
 	local RecorderTab = Window:Tab({Title = "Recorder", Icon = "record"})
 	
@@ -5594,6 +5595,9 @@ function Library:Recorder(Window)
 		Desc = "00:00"
 	})
 
+	-- Declare recordingStartTime outside so it can be accessed from both places
+	local recordingStartTime = nil
+	
 	task.spawn(function()
 		function TimeConverter(v)
 			if v <= 9 then
@@ -5603,12 +5607,15 @@ function Library:Recorder(Window)
 				return v
 			end
 		end
-		local startTime = os.time()
 		while task.wait(0.1) do
-			local t = os.time() - startTime
-			local seconds = t % 60
-			local minutes = math.floor(t / 60) % 60
-			timeSection:SetDesc("Time Passed: " .. TimeConverter(minutes) .. ":" .. TimeConverter(seconds))
+			if recordingStartTime then
+				local t = os.time() - recordingStartTime
+				local seconds = t % 60
+				local minutes = math.floor(t / 60) % 60
+				timeSection:SetDesc("Recording Time: " .. TimeConverter(minutes) .. ":" .. TimeConverter(seconds))
+			else
+				timeSection:SetDesc("Recording Time: 00:00 (Not Recording)")
+			end
 		end
 	end)
 
@@ -5701,7 +5708,7 @@ function Library:Recorder(Window)
 
 	local GenerateFunction = {
 		Place = function(Args, Timer, RemoteCheck)
-			if not IsRecording then return end
+			if not IsRecording or IsPaused then return end
 			if typeof(RemoteCheck) ~= "Instance" then
 				return
 			end
@@ -5728,7 +5735,7 @@ function Library:Recorder(Window)
 			appendstrat(`TDS:Place("{TowerName}", {Position.X}, {Position.Y}, {Position.Z}, {TimerStr}, {RotateX}, {RotateY}, {RotateZ})`)
 		end,
 		Upgrade = function(Args, Timer, RemoteCheck)
-			if not IsRecording then return end
+			if not IsRecording or IsPaused then return end
 			local TowerIndex = Args[4].Troop.Name
 			local PathTarget = Args[4].Path
 			if RemoteCheck ~= true then
@@ -5741,7 +5748,7 @@ function Library:Recorder(Window)
 			appendstrat(`TDS:Upgrade({TowerIndex}, {TimerStr}, {PathTarget})`)
 		end,
 		Sell = function(Args, Timer, RemoteCheck)
-			if not IsRecording then return end
+			if not IsRecording or IsPaused then return end
 			local TowerIndex = Args[3].Troop.Name
 			if not RemoteCheck or (TowersList[tonumber(TowerIndex)] and TowersList[tonumber(TowerIndex)].Instance:FindFirstChild("HumanoidRootPart")) then
 				SetStatus(`Sell Failed ID: {TowerIndex}`)
@@ -5753,7 +5760,7 @@ function Library:Recorder(Window)
 			appendstrat(`TDS:Sell({TowerIndex}, {TimerStr})`)
 		end,
 		Target = function(Args, Timer, RemoteCheck)
-			if not IsRecording then return end
+			if not IsRecording or IsPaused then return end
 			local TowerIndex = Args[4].Troop.Name
 			local Target = Args[4].Target
 			if RemoteCheck ~= true then
@@ -5765,7 +5772,7 @@ function Library:Recorder(Window)
 			appendstrat(`TDS:Target({TowerIndex}, "{Target}", {TimerStr})`)
 		end,
 		Abilities = function(Args, Timer, RemoteCheck)
-			if not IsRecording then return end
+			if not IsRecording or IsPaused then return end
 			local TowerIndex = Args[4].Troop.Name
 			local AbilityName = Args[4].Name
 			local Data = Args[4].Data
@@ -5793,7 +5800,7 @@ function Library:Recorder(Window)
 			appendstrat(`TDS:Ability({TowerIndex}, "{AbilityName}", {TimerStr}, {formattedData})`)
 		end,
 		Option = function(Args, Timer, RemoteCheck)
-			if not IsRecording then return end
+			if not IsRecording or IsPaused then return end
 			local TowerIndex = Args[4].Troop.Name
 			local OptionName = Args[4].Name
 			local Value = Args[4].Value
@@ -5807,13 +5814,13 @@ function Library:Recorder(Window)
 			appendstrat(`TDS:Option({TowerIndex}, "{OptionName}", "{Value}", {TimerStr})`)
 		end,
 		Skip = function(Args, Timer, RemoteCheck)
-			if not IsRecording then return end
+			if not IsRecording or IsPaused then return end
 			SetStatus(`Skipped Wave`)
 			local TimerStr = table.concat(Timer, ", ")
 			appendstrat(`TDS:Skip({TimerStr})`)
 		end,
 		Vote = function(Args, Timer, RemoteCheck)
-			if not IsRecording then return end
+			if not IsRecording or IsPaused then return end
 			local Difficulty = Args[3]
 			local DiffTable = {
 				["Easy"] = "Easy",
@@ -5830,7 +5837,7 @@ function Library:Recorder(Window)
 	local Skipped = false
 	local voteConnection = nil
 	voteConnection = VoteGUI:GetPropertyChangedSignal("Position"):Connect(function()
-		if not IsRecording then return end
+		if not IsRecording or IsPaused then return end
 		repeat task.wait() until AutoSkipValue
 		if Skipped then
 			local count = VoteGUI:FindFirstChild("count")
@@ -5865,7 +5872,7 @@ function Library:Recorder(Window)
 		}
 		local waveConnection = nil
 		waveConnection = GameWave:GetPropertyChangedSignal("Text"):Connect(function()
-			if not IsRecording then return end
+			if not IsRecording or IsPaused then return end
 			local difficulty = RSDifficulty.Value
 			local FinalWave = FinalWaveAtDifferentMode[difficulty]
 			if FinalWave and tonumber(GameWave.Text) == FinalWave then
@@ -5931,12 +5938,102 @@ function Library:Recorder(Window)
 		Callback = function(v)
 			IsRecording = v
 			if v then
+				recordingStartTime = os.time()
+				local startTimeStr = os.date("%H:%M:%S")
 				InitializeStratFile()
 				AddLog("Recording started!")
-				SetStatus("Recording...")
+				SetStatus(`Recording... (Started at {startTimeStr})`)
 			else
 				AddLog("Recording stopped!")
 				SetStatus("Stopped")
+				recordingStartTime = nil
+			end
+		end
+	})
+	
+	-- Add buttons for recorder control
+	RecorderTab:Section({Title = "Actions"})
+	
+	-- Clear Log Button
+	RecorderTab:Button({
+		Title = "Clear Log",
+		Desc = "Clear the recorder log",
+		Callback = function()
+			LogMessages = {}
+			LogBox:SetCode("-- Recorder Log\n-- Ready to start recording...")
+			AddLog("Log cleared!")
+		end
+	})
+	
+	-- Copy Strat Button
+	RecorderTab:Button({
+		Title = "Copy Strat",
+		Desc = "Copy the recorded strat to clipboard",
+		Callback = function()
+			local stratContent = table.concat(LogMessages, "\n")
+			if stratContent and #stratContent > 0 then
+				-- Try to get the actual strat file content
+				local stratFilePath = "StrategiesX/TDS/Recorder/" .. LocalPlayer.Name .. "'s strat.txt"
+				if isfile and isfile(stratFilePath) then
+					local fileContent = readfile(stratFilePath)
+					if fileContent then
+						setclipboard(fileContent)
+						AddLog("Strat copied to clipboard!")
+					else
+						setclipboard(stratContent)
+						AddLog("Log content copied to clipboard!")
+					end
+				else
+					setclipboard(stratContent)
+					AddLog("Log content copied to clipboard!")
+				end
+			else
+				AddLog("No strat content to copy!")
+			end
+		end
+	})
+	
+	-- Pause/Resume Button
+	local ResumeButton = RecorderTab:Button({
+		Title = "Pause Recording",
+		Desc = "Pause or resume recording",
+		Callback = function()
+			if IsRecording then
+				if IsPaused then
+					-- Resume
+					IsPaused = false
+					IsRecording = true
+					AddLog("Recording resumed!")
+					SetStatus("Recording...")
+					ResumeButton:SetTitle("Pause Recording")
+					ResumeButton:SetDesc("Pause or resume recording")
+				else
+					-- Pause
+					IsPaused = true
+					AddLog("Recording paused!")
+					SetStatus("Paused")
+					ResumeButton:SetTitle("Resume Recording")
+					ResumeButton:SetDesc("Pause or resume recording")
+				end
+			else
+				AddLog("Recording is not active!")
+			end
+		end
+	})
+	
+	-- Stats Button - declare UpdatePlayerStatsFunc variable first
+	local UpdatePlayerStatsFunc = nil
+	
+	-- Add Stats button in Recorder tab (will be connected after Stats section is created)
+	local StatsButton = RecorderTab:Button({
+		Title = "Check Player Stats",
+		Desc = "Update player statistics",
+		Callback = function()
+			AddLog("Checking player stats...")
+			if UpdatePlayerStatsFunc then
+				UpdatePlayerStatsFunc()
+			else
+				AddLog("Stats section not ready yet, please wait...")
 			end
 		end
 	})
@@ -5986,10 +6083,110 @@ function Library:Recorder(Window)
 		return OldNamecall(..., unpack(Args))
 	end)
 
+	-- Stats Section
+	local StatsTab = Window:Tab({Title = "Stats", Icon = "chart-bar"})
+	
+	StatsTab:Section({Title = "Player Statistics"})
+	
+	-- Create labels for player stats
+	local LevelLabel = StatsTab:Label({
+		Title = "Level",
+		Desc = "Loading..."
+	})
+	
+	local ExperienceLabel = StatsTab:Label({
+		Title = "Experience",
+		Desc = "Loading..."
+	})
+	
+	local CoinsLabel = StatsTab:Label({
+		Title = "Coins",
+		Desc = "Loading..."
+	})
+	
+	local GemsLabel = StatsTab:Label({
+		Title = "Gems",
+		Desc = "Loading..."
+	})
+	
+	local WinsLabel = StatsTab:Label({
+		Title = "Wins (Triumphs)",
+		Desc = "Loading..."
+	})
+	
+	local LosesLabel = StatsTab:Label({
+		Title = "Loses",
+		Desc = "Loading..."
+	})
+	
+	-- Function to update player stats
+	local function UpdatePlayerStats()
+		local success, stats = pcall(function()
+			local level = LocalPlayer:WaitForChild("Level", 5)
+			local experience = LocalPlayer:WaitForChild("Experience", 5)
+			local coins = LocalPlayer:WaitForChild("Coins", 5)
+			local gems = LocalPlayer:WaitForChild("Gems", 5)
+			local triumphs = LocalPlayer:WaitForChild("Triumphs", 5)
+			local loses = LocalPlayer:WaitForChild("Loses", 5)
+			
+			if level and experience and coins and gems and triumphs and loses then
+				return {
+					Level = level.Value,
+					Experience = experience.Value,
+					Coins = coins.Value,
+					Gems = gems.Value,
+					Triumphs = triumphs.Value,
+					Loses = loses.Value
+				}
+			end
+			return nil
+		end)
+		
+		if success and stats then
+			LevelLabel:SetDesc(tostring(stats.Level))
+			ExperienceLabel:SetDesc(tostring(stats.Experience))
+			CoinsLabel:SetDesc(tostring(stats.Coins))
+			GemsLabel:SetDesc(tostring(stats.Gems))
+			WinsLabel:SetDesc(tostring(stats.Triumphs))
+			LosesLabel:SetDesc(tostring(stats.Loses))
+			AddLog("Player stats updated!")
+		else
+			LevelLabel:SetDesc("Failed to load")
+			ExperienceLabel:SetDesc("Failed to load")
+			CoinsLabel:SetDesc("Failed to load")
+			GemsLabel:SetDesc("Failed to load")
+			WinsLabel:SetDesc("Failed to load")
+			LosesLabel:SetDesc("Failed to load")
+			AddLog("Failed to load player stats!")
+		end
+	end
+	
+	-- Update stats button
+	StatsTab:Section({Title = "Actions"})
+	StatsTab:Button({
+		Title = "Refresh Stats",
+		Desc = "Update player statistics",
+		Callback = function()
+			UpdatePlayerStats()
+		end
+	})
+	
+	-- Auto-update stats every 5 seconds
+	task.spawn(function()
+		UpdatePlayerStats() -- Initial load
+		while task.wait(5) do
+			UpdatePlayerStats()
+		end
+	end)
+	
+	-- Store UpdatePlayerStats function reference for the Stats button
+	UpdatePlayerStatsFunc = UpdatePlayerStats
+	
 	return {
 		SetStatus = SetStatus,
 		GetTimer = GetTimer,
-		Recorder = Recorder
+		Recorder = Recorder,
+		UpdatePlayerStats = UpdatePlayerStats
 	}
 end
 

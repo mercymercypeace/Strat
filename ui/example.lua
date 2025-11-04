@@ -299,7 +299,7 @@ end
 local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 	MacroTab:Section({Title = "Auto farm"})
 	
-	MacroTab:Label({Title = "Macro Url"})
+	-- Macro URL input
 	local MacroUrlInput = MacroTab:Textbox({
 		Title = "Macro URL",
 		Desc = "enter the raw link to your macro script",
@@ -330,10 +330,10 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		end
 	})
 	
-	MacroTab:Section({Title = "Wave Settings"})
+	-- At Wave input (for selling all towers)
 	local AtWaveInput = MacroTab:Textbox({
 		Title = "At Wave",
-		Desc = "set the wave number (1-50)",
+		Desc = "set the wave number to sell all towers (1-50)",
 		Placeholder = "1",
 		Value = tostring(getgenv().LunarisX.AtWave or 1),
 		ClearTextOnFocus = false,
@@ -369,10 +369,10 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		end
 	})
 	
-	MacroTab:Section({Title = "Settings"})
+	-- Sell All Tower toggle
 	local SellAllTowerToggle = MacroTab:Toggle({
 		Title = "Sell All Tower",
-		Desc = "toggle to sell all towers",
+		Desc = "sell all towers at the specified wave",
 		Value = getgenv().LunarisX.SellAllTower or false,
 		Callback = function(v)
 			getgenv().LunarisX.SellAllTower = v
@@ -390,10 +390,10 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		end
 	})
 	
-	MacroTab:Section({Title = "Actions"})
+	-- Run Macro button
 	MacroTab:Button({
 		Title = "Run Macro",
-		Desc = "run the macro script with current settings",
+		Desc = "run the macro script with auto farm and sell all towers at wave",
 		Callback = function()
 			local macroUrl = getgenv().LunarisX.MarcoUrl or ""
 			local atWave = getgenv().LunarisX.AtWave or 1
@@ -438,7 +438,7 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 			if success then
 				Window:Notify({
 					Title = "Success",
-					Desc = "Macro script started!",
+					Desc = "Macro script started! Auto farm enabled. Will sell all towers at wave " .. atWave .. (sellAllTower and "" or " (disabled)"),
 					Time = 3,
 					Type = "normal"
 				})
