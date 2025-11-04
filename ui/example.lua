@@ -108,188 +108,6 @@ end
 
 Window:Line()
 
-local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
-    Settings:Section({Title = "UI Settings"})
-    
-    local currentKeybind = Window:GetUIToggleKeybind() or Enum.KeyCode.LeftControl
-    local UIToggleKeybind = Settings:Keybind({
-        Title = "UI Toggle Keybind",
-        Desc = "press to change the keybind for opening/closing the ui",
-        Key = currentKeybind,
-        Callback = function(key)
-            if Window.SetUIToggleKeybind then
-                local oldKeybind = Window:GetUIToggleKeybind()
-                if oldKeybind ~= key then
-                Window:SetUIToggleKeybind(key)
-                if writefile then
-                    pcall(function()
-                        local saveData = {
-                            UIToggleKeybind = tostring(key)
-                        }
-                        local HttpService = game:GetService("HttpService")
-                        writefile("LunarisX_UIKeybind.json", HttpService:JSONEncode(saveData))
-                    end)
-                end
-                Window:Notify({
-                    Title = "Keybind Changed",
-                    Desc = "UI toggle keybind set to: " .. tostring(key):gsub("Enum.KeyCode.", ""),
-                    Time = 3,
-                    Type = "normal"
-                })
-                end
-            end
-        end
-    })
-    
-    task.spawn(function()
-        task.wait(0.5)
-        if readfile then
-            local success, fileData = pcall(function()
-                return readfile("LunarisX_UIKeybind.json")
-            end)
-            
-            if success and fileData and fileData ~= "" then
-                local HttpService = game:GetService("HttpService")
-                local success2, savedData = pcall(function()
-                    return HttpService:JSONDecode(fileData)
-                end)
-                
-                if success2 and savedData and savedData.UIToggleKeybind then
-                    local keyCodeName = savedData.UIToggleKeybind:gsub("Enum.KeyCode.", "")
-                    local newKeybind = Enum.KeyCode[keyCodeName]
-                    if newKeybind and Window.SetUIToggleKeybind then
-                        Window:SetUIToggleKeybind(newKeybind)
-                        if UIToggleKeybind and UIToggleKeybind.SetKey then
-                            UIToggleKeybind:SetKey(newKeybind)
-                        end
-                    end
-                end
-            end
-        end
-    end)
-    
-    Settings:Section({Title = "Theme"})
-    local ThemeDropdown = Settings:Dropdown({
-        Title = "Theme",
-        Desc = "change ui theme",
-        List = {"Dark", "Amethyst"},
-        Value = "Dark",
-        Callback = function(selectedTheme)
-            task.spawn(function()
-                task.wait(0.1)
-                local uiScreenGui = game.CoreGui:FindFirstChild("LunarisX") or game.Players.LocalPlayer.PlayerGui:FindFirstChild("LunarisX")
-                if uiScreenGui then
-                    local topbar = uiScreenGui:FindFirstChild("Topbar")
-                    if topbar then
-                        local dropdownValue = topbar:FindFirstChild("DropdownValue_1")
-                        if dropdownValue then
-                            local textLabel = dropdownValue:FindFirstChild("TextLabelValue_1")
-                            if textLabel then
-                                for _, dropdownSelect in pairs(uiScreenGui:GetDescendants()) do
-                                    if dropdownSelect.Name == "DropdownSelect" and dropdownSelect:IsA("Frame") then
-                                        local scrollingFrame = dropdownSelect:FindFirstChild("ScrollingFrame_1")
-                                        if scrollingFrame then
-                                            for _, item in pairs(scrollingFrame:GetChildren()) do
-                                                if item:IsA("Frame") and item:FindFirstChild("TextLabel") then
-                                                    if item.TextLabel.Text == selectedTheme then
-                                                        item.TextLabel.TextTransparency = 0
-                                                        local clickDetector = item:FindFirstChild("Click")
-                                                        if clickDetector then
-                                                            clickDetector:Fire()
-                                                        end
-                                                        task.wait(0.1)
-                                                        break
-                                                    end
-                                                end
-                                            end
-                                            break
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    })
-    
-    task.spawn(function()
-        task.wait(0.3)
-        if ThemeDropdown and ThemeDropdown.SetValue then
-            local uiScreenGui = game.CoreGui:FindFirstChild("LunarisX") or game.Players.LocalPlayer.PlayerGui:FindFirstChild("LunarisX")
-            if uiScreenGui then
-                local topbar = uiScreenGui:FindFirstChild("Topbar")
-                if topbar then
-                    local dropdownValue = topbar:FindFirstChild("DropdownValue_1")
-                    if dropdownValue then
-                        local textLabel = dropdownValue:FindFirstChild("TextLabelValue_1")
-                        if textLabel and textLabel.Text and textLabel.Text ~= "" and textLabel.Text ~= "--" then
-                            ThemeDropdown:SetValue(textLabel.Text)
-                        end
-                    end
-                end
-            end
-        end
-    end)
-    
-    Settings:Section({Title = "Show Message"})
-    Settings:Button({
-        Title = "Show Message",
-        Desc = "display popup",
-        Callback = function()
-            Window:Notify({
-                Title = "LunarisX",
-                Desc = "settings page!",
-                Time = 3,
-                Type = "normal"
-            })
-        end
-    })
-
-    Settings:Section({Title = "Test Notifications"})
-    Settings:Button({
-        Title = "Error Notification",
-        Desc = "show error",
-        Callback = function()
-            Window:Notify({
-                Title = "Error",
-                Desc = "something went wrong!",
-                Time = 3,
-                Type = "error"
-            })
-        end
-    })
-
-    Settings:Button({
-        Title = "Warning Notification",
-        Desc = "show warning",
-        Callback = function()
-            Window:Notify({
-                Title = "Warning",
-                Desc = "be careful!",
-                Time = 3,
-                Type = "warning"
-            })
-        end
-    })
-
-    Settings:Button({
-        Title = "Normal Notification",
-        Desc = "show normal",
-        Callback = function()
-            Window:Notify({
-                Title = "Info",
-                Desc = "this is a normal notification",
-                Time = 3,
-                Type = "normal"
-            })
-        end
-    })
-end
-
-Window:Line()
-
 if not getgenv().LunarisX then
 	getgenv().LunarisX = {
 		SellAllTower = false,
@@ -670,14 +488,20 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 				elseif action.type == "upgrade" then
 					local level = action.level or 1
 					local path = action.path or "Left"
-					local pathText = path == "Right" and " (Right)" or path == "Left" and " (Left)" or ""
+					local pathText = ""
+					if path == "Right" then
+						pathText = " (Right)"
+					elseif path == "Left" then
+						pathText = " (Left)"
+					end
 					if action.waited then
 						table.insert(actionList, string.format("wait for money, upgrade to lvl %d%s", level, pathText))
 					else
 						table.insert(actionList, string.format("upgrade to lvl %d%s", level, pathText))
 					end
 				elseif action.type == "ability" then
-					table.insert(actionList, string.format("use ability: %s", action.ability or "Unknown"))
+					local abilityName = action.ability or "Unknown"
+					table.insert(actionList, string.format("use ability: %s", tostring(abilityName)))
 				elseif action.type == "skip" then
 					table.insert(actionList, "skip wave")
 				end
@@ -792,197 +616,303 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 						setreadonly(mt, false)
 						
 						mt.__namecall = newcclosure(function(self, ...)
+							if type(isRecording) ~= "boolean" or not isRecording then
+								return originalNamecall(self, ...)
+							end
+							
 							local method = getnamecallmethod()
+							if method ~= "FireServer" and method ~= "InvokeServer" then
+								return originalNamecall(self, ...)
+							end
+							
+							if self ~= remoteFunction then
+								return originalNamecall(self, ...)
+							end
+							
 							local args = {...}
 							
-							if isRecording and self == remoteFunction and (method == "FireServer" or method == "InvokeServer") then
-								local timestamp = os.date("%H:%M:%S")
-								local wave = getCurrentWave()
-								if wave > 0 then
-									currentWave = wave
+							local timestamp = os.date("%H:%M:%S")
+							local wave = getCurrentWave()
+							if wave > 0 then
+								currentWave = wave
+							end
+							
+							local successPlace, pos, towerName = pcall(function()
+								if args[1] == "Troops" and args[2] == "Place" and type(args[3]) == "table" and args[3].Position and args[4] then
+									return args[3].Position, tostring(args[4])
 								end
+								return nil, nil
+							end)
 								
-								local success, pos, towerName = pcall(function()
-									if args[1] == "Troops" and args[2] == "Place" and type(args[3]) == "table" and args[3].Position and args[4] then
-										return args[3].Position, tostring(args[4])
-									end
-									return nil, nil
+							if successPlace and pos and towerName then
+								local cashBefore = getCash()
+								local cost = getTowerCost(towerName)
+								local result = originalNamecall(self, ...)
+								
+								task.spawn(function()
+									pcall(function()
+										local cashAfter = getCash()
+										task.wait(0.2)
+										cashAfter = getCash()
+										local actualCost = cashBefore - cashAfter
+										
+										if actualCost > 0 then
+											learnTowerCost(towerName, actualCost)
+											cost = actualCost
+										end
+										
+										local waited = cashBefore < cost
+										
+										if waited and cost > 0 then
+											table.insert(actionLog, {
+												type = "place",
+												pos = {pos.X, pos.Y, pos.Z},
+												name = towerName,
+												wave = currentWave,
+												timestamp = timestamp,
+												waited = true,
+												cost = cost
+											})
+										else
+											table.insert(actionLog, {
+												type = "place",
+												pos = {pos.X, pos.Y, pos.Z},
+												name = towerName,
+												wave = currentWave,
+												timestamp = timestamp,
+												waited = false,
+												cost = cost
+											})
+										end
+										UpdateRecorderLog()
+									end)
 								end)
 								
-								if success and pos and towerName then
-									local cashBefore = getCash()
-									local cost = getTowerCost(towerName)
-									local result = originalNamecall(self, ...)
-									
-									task.spawn(function()
-										pcall(function()
-											local cashAfter = getCash()
-											task.wait(0.2)
-											cashAfter = getCash()
-											local actualCost = cashBefore - cashAfter
-											
-											if actualCost > 0 then
-												learnTowerCost(towerName, actualCost)
-												cost = actualCost
-											end
-											
-											local waited = cashBefore < cost
-											
-											if waited and cost > 0 then
-												table.insert(actionLog, {
-													type = "place",
-													pos = {pos.X, pos.Y, pos.Z},
-													name = towerName,
-													wave = currentWave,
-													timestamp = timestamp,
-													waited = true,
-													cost = cost
-												})
-											else
-												table.insert(actionLog, {
-													type = "place",
-													pos = {pos.X, pos.Y, pos.Z},
-													name = towerName,
-													wave = currentWave,
-													timestamp = timestamp,
-													waited = false,
-													cost = cost
-												})
-											end
-											UpdateRecorderLog()
-										end)
+								return result
+							end
+							
+							if args[1] == "Troops" and args[2] == "Upgrade" and typeof(args[4]) == "table" and args[4].Troop then
+								local tower = args[4].Troop
+								local upgradePath = args[4].Path
+								if not upgradePath then
+									local successPath, pathValue = pcall(function()
+										return args[4].Path or args[4].path or args[4].UpgradePath
 									end)
-									
-									return result
-								end
-								
-								if args[1] == "Troops" and args[2] == "Upgrade" and typeof(args[4]) == "table" and args[4].Troop then
-									local tower = args[4].Troop
-									local upgradePath = args[4].Path
-									if not upgradePath then
-										local success, pathValue = pcall(function()
-											return args[4].Path or args[4].path or args[4].UpgradePath
-										end)
-										if success and pathValue then
-											upgradePath = pathValue
-										end
+									if successPath and pathValue then
+										upgradePath = pathValue
 									end
-									local cashBefore = getCash()
-									local result = originalNamecall(self, ...)
-									
-									task.spawn(function()
-										pcall(function()
-											if tower and tower.Parent then
-												local success, root = pcall(function()
-													return tower:FindFirstChild("HumanoidRootPart") or tower:FindFirstChildWhichIsA("BasePart")
+								end
+								local cashBefore = getCash()
+								local result = originalNamecall(self, ...)
+								
+								task.spawn(function()
+									pcall(function()
+										if tower and tower.Parent then
+											local successRoot, root = pcall(function()
+												return tower:FindFirstChild("HumanoidRootPart") or tower:FindFirstChildWhichIsA("BasePart")
+											end)
+											
+											if successRoot and root then
+												local level = 1
+												local path = upgradePath or "Left"
+												
+												local successUpgrades, upgradeInfo = pcall(function()
+													local upgrades = tower:FindFirstChild("Upgrades")
+													if upgrades then
+														local upgradeCount = 0
+														local leftPathCount = 0
+														local rightPathCount = 0
+														
+														for _, upgrade in pairs(upgrades:GetChildren()) do
+															if upgrade:IsA("Folder") or upgrade:IsA("StringValue") or upgrade:IsA("BoolValue") or upgrade:IsA("NumberValue") then
+																upgradeCount = upgradeCount + 1
+																local upgradeName = tostring(upgrade.Name)
+																local upgradeNum = tonumber(upgradeName)
+																
+																if upgradeNum then
+																	if upgradeNum % 2 == 0 or upgradeNum == 0 then
+																		rightPathCount = rightPathCount + 1
+																	else
+																		leftPathCount = leftPathCount + 1
+																	end
+																else
+																	if string.find(string.lower(upgradeName), "left") or string.find(string.lower(upgradeName), "l") then
+																		leftPathCount = leftPathCount + 1
+																	elseif string.find(string.lower(upgradeName), "right") or string.find(string.lower(upgradeName), "r") then
+																		rightPathCount = rightPathCount + 1
+																	end
+																end
+															end
+														end
+														
+														if upgradeCount > 0 then
+															level = upgradeCount
+															if rightPathCount > leftPathCount then
+																path = "Right"
+															elseif leftPathCount > rightPathCount then
+																path = "Left"
+															end
+														end
+													end
+													return {level = level, path = path}
 												end)
 												
-												if success and root then
-													local level = 1
-													local success2, towerLevel = pcall(function()
+												if not successUpgrades then
+													local successLevel, towerLevel = pcall(function()
 														return tower:GetAttribute("Level") or (tower:FindFirstChild("Level") and tower.Level.Value) or 1
 													end)
-													if success2 and towerLevel then
+													if successLevel and towerLevel then
 														level = tonumber(towerLevel) or 1
 													end
-													
-													task.wait(0.2)
-													local cashAfter = getCash()
-													local actualCost = cashBefore - cashAfter
-													
-													local cost = getUpgradeCost(level)
-													if actualCost > 0 then
-														cost = actualCost
-													end
-													
-													local waited = cashBefore < cost
-													local path = upgradePath or "Left"
-													
-													if waited then
-														table.insert(actionLog, {
-															type = "upgrade",
-															pos = {root.Position.X, root.Position.Y, root.Position.Z},
-															wave = currentWave,
-															level = level,
-															path = path,
-															timestamp = timestamp,
-															waited = true,
-															cost = cost
-														})
-													else
-														table.insert(actionLog, {
-															type = "upgrade",
-															pos = {root.Position.X, root.Position.Y, root.Position.Z},
-															wave = currentWave,
-															level = level,
-															path = path,
-															timestamp = timestamp,
-															waited = false,
-															cost = cost
-														})
-													end
-													UpdateRecorderLog()
+												else
+													level = upgradeInfo.level
+													path = upgradeInfo.path
 												end
-											end
-										end)
-									end)
-									
-									return result
-								end
-								
-								if args[1] == "Troops" and args[2] == "Ability" and typeof(args[4]) == "table" and args[4].Troop then
-									local tower = args[4].Troop
-									local abilityName = args[4].Name
-									if not abilityName then
-										local success, nameValue = pcall(function()
-											return args[4].Name or args[4].name or args[4].AbilityName or args[4].Ability
-										end)
-										if success and nameValue then
-											abilityName = nameValue
-										end
-									end
-									local result = originalNamecall(self, ...)
-									
-									task.spawn(function()
-										pcall(function()
-											if tower and tower.Parent then
-												local success, root = pcall(function()
-													return tower:FindFirstChild("HumanoidRootPart") or tower:FindFirstChildWhichIsA("BasePart")
-												end)
 												
-												if success and root then
+												task.wait(0.2)
+												local cashAfter = getCash()
+												local actualCost = cashBefore - cashAfter
+												
+												local cost = getUpgradeCost(level)
+												if actualCost > 0 then
+													cost = actualCost
+												end
+												
+												local waited = cashBefore < cost
+												
+												if waited then
 													table.insert(actionLog, {
-														type = "ability",
+														type = "upgrade",
 														pos = {root.Position.X, root.Position.Y, root.Position.Z},
 														wave = currentWave,
-														ability = abilityName or "Unknown",
-														timestamp = timestamp
+														level = level,
+														path = path,
+														timestamp = timestamp,
+														waited = true,
+														cost = cost
 													})
-													UpdateRecorderLog()
+												else
+													table.insert(actionLog, {
+														type = "upgrade",
+														pos = {root.Position.X, root.Position.Y, root.Position.Z},
+														wave = currentWave,
+														level = level,
+														path = path,
+														timestamp = timestamp,
+														waited = false,
+														cost = cost
+													})
 												end
+												UpdateRecorderLog()
 											end
-										end)
+										end
 									end)
-									
-									return result
-								end
+								end)
 								
-								if args[1] == "Voting" and args[2] == "Skip" then
-									local result = originalNamecall(self, ...)
-									
-									task.spawn(function()
-										pcall(function()
-											table.insert(actionLog, {
-												type = "skip",
-												wave = currentWave,
-												timestamp = timestamp
-											})
-											UpdateRecorderLog()
-										end)
+								return result
+							end
+							
+							if args[1] == "Troops" and args[2] == "Ability" and typeof(args[4]) == "table" and args[4].Troop then
+								local tower = args[4].Troop
+								local abilityName = args[4].Name
+								if not abilityName then
+									local successAbility, nameValue = pcall(function()
+										return args[4].Name or args[4].name or args[4].AbilityName or args[4].Ability
 									end)
-									
-									return result
+									if successAbility and nameValue then
+										abilityName = nameValue
+									end
 								end
+								local result = originalNamecall(self, ...)
+								
+								task.spawn(function()
+									pcall(function()
+										if tower and tower.Parent then
+											local successAbilityRoot, root = pcall(function()
+												return tower:FindFirstChild("HumanoidRootPart") or tower:FindFirstChildWhichIsA("BasePart")
+											end)
+											
+											if successAbilityRoot and root then
+												if not abilityName or abilityName == "Unknown" then
+													local successTowerName, detectedName = pcall(function()
+														if tower and tower.Parent then
+															local towerReplicator = tower:FindFirstChild("TowerReplicator")
+															if towerReplicator then
+																local abilities = towerReplicator:FindFirstChild("Abilities")
+																if abilities then
+																	local abilityList = {}
+																	for _, ability in pairs(abilities:GetChildren()) do
+																		local name = nil
+																		if ability:IsA("StringValue") then
+																			name = ability.Value
+																		elseif ability:IsA("ObjectValue") then
+																			name = ability.Name
+																		elseif ability:IsA("BoolValue") or ability:IsA("NumberValue") or ability:IsA("IntValue") then
+																			name = ability.Name
+																		elseif ability.Name then
+																			name = ability.Name
+																		end
+																		if name and name ~= "" then
+																			table.insert(abilityList, name)
+																		end
+																	end
+																	
+																	if #abilityList > 0 then
+																		local abilitiesData = towerReplicator:FindFirstChild("AbilitiesData")
+																		if abilitiesData then
+																			for _, abilityData in pairs(abilitiesData:GetChildren()) do
+																				local cooldown = abilityData:FindFirstChild("Cooldown") or abilityData:FindFirstChild("cooldown")
+																				if cooldown and (cooldown:IsA("NumberValue") or cooldown:IsA("IntValue")) then
+																					if cooldown.Value > 0 then
+																						return abilityData.Name
+																					end
+																				end
+																			end
+																		end
+																		
+																		return abilityList[1]
+																	end
+																end
+															end
+														end
+														return nil
+													end)
+													if successTowerName and detectedName then
+														abilityName = detectedName
+													end
+												end
+												
+												table.insert(actionLog, {
+													type = "ability",
+													pos = {root.Position.X, root.Position.Y, root.Position.Z},
+													wave = currentWave,
+													ability = abilityName or "Unknown",
+													timestamp = timestamp
+												})
+												UpdateRecorderLog()
+											end
+										end
+									end)
+								end)
+								
+								return result
+							end
+							
+							if args[1] == "Voting" and args[2] == "Skip" then
+								local result = originalNamecall(self, ...)
+								
+								task.spawn(function()
+									pcall(function()
+										table.insert(actionLog, {
+											type = "skip",
+											wave = currentWave,
+											timestamp = timestamp
+										})
+										UpdateRecorderLog()
+									end)
+								end)
+								
+								return result
 							end
 							
 							return originalNamecall(self, ...)
@@ -1411,65 +1341,13 @@ local LogTab = Window:Tab({Title = "Log", Icon = "settings"}) do
                                 end)
                             end
                             
-                            local function getRelativeDate(entryDate)
-                                if not entryDate then
-                                    return os.date("%m/%d", os.time())
-                                end
-                                
-                                local currentTime = os.time()
-                                local entryTime = entryDate
-                                
-                                if type(entryDate) == "string" then
-                                    if entryDate == "Today" then
-                                        entryTime = currentTime
-                                    elseif entryDate == "Yesterday" then
-                                        entryTime = currentTime - 86400
-                                    else
-                                        return entryDate
-                                    end
-                                end
-                                
-                                local currentDateTable = os.date("*t", currentTime)
-                                local entryDateTable = os.date("*t", entryTime)
-                                
-                                currentDateTable.hour = 0
-                                currentDateTable.min = 0
-                                currentDateTable.sec = 0
-                                currentDateTable.isdst = nil
-                                
-                                entryDateTable.hour = 0
-                                entryDateTable.min = 0
-                                entryDateTable.sec = 0
-                                entryDateTable.isdst = nil
-                                
-                                local currentDayStart = os.time(currentDateTable)
-                                local entryDayStart = os.time(entryDateTable)
-                                
-                                local daysDiff = math.floor((currentDayStart - entryDayStart) / 86400)
-                                
-                                if daysDiff == 0 then
-                                    return "Today"
-                                elseif daysDiff == 1 then
-                                    return "Yesterday"
-                                elseif daysDiff == 2 then
-                                    return "2 days ago"
-                                elseif daysDiff < 7 then
-                                    return tostring(daysDiff) .. " days ago"
-                                else
-                                    return os.date("%m/%d/%y", entryTime)
-                                end
-                            end
-                            
-                            local function addLogEntry(text, entryDate)
+                            local function addLogEntry(text)
                                 if not logScrollingFrame then return end
-                                
-                                local displayDate = getRelativeDate(entryDate)
                                 
                                 local logFrame = Instance.new("Frame")
                                 local UICorner = Instance.new("UICorner")
                                 local UIPadding = Instance.new("UIPadding")
                                 local MessageLabel = Instance.new("TextLabel")
-                                local TimeLabel = Instance.new("TextLabel")
                                 
                                 logFrame.Name = "LogEntry"
                                 logFrame.Parent = logScrollingFrame
@@ -1490,7 +1368,7 @@ local LogTab = Window:Tab({Title = "Log", Icon = "settings"}) do
                                 MessageLabel.Name = "Message"
                                 MessageLabel.Parent = logFrame
                                 MessageLabel.BackgroundTransparency = 1
-                                MessageLabel.Size = UDim2.new(1, -60, 0, 0)
+                                MessageLabel.Size = UDim2.new(1, 0, 0, 0)
                                 MessageLabel.Font = Enum.Font.Gotham
                                 MessageLabel.Text = text
                                 MessageLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1499,28 +1377,11 @@ local LogTab = Window:Tab({Title = "Log", Icon = "settings"}) do
                                 MessageLabel.TextXAlignment = Enum.TextXAlignment.Left
                                 MessageLabel.TextYAlignment = Enum.TextYAlignment.Top
                                 MessageLabel.AutomaticSize = Enum.AutomaticSize.Y
-                                
-                                TimeLabel.Name = "Time"
-                                TimeLabel.Parent = logFrame
-                                TimeLabel.AnchorPoint = Vector2.new(1, 0)
-                                TimeLabel.BackgroundTransparency = 1
-                                TimeLabel.Position = UDim2.new(1, -5, 0, 5)
-                                TimeLabel.Size = UDim2.new(0, 80, 0, 10)
-                                TimeLabel.Font = Enum.Font.Gotham
-                                TimeLabel.Text = displayDate
-                                TimeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                                TimeLabel.TextTransparency = 0.5
-                                TimeLabel.TextSize = 10
-                                TimeLabel.TextXAlignment = Enum.TextXAlignment.Right
                             end
                             
-                            local todayTime = os.time()
-                            local yesterdayTime = os.time() - 86400
-                            local twoDaysAgoTime = os.time() - (86400 * 2)
-                            
-                            addLogEntry("Optimized The Ui", todayTime)
-                            addLogEntry("Fixed webhook not working", todayTime)
-                            addLogEntry("Annoucement Added YAYY", yesterdayTime)
+                            addLogEntry("Added Macro")
+                            addLogEntry("Added Keybind Setting Fixed the ui glitched")
+                            addLogEntry("Added Record (Testing)")
 
                             
                             break
@@ -1530,6 +1391,123 @@ local LogTab = Window:Tab({Title = "Log", Icon = "settings"}) do
             end
         end
     end)
+end
+
+Window:Line()
+
+local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
+    Settings:Section({Title = "UI Settings"})
+    
+    local currentKeybind = Window:GetUIToggleKeybind() or Enum.KeyCode.LeftControl
+    local UIToggleKeybind = Settings:Keybind({
+        Title = "UI Toggle Keybind",
+        Desc = "press to change the keybind for opening/closing the ui",
+        Key = currentKeybind,
+        Callback = function(key)
+            if Window.SetUIToggleKeybind then
+                local oldKeybind = Window:GetUIToggleKeybind()
+                if oldKeybind ~= key then
+                Window:SetUIToggleKeybind(key)
+                if writefile then
+                    pcall(function()
+                        local saveData = {
+                            UIToggleKeybind = tostring(key)
+                        }
+                        local HttpService = game:GetService("HttpService")
+                        writefile("LunarisX_UIKeybind.json", HttpService:JSONEncode(saveData))
+                    end)
+                end
+                Window:Notify({
+                    Title = "Keybind Changed",
+                    Desc = "UI toggle keybind set to: " .. tostring(key):gsub("Enum.KeyCode.", ""),
+                    Time = 3,
+                    Type = "normal"
+                })
+                end
+            end
+        end
+    })
+    
+    task.spawn(function()
+        task.wait(0.5)
+        if readfile then
+            local success, fileData = pcall(function()
+                return readfile("LunarisX_UIKeybind.json")
+            end)
+            
+            if success and fileData and fileData ~= "" then
+                local HttpService = game:GetService("HttpService")
+                local success2, savedData = pcall(function()
+                    return HttpService:JSONDecode(fileData)
+                end)
+                
+                if success2 and savedData and savedData.UIToggleKeybind then
+                    local keyCodeName = savedData.UIToggleKeybind:gsub("Enum.KeyCode.", "")
+                    local newKeybind = Enum.KeyCode[keyCodeName]
+                    if newKeybind and Window.SetUIToggleKeybind then
+                        Window:SetUIToggleKeybind(newKeybind)
+                        if UIToggleKeybind and UIToggleKeybind.SetKey then
+                            UIToggleKeybind:SetKey(newKeybind)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    
+    Settings:Section({Title = "Show Message"})
+    Settings:Button({
+        Title = "Show Message",
+        Desc = "display popup",
+        Callback = function()
+            Window:Notify({
+                Title = "LunarisX",
+                Desc = "settings page!",
+                Time = 3,
+                Type = "normal"
+            })
+        end
+    })
+
+    Settings:Section({Title = "Test Notifications"})
+    Settings:Button({
+        Title = "Error Notification",
+        Desc = "show error",
+        Callback = function()
+            Window:Notify({
+                Title = "Error",
+                Desc = "something went wrong!",
+                Time = 3,
+                Type = "error"
+            })
+        end
+    })
+
+    Settings:Button({
+        Title = "Warning Notification",
+        Desc = "show warning",
+        Callback = function()
+            Window:Notify({
+                Title = "Warning",
+                Desc = "be careful!",
+                Time = 3,
+                Type = "warning"
+            })
+        end
+    })
+
+    Settings:Button({
+        Title = "Normal Notification",
+        Desc = "show normal",
+        Callback = function()
+            Window:Notify({
+                Title = "Info",
+                Desc = "this is a normal notification",
+                Time = 3,
+                Type = "normal"
+            })
+        end
+    })
 end
 
 Window:Notify({
