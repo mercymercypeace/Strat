@@ -5132,44 +5132,62 @@ function Library:Window(p)
 	
 	loadAnnouncements()
 	
+	local isProcessing = false
+	local processingAnnouncements = {}
+	
 	local function pollAnnouncements()
 		while true do
-			local success, result = pcall(function()
-				return game:HttpGet(API_URL, true)
-			end)
-			
-			if success and result then
-				local announcements = nil
-				pcall(function()
-					announcements = HttpService:JSONDecode(result)
+			if not isProcessing then
+				isProcessing = true
+				local success, result = pcall(function()
+					return game:HttpGet(API_URL, true)
 				end)
 				
-				if announcements and type(announcements) == "table" then
-					for id, message in pairs(announcements) do
-						if not received_announcements[id] then
-							received_announcements[id] = true
-							Tabs.Announcements[id] = tostring(message)
-							Tabs.ReceivedAnnouncements[id] = true
+				if success and result then
+					local announcements = nil
+					pcall(function()
+						announcements = HttpService:JSONDecode(result)
+					end)
+					
+					if announcements and type(announcements) == "table" then
+						for id, message in pairs(announcements) do
+							local announcementKey = tostring(id) .. "_" .. tostring(message)
 							
-							saveAnnouncements()
-							
-							-- Use UI notify instead of Roblox's notification
-							pcall(function()
-								Tabs:Notify({
-									Title = "Announcement",
-									Desc = tostring(message),
-									Time = 10,
-									Type = "normal"
-								})
-							end)
-							
-							-- Show popup in the middle
-							task.spawn(function()
-								Tabs:AddAnnouncementToUI(tostring(message))
-							end)
+							-- Check both ID and message content to prevent duplicates
+							if not received_announcements[id] and not processingAnnouncements[announcementKey] then
+								processingAnnouncements[announcementKey] = true
+								received_announcements[id] = true
+								Tabs.Announcements[id] = tostring(message)
+								Tabs.ReceivedAnnouncements[id] = true
+								
+								saveAnnouncements()
+								
+								-- Use UI notify only (no Roblox native notification)
+								pcall(function()
+									Tabs:Notify({
+										Title = "Announcement",
+										Desc = tostring(message),
+										Time = 10,
+										Type = "normal"
+									})
+								end)
+								
+								-- Show popup in the middle
+								task.spawn(function()
+									Tabs:AddAnnouncementToUI(tostring(message))
+								end)
+								
+								-- Clear processing flag after a delay
+								task.spawn(function()
+									task.wait(1)
+									processingAnnouncements[announcementKey] = nil
+								end)
+							end
 						end
 					end
 				end
+				
+				isProcessing = false
 			end
 			
 			task.wait(2)
@@ -5222,21 +5240,19 @@ function Library:Window(p)
 	end
 	
 	function Tabs:AddAnnouncementToUI(message)
+		-- Prevent duplicate popups
+		if Tabs._activeAnnouncement then
+			return
+		end
+		Tabs._activeAnnouncement = true
+		
 		local announcementGui = Instance.new("ScreenGui")
 		announcementGui.Name = "AnnouncementPopup"
 		announcementGui.ResetOnSpawn = false
 		announcementGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 		announcementGui.Parent = game:GetService("CoreGui")
 		
-		-- Remove overlay or make it fully transparent
-		local overlay = Instance.new("Frame")
-		overlay.Name = "Overlay"
-		overlay.Parent = announcementGui
-		overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-		overlay.BackgroundTransparency = 1
-		overlay.BorderSizePixel = 0
-		overlay.Size = UDim2.new(1, 0, 1, 0)
-		overlay.ZIndex = 999
+		-- NO OVERLAY - completely removed
 		
 		local announcementFrame = Instance.new("Frame")
 		local canvasGroup = Instance.new("CanvasGroup")
@@ -5247,20 +5263,19 @@ function Library:Window(p)
 		announcementFrame.Name = "AnnouncementFrame"
 		announcementFrame.Parent = announcementGui
 		announcementFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-		-- Use theme background with transparency
+		-- Use theme background with more transparency
 		announcementFrame.BackgroundColor3 = themes[IsTheme].Function.Button.Background
-		announcementFrame.BackgroundTransparency = 0.1
+		announcementFrame.BackgroundTransparency = 0.3  -- More transparent
 		announcementFrame.BorderSizePixel = 0
-		announcementFrame.Position = UDim2.new(0.5, 0, 0.35, 0)  -- Moved higher (from 0.5 to 0.35)
-		announcementFrame.Size = UDim2.new(0, 400, 0, 0)
-		announcementFrame.AutomaticSize = Enum.AutomaticSize.Y
+		announcementFrame.Position = UDim2.new(0.5, 0, 0.25, 0)  -- Moved much higher
+		announcementFrame.Size = UDim2.new(0, 350, 0, 0)
 		announcementFrame.ZIndex = 1000
 		
 		addToTheme('Function.Button.Background', announcementFrame)
 		
 		local UICorner = Instance.new("UICorner")
 		UICorner.Parent = announcementFrame
-		UICorner.CornerRadius = UDim.new(0, 12)  -- Smoother rounded corners
+		UICorner.CornerRadius = UDim.new(0, 16)  -- Much smoother rounded corners
 		
 		local UIPadding = Instance.new("UIPadding")
 		UIPadding.Parent = canvasGroup
@@ -5278,7 +5293,7 @@ function Library:Window(p)
 		MessageLabel.Name = "Message"
 		MessageLabel.Parent = canvasGroup
 		MessageLabel.BackgroundTransparency = 1
-		MessageLabel.Size = UDim2.new(1, -40, 0, 0)  -- Account for padding
+		MessageLabel.Size = UDim2.new(1, -40, 0, 0)
 		MessageLabel.Font = Enum.Font.GothamBold
 		MessageLabel.Text = tostring(message)
 		MessageLabel.TextColor3 = themes[IsTheme]['Text & Icon']
@@ -5291,36 +5306,34 @@ function Library:Window(p)
 		
 		addToTheme('Text & Icon', MessageLabel)
 		
-		-- Set frame to expand based on content
-		announcementFrame.Size = UDim2.new(0, 400, 0, 0)
+		-- Calculate text size first
+		announcementFrame.Size = UDim2.new(0, 350, 0, 0)
 		announcementFrame.AutomaticSize = Enum.AutomaticSize.Y
 		
-		-- Wait for layout to calculate size
-		task.wait(0.1)
+		-- Wait for text to render and calculate bounds
+		task.wait(0.15)
 		
-		-- Get calculated size for animation
-		local finalHeight = announcementFrame.AbsoluteSize.Y
-		local finalWidth = math.min(500, math.max(300, 400))
+		-- Get actual calculated dimensions
+		local textBounds = MessageLabel.TextBounds
+		local minWidth = 300
+		local maxWidth = 500
+		local calculatedWidth = math.clamp(textBounds.X + 40, minWidth, maxWidth)
+		local calculatedHeight = math.max(60, textBounds.Y + 40)
 		
-		-- Start from 0 for animation
+		-- Reset for animation
 		announcementFrame.Size = UDim2.new(0, 0, 0, 0)
 		announcementFrame.AutomaticSize = Enum.AutomaticSize.None
 		canvasGroup.GroupTransparency = 1
 		
 		local TweenService = game:GetService("TweenService")
-		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		
-		-- Animate size expansion
+		-- Smooth size animation
 		local sizeTween = TweenService:Create(announcementFrame, tweenInfo, {
-			Size = UDim2.new(0, finalWidth, 0, finalHeight)
+			Size = UDim2.new(0, calculatedWidth, 0, calculatedHeight)
 		})
 		
-		-- After animation, enable automatic size for text expansion
-		sizeTween.Completed:Connect(function()
-			announcementFrame.Size = UDim2.new(0, finalWidth, 0, 0)
-			announcementFrame.AutomaticSize = Enum.AutomaticSize.Y
-		end)
-		
+		-- Smooth transparency animation
 		local transparencyTween = TweenService:Create(canvasGroup, tweenInfo, {
 			GroupTransparency = 0
 		})
@@ -5345,6 +5358,7 @@ function Library:Window(p)
 			
 			closeTween.Completed:Wait()
 			announcementGui:Destroy()
+			Tabs._activeAnnouncement = false
 		end)
 		
 		if not Tabs.AnnouncementScrollingFrame then
