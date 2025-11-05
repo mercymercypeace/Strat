@@ -1626,30 +1626,40 @@ local AnnouncementTab = Window:Tab({Title = "Announce", Icon = "bell"}) do
                             end)
                             end
                             
-                            -- Simple announcement polling system
-                            local announcementUrl = "https://getlunarisx.cc/announce/recieve"
+                            -- Optimized announcement polling system
+                            local announcementUrl = "https://api.getlunarisx.cc/"
+                            local HttpService = game:GetService("HttpService")
                             local lastMessage = nil
+                            local receivedMessages = {}
                             
                             task.spawn(function()
                                 while task.wait(2) do
-                                    local success, result = pcall(function()
+                                    local success, response = pcall(function()
                                         return game:HttpGet(announcementUrl)
                                     end)
                                     
-                                    if success and result then
-                                        -- Only update if the message actually changed
-                                        if result ~= lastMessage then
-                                            lastMessage = result
+                                    if success and response then
+                                        -- Check if the response is JSON or plain text
+                                        local msg = response
+                                        if response:sub(1, 1) == "{" then
+                                            local decoded = HttpService:JSONDecode(response)
+                                            msg = decoded.message or decoded.text or decoded.announcement or response
+                                        end
+                                        
+                                        -- Only process if message changed and not already received
+                                        if msg and msg ~= lastMessage and not receivedMessages[msg] then
+                                            lastMessage = msg
+                                            receivedMessages[msg] = true
                                             
                                             -- Add to UI
                                             if Window.AddAnnouncementToUI then
-                                                Window:AddAnnouncementToUI(result)
+                                                Window:AddAnnouncementToUI(msg)
                                             end
                                             
                                             -- Show notification
                                             Window:Notify({
                                                 Title = "Announcement",
-                                                Desc = result,
+                                                Desc = msg,
                                                 Time = 10,
                                                 Type = "normal"
                                             })
@@ -1658,7 +1668,6 @@ local AnnouncementTab = Window:Tab({Title = "Announce", Icon = "bell"}) do
                                             if readfile and writefile then
                                                 task.spawn(function()
                                                     local Players = game:GetService("Players")
-                                                    local HttpService = game:GetService("HttpService")
                                                     local localPlayer = Players.LocalPlayer
                                                     if localPlayer then
                                                         local client_id = tostring(localPlayer.UserId)
@@ -1683,7 +1692,7 @@ local AnnouncementTab = Window:Tab({Title = "Announce", Icon = "bell"}) do
                                                         end
                                                         
                                                         local newId = tostring(#savedData.Announcements + 1)
-                                                        savedData.Announcements[newId] = result
+                                                        savedData.Announcements[newId] = msg
                                                         
                                                         pcall(function()
                                                             writefile(saveFilePath, HttpService:JSONEncode(savedData))
@@ -1693,7 +1702,7 @@ local AnnouncementTab = Window:Tab({Title = "Announce", Icon = "bell"}) do
                                             end
                                         end
                                     else
-                                        warn("Failed to get message: ", result)
+                                        warn("[Announcement Error]", response)
                                     end
                                 end
                             end)
