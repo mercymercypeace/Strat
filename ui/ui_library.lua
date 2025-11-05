@@ -5071,7 +5071,6 @@ function Library:Window(p)
 
 	local HttpService = game:GetService("HttpService")
 	local Players = game:GetService("Players")
-	local StarterGui = game:GetService("StarterGui")
 	local player = Players.LocalPlayer
 	
 	if not player then
@@ -5088,6 +5087,7 @@ function Library:Window(p)
 	local received_announcements = {}
 	
 	local function loadAnnouncements()
+		-- Only load received announcements to track what we've seen, but don't display them
 		if readfile then
 			local success, fileData = pcall(function()
 				return readfile(saveFilePath)
@@ -5112,15 +5112,6 @@ function Library:Window(p)
 							received_announcements[id] = true
 						end
 					end
-					
-					task.spawn(function()
-						task.wait(1.5)
-						if savedData.Announcements and type(savedData.Announcements) == "table" then
-							for id, message in pairs(savedData.Announcements) do
-								Tabs:AddAnnouncementToUI(message)
-							end
-						end
-					end)
 				end
 			end
 		end
@@ -5162,18 +5153,7 @@ function Library:Window(p)
 							
 							saveAnnouncements()
 							
-							pcall(function()
-								StarterGui:SetCore("SendNotification", {
-									Title = "Announcement",
-									Text = tostring(message),
-									Duration = 10,
-								})
-							end)
-							
-							task.spawn(function()
-								Tabs:AddAnnouncementToUI(tostring(message))
-							end)
-							
+							-- Use UI notify instead of Roblox's notification
 							pcall(function()
 								Tabs:Notify({
 									Title = "Announcement",
@@ -5181,6 +5161,11 @@ function Library:Window(p)
 									Time = 10,
 									Type = "normal"
 								})
+							end)
+							
+							-- Show popup in the middle
+							task.spawn(function()
+								Tabs:AddAnnouncementToUI(tostring(message))
 							end)
 						end
 					end
@@ -5243,11 +5228,12 @@ function Library:Window(p)
 		announcementGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 		announcementGui.Parent = game:GetService("CoreGui")
 		
+		-- Remove overlay or make it fully transparent
 		local overlay = Instance.new("Frame")
 		overlay.Name = "Overlay"
 		overlay.Parent = announcementGui
 		overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-		overlay.BackgroundTransparency = 0.5
+		overlay.BackgroundTransparency = 1
 		overlay.BorderSizePixel = 0
 		overlay.Size = UDim2.new(1, 0, 1, 0)
 		overlay.ZIndex = 999
@@ -5261,9 +5247,11 @@ function Library:Window(p)
 		announcementFrame.Name = "AnnouncementFrame"
 		announcementFrame.Parent = announcementGui
 		announcementFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+		-- Use theme background with transparency
 		announcementFrame.BackgroundColor3 = themes[IsTheme].Function.Button.Background
+		announcementFrame.BackgroundTransparency = 0.1
 		announcementFrame.BorderSizePixel = 0
-		announcementFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+		announcementFrame.Position = UDim2.new(0.5, 0, 0.35, 0)  -- Moved higher (from 0.5 to 0.35)
 		announcementFrame.Size = UDim2.new(0, 400, 0, 0)
 		announcementFrame.AutomaticSize = Enum.AutomaticSize.Y
 		announcementFrame.ZIndex = 1000
@@ -5272,7 +5260,7 @@ function Library:Window(p)
 		
 		local UICorner = Instance.new("UICorner")
 		UICorner.Parent = announcementFrame
-		UICorner.CornerRadius = UDim.new(0, 8)
+		UICorner.CornerRadius = UDim.new(0, 12)  -- Smoother rounded corners
 		
 		local UIPadding = Instance.new("UIPadding")
 		UIPadding.Parent = canvasGroup
@@ -5281,48 +5269,65 @@ function Library:Window(p)
 		UIPadding.PaddingRight = UDim.new(0, 20)
 		UIPadding.PaddingTop = UDim.new(0, 20)
 		
+		local UIListLayout = Instance.new("UIListLayout")
+		UIListLayout.Parent = canvasGroup
+		UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		UIListLayout.Padding = UDim.new(0, 0)
+		
 		local MessageLabel = Instance.new("TextLabel")
 		MessageLabel.Name = "Message"
 		MessageLabel.Parent = canvasGroup
 		MessageLabel.BackgroundTransparency = 1
-		MessageLabel.Size = UDim2.new(1, 0, 0, 0)
+		MessageLabel.Size = UDim2.new(1, -40, 0, 0)  -- Account for padding
 		MessageLabel.Font = Enum.Font.GothamBold
 		MessageLabel.Text = tostring(message)
 		MessageLabel.TextColor3 = themes[IsTheme]['Text & Icon']
 		MessageLabel.TextSize = 16
 		MessageLabel.TextWrapped = true
 		MessageLabel.TextXAlignment = Enum.TextXAlignment.Center
-		MessageLabel.TextYAlignment = Enum.TextYAlignment.Center
+		MessageLabel.TextYAlignment = Enum.TextYAlignment.Top
 		MessageLabel.AutomaticSize = Enum.AutomaticSize.Y
+		MessageLabel.LayoutOrder = 1
 		
 		addToTheme('Text & Icon', MessageLabel)
 		
+		-- Set frame to expand based on content
+		announcementFrame.Size = UDim2.new(0, 400, 0, 0)
+		announcementFrame.AutomaticSize = Enum.AutomaticSize.Y
+		
+		-- Wait for layout to calculate size
+		task.wait(0.1)
+		
+		-- Get calculated size for animation
+		local finalHeight = announcementFrame.AbsoluteSize.Y
+		local finalWidth = math.min(500, math.max(300, 400))
+		
+		-- Start from 0 for animation
 		announcementFrame.Size = UDim2.new(0, 0, 0, 0)
+		announcementFrame.AutomaticSize = Enum.AutomaticSize.None
 		canvasGroup.GroupTransparency = 1
-		overlay.BackgroundTransparency = 1
 		
 		local TweenService = game:GetService("TweenService")
 		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		
-		task.wait(0.05)
-		local targetHeight = MessageLabel.AbsoluteSize.Y + 40
-		
+		-- Animate size expansion
 		local sizeTween = TweenService:Create(announcementFrame, tweenInfo, {
-			Size = UDim2.new(0, 400, 0, targetHeight)
+			Size = UDim2.new(0, finalWidth, 0, finalHeight)
 		})
+		
+		-- After animation, enable automatic size for text expansion
+		sizeTween.Completed:Connect(function()
+			announcementFrame.Size = UDim2.new(0, finalWidth, 0, 0)
+			announcementFrame.AutomaticSize = Enum.AutomaticSize.Y
+		end)
 		
 		local transparencyTween = TweenService:Create(canvasGroup, tweenInfo, {
 			GroupTransparency = 0
 		})
 		
-		local overlayTween = TweenService:Create(overlay, tweenInfo, {
-			BackgroundTransparency = 0.5
-		})
-		
 		task.wait(0.05)
 		sizeTween:Play()
 		transparencyTween:Play()
-		overlayTween:Play()
 		
 		task.spawn(function()
 			task.wait(5)
@@ -5335,13 +5340,8 @@ function Library:Window(p)
 				Size = UDim2.new(0, 0, 0, 0)
 			})
 			
-			local overlayCloseTween = TweenService:Create(overlay, tweenInfo, {
-				BackgroundTransparency = 1
-			})
-			
 			closeTween:Play()
 			sizeCloseTween:Play()
-			overlayCloseTween:Play()
 			
 			closeTween.Completed:Wait()
 			announcementGui:Destroy()
