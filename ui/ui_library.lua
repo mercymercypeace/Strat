@@ -5135,6 +5135,11 @@ function Library:Window(p)
 	local isProcessing = false
 	local processingAnnouncements = {}
 	
+	-- Initialize popup lock
+	if not Tabs._popupLock then
+		Tabs._popupLock = false
+	end
+	
 	local function pollAnnouncements()
 		while true do
 			if not isProcessing then
@@ -5172,9 +5177,13 @@ function Library:Window(p)
 									})
 								end)
 								
-							-- Show popup in the middle (with small delay to prevent duplicates)
+							-- Show popup in the middle (with delay to prevent duplicates)
 							task.spawn(function()
-								task.wait(0.1)
+								-- Wait a bit and double-check before showing
+								task.wait(0.2)
+								if Tabs._popupLock then
+									return
+								end
 								Tabs:AddAnnouncementToUI(tostring(message))
 							end)
 							
@@ -5241,236 +5250,243 @@ function Library:Window(p)
 	end
 	
 	function Tabs:AddAnnouncementToUI(message)
-		-- Better duplicate prevention - track by message hash
-		local messageHash = tostring(message):gsub("%s+", "")
+		-- Initialize tracking
 		if not Tabs._activeAnnouncements then
 			Tabs._activeAnnouncements = {}
 		end
+		if not Tabs._popupLock then
+			Tabs._popupLock = false
+		end
 		
+		-- Check if any popup is currently showing
+		if Tabs._popupLock then
+			return
+		end
+		
+		-- Better duplicate prevention - track by message hash
+		local messageHash = tostring(message):gsub("%s+", "")
 		if Tabs._activeAnnouncements[messageHash] then
 			return
 		end
+		
+		-- Check if popup GUI already exists in CoreGui
+		local CoreGui = game:GetService("CoreGui")
+		for _, gui in ipairs(CoreGui:GetChildren()) do
+			if gui:IsA("ScreenGui") and gui.Name:find("AnnouncementPopup") then
+				return
+			end
+		end
+		
+		-- Set locks immediately
+		Tabs._popupLock = true
 		Tabs._activeAnnouncements[messageHash] = true
 		
 		local TweenService = game:GetService("TweenService")
-		local CoreGui = game:GetService("CoreGui")
+		local notificationColor = Color3.fromRGB(0, 200, 255)  -- Normal type color
 		
-		-- Create modern announcement GUI
+		-- Create announcement GUI using notification design
 		local announcementGui = Instance.new("ScreenGui")
-		announcementGui.Name = "AnnouncementPopup_" .. messageHash
+		announcementGui.Name = "AnnouncementPopup_" .. messageHash .. "_" .. tostring(tick())
 		announcementGui.ResetOnSpawn = false
 		announcementGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 		announcementGui.DisplayOrder = 999
 		announcementGui.Parent = CoreGui
 		
-		-- Main container with shadow effect
-		local mainContainer = Instance.new("Frame")
-		mainContainer.Name = "MainContainer"
-		mainContainer.Parent = announcementGui
-		mainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
-		mainContainer.BackgroundTransparency = 1
-		mainContainer.BorderSizePixel = 0
-		mainContainer.Position = UDim2.new(0.5, 0, 0.22, 0)  -- Higher up
-		mainContainer.Size = UDim2.new(0, 0, 0, 0)
-		mainContainer.ZIndex = 1000
+		-- Copy notification design structure
+		local Shadow = Instance.new("ImageLabel")
+		local UIPadding_1 = Instance.new("UIPadding")
+		local Background_1 = Instance.new("CanvasGroup")
+		local UICorner_1 = Instance.new("UICorner")
+		local Frame_1 = Instance.new("Frame")
+		local Text_1 = Instance.new("Frame")
+		local UIPadding_2 = Instance.new("UIPadding")
+		local Title_1 = Instance.new("TextLabel")
+		local UIListLayout_1 = Instance.new("UIListLayout")
+		local Description_1 = Instance.new("TextLabel")
 		
-		-- Shadow frame (for depth effect)
-		local shadowFrame = Instance.new("Frame")
-		shadowFrame.Name = "Shadow"
-		shadowFrame.Parent = mainContainer
-		shadowFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-		shadowFrame.BackgroundTransparency = 0.8
-		shadowFrame.BorderSizePixel = 0
-		shadowFrame.Size = UDim2.new(1, 8, 1, 8)
-		shadowFrame.Position = UDim2.new(0, -4, 0, -4)
-		shadowFrame.ZIndex = 999
+		Shadow.Name = "Shadow"
+		Shadow.Parent = announcementGui
+		Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+		Shadow.BackgroundColor3 = Color3.fromRGB(163,162,165)
+		Shadow.BackgroundTransparency = 1
+		Shadow.Size = UDim2.new(0, 400, 0, 0)  -- Bigger size for announcement
+		Shadow.Position = UDim2.new(0.5, 0, 0.22, 0)  -- Higher up
+		Shadow.Image = "rbxassetid://1316045217"
+		Shadow.ImageColor3 = themes[IsTheme].Shadow
+		Shadow.ImageTransparency = 0.5
+		Shadow.ScaleType = Enum.ScaleType.Slice
+		Shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+		Shadow.AutomaticSize = Enum.AutomaticSize.Y
 		
-		local shadowCorner = Instance.new("UICorner")
-		shadowCorner.Parent = shadowFrame
-		shadowCorner.CornerRadius = UDim.new(0, 20)
+		addToTheme('Shadow', Shadow)
 		
-		-- Main card frame
-		local cardFrame = Instance.new("Frame")
-		cardFrame.Name = "Card"
-		cardFrame.Parent = mainContainer
-		cardFrame.BackgroundColor3 = themes[IsTheme].Function.Button.Background
-		cardFrame.BackgroundTransparency = 0.15
-		cardFrame.BorderSizePixel = 0
-		cardFrame.Size = UDim2.new(1, 0, 1, 0)
-		cardFrame.ZIndex = 1000
+		UIPadding_1.Parent = Shadow
+		UIPadding_1.PaddingBottom = UDim.new(0,5)
+		UIPadding_1.PaddingLeft = UDim.new(0,5)
+		UIPadding_1.PaddingRight = UDim.new(0,5)
+		UIPadding_1.PaddingTop = UDim.new(0,5)
 		
-		addToTheme('Function.Button.Background', cardFrame)
+		Background_1.Name = "Background"
+		Background_1.Parent = Shadow
+		Background_1.AnchorPoint = Vector2.new(0.5, 0.5)
+		Background_1.BackgroundColor3 = themes[IsTheme].Background
+		Background_1.BorderColor3 = Color3.fromRGB(0,0,0)
+		Background_1.BorderSizePixel = 0
+		Background_1.Position = UDim2.new(0.5, 0,0.5, 0)
+		Background_1.Size = UDim2.new(1, 0,1, 0) - UDim2.fromOffset(5, 5)
+		Background_1.ClipsDescendants = true
+		Background_1.GroupTransparency = 1
 		
-		local cardCorner = Instance.new("UICorner")
-		cardCorner.Parent = cardFrame
-		cardCorner.CornerRadius = UDim.new(0, 20)
+		addToTheme('Background', Background_1)
 		
-		-- Border accent
-		local borderFrame = Instance.new("Frame")
-		borderFrame.Name = "Border"
-		borderFrame.Parent = cardFrame
-		borderFrame.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
-		borderFrame.BackgroundTransparency = 0.5
-		borderFrame.BorderSizePixel = 0
-		borderFrame.Size = UDim2.new(1, 0, 0, 3)
-		borderFrame.Position = UDim2.new(0, 0, 0, 0)
-		borderFrame.ZIndex = 1001
+		UICorner_1.Parent = Background_1
+		UICorner_1.CornerRadius = UDim.new(0,6)
 		
-		local borderCorner = Instance.new("UICorner")
-		borderCorner.Parent = borderFrame
-		borderCorner.CornerRadius = UDim.new(0, 20)
+		Frame_1.Parent = Background_1
+		Frame_1.AnchorPoint = Vector2.new(0.5, 1)
+		Frame_1.BackgroundColor3 = notificationColor
+		Frame_1.BackgroundTransparency = 0.3
+		Frame_1.BorderColor3 = Color3.fromRGB(0,0,0)
+		Frame_1.BorderSizePixel = 0
+		Frame_1.Position = UDim2.new(0.5, 0,1, 0)
+		Frame_1.Size = UDim2.new(0, 0,0, 4)
+		Frame_1.Visible = true
+		Frame_1.ZIndex = 10
 		
-		-- Canvas group for animations
-		local canvasGroup = Instance.new("CanvasGroup")
-		canvasGroup.Parent = cardFrame
-		canvasGroup.GroupTransparency = 1
-		canvasGroup.Size = UDim2.new(1, 0, 1, 0)
-		canvasGroup.ZIndex = 1002
+		Text_1.Name = "Text"
+		Text_1.Parent = Background_1
+		Text_1.BackgroundColor3 = Color3.fromRGB(255,255,255)
+		Text_1.BackgroundTransparency = 1
+		Text_1.BorderColor3 = Color3.fromRGB(0,0,0)
+		Text_1.BorderSizePixel = 0
+		Text_1.Size = UDim2.new(1, 0,1, 0)
 		
-		-- Content container
-		local contentFrame = Instance.new("Frame")
-		contentFrame.Name = "Content"
-		contentFrame.Parent = canvasGroup
-		contentFrame.BackgroundTransparency = 1
-		contentFrame.Size = UDim2.new(1, 0, 1, 0)
+		UIPadding_2.Parent = Text_1
+		UIPadding_2.PaddingBottom = UDim.new(0,5)
+		UIPadding_2.PaddingLeft = UDim.new(0,5)
+		UIPadding_2.PaddingRight = UDim.new(0,5)
+		UIPadding_2.PaddingTop = UDim.new(0,5)
 		
-		local contentPadding = Instance.new("UIPadding")
-		contentPadding.Parent = contentFrame
-		contentPadding.PaddingBottom = UDim.new(0, 24)
-		contentPadding.PaddingLeft = UDim.new(0, 24)
-		contentPadding.PaddingRight = UDim.new(0, 24)
-		contentPadding.PaddingTop = UDim.new(0, 24)
+		Title_1.Name = "Title"
+		Title_1.Parent = Text_1
+		Title_1.AutomaticSize = Enum.AutomaticSize.Y
+		Title_1.BackgroundColor3 = Color3.fromRGB(255,255,255)
+		Title_1.BackgroundTransparency = 1
+		Title_1.BorderColor3 = Color3.fromRGB(0,0,0)
+		Title_1.BorderSizePixel = 0
+		Title_1.Size = UDim2.new(1, 0,0, 0)
+		Title_1.Font = Enum.Font.GothamBold
+		Title_1.Text = "Announcement"
+		Title_1.TextColor3 = themes[IsTheme]['Text & Icon']
+		Title_1.TextSize = 12
+		Title_1.TextWrapped = true
+		Title_1.RichText = true
+		Title_1.TextXAlignment = Enum.TextXAlignment.Left
+		Title_1.TextYAlignment = Enum.TextYAlignment.Top
 		
-		local contentLayout = Instance.new("UIListLayout")
-		contentLayout.Parent = contentFrame
-		contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-		contentLayout.Padding = UDim.new(0, 12)
+		addToTheme('Text & Icon', Title_1)
 		
-		-- Title/Icon section
-		local titleFrame = Instance.new("Frame")
-		titleFrame.Name = "TitleFrame"
-		titleFrame.Parent = contentFrame
-		titleFrame.BackgroundTransparency = 1
-		titleFrame.Size = UDim2.new(1, 0, 0, 0)
-		titleFrame.AutomaticSize = Enum.AutomaticSize.Y
-		titleFrame.LayoutOrder = 1
+		UIListLayout_1.Parent = Text_1
+		UIListLayout_1.Padding = UDim.new(0,3)
+		UIListLayout_1.SortOrder = Enum.SortOrder.LayoutOrder
 		
-		local titleLayout = Instance.new("UIListLayout")
-		titleLayout.Parent = titleFrame
-		titleLayout.SortOrder = Enum.SortOrder.LayoutOrder
-		titleLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-		titleLayout.Padding = UDim.new(0, 8)
+		Description_1.Name = "Description"
+		Description_1.Parent = Text_1
+		Description_1.AutomaticSize = Enum.AutomaticSize.Y
+		Description_1.BackgroundColor3 = Color3.fromRGB(255,255,255)
+		Description_1.BackgroundTransparency = 1
+		Description_1.BorderColor3 = Color3.fromRGB(0,0,0)
+		Description_1.BorderSizePixel = 0
+		Description_1.LayoutOrder = 2
+		Description_1.Size = UDim2.new(1, 0,0, 0)
+		Description_1.Font = Enum.Font.GothamBold
+		Description_1.Text = tostring(message)
+		Description_1.TextColor3 = themes[IsTheme]['Text & Icon']
+		Description_1.TextSize = 10
+		Description_1.TextTransparency = 0.5
+		Description_1.TextWrapped = true
+		Description_1.RichText = true
+		Description_1.TextXAlignment = Enum.TextXAlignment.Left
+		Description_1.TextYAlignment = Enum.TextYAlignment.Top
+		Description_1.Visible = true
 		
-		-- Icon/Emoji
-		local iconLabel = Instance.new("TextLabel")
-		iconLabel.Name = "Icon"
-		iconLabel.Parent = titleFrame
-		iconLabel.BackgroundTransparency = 1
-		iconLabel.Size = UDim2.new(0, 0, 0, 32)
-		iconLabel.Font = Enum.Font.GothamBold
-		iconLabel.Text = "📢"
-		iconLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-		iconLabel.TextSize = 32
-		iconLabel.TextXAlignment = Enum.TextXAlignment.Center
-		iconLabel.AutomaticSize = Enum.AutomaticSize.X
-		iconLabel.LayoutOrder = 1
+		addToTheme('Text & Icon', Description_1)
 		
-		-- Title text
-		local titleLabel = Instance.new("TextLabel")
-		titleLabel.Name = "Title"
-		titleLabel.Parent = titleFrame
-		titleLabel.BackgroundTransparency = 1
-		titleLabel.Size = UDim2.new(1, 0, 0, 0)
-		titleLabel.Font = Enum.Font.GothamBold
-		titleLabel.Text = "New Announcement"
-		titleLabel.TextColor3 = themes[IsTheme]['Text & Icon']
-		titleLabel.TextSize = 18
-		titleLabel.TextWrapped = true
-		titleLabel.TextXAlignment = Enum.TextXAlignment.Center
-		titleLabel.AutomaticSize = Enum.AutomaticSize.Y
-		titleLabel.LayoutOrder = 2
-		
-		addToTheme('Text & Icon', titleLabel)
-		
-		-- Divider line
-		local divider = Instance.new("Frame")
-		divider.Name = "Divider"
-		divider.Parent = contentFrame
-		divider.BackgroundColor3 = themes[IsTheme]['Text & Icon']
-		divider.BackgroundTransparency = 0.8
-		divider.BorderSizePixel = 0
-		divider.Size = UDim2.new(1, 0, 0, 1)
-		divider.LayoutOrder = 2
-		
-		addToTheme('Text & Icon', divider)
-		
-		-- Message content
-		local messageLabel = Instance.new("TextLabel")
-		messageLabel.Name = "Message"
-		messageLabel.Parent = contentFrame
-		messageLabel.BackgroundTransparency = 1
-		messageLabel.Size = UDim2.new(1, 0, 0, 0)
-		messageLabel.Font = Enum.Font.Gotham
-		messageLabel.Text = tostring(message)
-		messageLabel.TextColor3 = themes[IsTheme]['Text & Icon']
-		messageLabel.TextSize = 15
-		messageLabel.TextWrapped = true
-		messageLabel.TextXAlignment = Enum.TextXAlignment.Center
-		messageLabel.TextYAlignment = Enum.TextYAlignment.Top
-		messageLabel.AutomaticSize = Enum.AutomaticSize.Y
-		messageLabel.LayoutOrder = 3
-		messageLabel.LineHeight = 1.4
-		
-		addToTheme('Text & Icon', messageLabel)
+		-- Dynamic size update function (like notification)
+		local function updateSize()
+			task.defer(function()
+				local textWidth = math.max(350, Description_1.TextBounds.X + 50)
+				local finalWidth = math.clamp(textWidth, 350, 550)
+				local newSize = UIListLayout_1.AbsoluteContentSize.Y + 28
+				if Shadow.Size.Y.Offset ~= newSize or Shadow.Size.X.Offset ~= finalWidth then
+					Shadow.Size = UDim2.new(0, finalWidth, 0, newSize)
+				end
+			end)
+		end
 		
 		-- Calculate size
-		mainContainer.Size = UDim2.new(0, 380, 0, 0)
-		mainContainer.AutomaticSize = Enum.AutomaticSize.Y
+		Shadow.Size = UDim2.new(0, 400, 0, 0)
+		Shadow.AutomaticSize = Enum.AutomaticSize.Y
+		
+		-- Setup dynamic size tracking
+		UIListLayout_1:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateSize)
 		
 		task.wait(0.1)
 		
-		local finalHeight = mainContainer.AbsoluteSize.Y
-		local finalWidth = math.clamp(math.max(320, messageLabel.TextBounds.X + 60), 320, 500)
+		local finalHeight = Shadow.AbsoluteSize.Y
+		local finalWidth = math.clamp(math.max(350, Description_1.TextBounds.X + 50), 350, 550)
 		
 		-- Reset for animation
-		mainContainer.Size = UDim2.new(0, 0, 0, 0)
-		mainContainer.AutomaticSize = Enum.AutomaticSize.None
-		canvasGroup.GroupTransparency = 1
+		Shadow.Size = UDim2.new(0, 0, 0, 0)
+		Shadow.AutomaticSize = Enum.AutomaticSize.None
+		Background_1.GroupTransparency = 1
+		Frame_1.Size = UDim2.new(0, 0, 0, 4)
 		
 		-- Smooth animations
 		local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		local tweenInfo2 = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		
-		local sizeTween = TweenService:Create(mainContainer, tweenInfo, {
+		local sizeTween = TweenService:Create(Shadow, tweenInfo, {
 			Size = UDim2.new(0, finalWidth, 0, finalHeight)
 		})
 		
-		local transparencyTween = TweenService:Create(canvasGroup, tweenInfo2, {
+		local transparencyTween = TweenService:Create(Background_1, tweenInfo2, {
 			GroupTransparency = 0
+		})
+		
+		local barTween = TweenService:Create(Frame_1, tweenInfo, {
+			Size = UDim2.new(1, 0, 0, 4)
 		})
 		
 		task.wait(0.05)
 		sizeTween:Play()
 		transparencyTween:Play()
+		barTween:Play()
 		
 		-- Auto close after 6 seconds
 		task.spawn(function()
 			task.wait(6)
 			
-			local closeTween = TweenService:Create(canvasGroup, tweenInfo2, {
+			local closeTween = TweenService:Create(Background_1, tweenInfo2, {
 				GroupTransparency = 1
 			})
 			
-			local sizeCloseTween = TweenService:Create(mainContainer, tweenInfo2, {
+			local sizeCloseTween = TweenService:Create(Shadow, tweenInfo2, {
 				Size = UDim2.new(0, 0, 0, 0)
+			})
+			
+			local barCloseTween = TweenService:Create(Frame_1, tweenInfo2, {
+				Size = UDim2.new(0, 0, 0, 4)
 			})
 			
 			closeTween:Play()
 			sizeCloseTween:Play()
+			barCloseTween:Play()
 			
 			closeTween.Completed:Wait()
 			announcementGui:Destroy()
 			Tabs._activeAnnouncements[messageHash] = nil
+			Tabs._popupLock = false  -- Release lock
 		end)
 		
 		if not Tabs.AnnouncementScrollingFrame then
