@@ -125,6 +125,19 @@ local ConfigStorage = {
 	UIToggleKeybind = nil
 }
 
+-- Helper function to ensure folder exists
+local function ensureFolder(folderPath)
+	if makefolder then
+		pcall(function()
+			makefolder(folderPath)
+		end)
+	end
+end
+
+-- Initialize folders
+ensureFolder("LunarisX")
+ensureFolder("LunarisX/Announcement")
+
 local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 	MacroTab:Section({Title = "Auto farm"})
 	
@@ -145,7 +158,7 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 							SellAllTower = getgenv().LunarisX.SellAllTower or false
 						}
 						local HttpService = game:GetService("HttpService")
-						writefile("LunarisX_Macro.json", HttpService:JSONEncode(saveData))
+						writefile("LunarisX/LunarisX_Macro.json", HttpService:JSONEncode(saveData))
 					end)
 				end
 				Window:Notify({
@@ -177,7 +190,7 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 							SellAllTower = getgenv().LunarisX.SellAllTower or false
 						}
 						local HttpService = game:GetService("HttpService")
-						writefile("LunarisX_Macro.json", HttpService:JSONEncode(saveData))
+						writefile("LunarisX/LunarisX_Macro.json", HttpService:JSONEncode(saveData))
 					end)
 				end
 				Window:Notify({
@@ -212,7 +225,7 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 						SellAllTower = v
 					}
 					local HttpService = game:GetService("HttpService")
-					writefile("LunarisX_Macro.json", HttpService:JSONEncode(saveData))
+					writefile("LunarisX/LunarisX_Macro.json", HttpService:JSONEncode(saveData))
 				end)
 			end
 		end
@@ -336,42 +349,12 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		OriginalNamecall = nil,
 		MetaTable = nil,
 		CurrentWave = 1,
-		RemoteFunction = nil,
-		TowersList = {},
-		TowerCount = 0,
-		SecondMili = 0
+		RemoteFunction = nil
 	}
 	
 	local function getCurrentWave()
 		local ReplicatedStorage = game:GetService("ReplicatedStorage")
-		local Players = game:GetService("Players")
-		local LocalPlayer = Players.LocalPlayer
-		
 		local success, wave = pcall(function()
-			-- Try to get from PlayerGui
-			if LocalPlayer then
-				local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-				if playerGui then
-					local gameTopDisplay = playerGui:FindFirstChild("ReactGameTopGameDisplay")
-					if gameTopDisplay then
-						local waveFrame = gameTopDisplay:FindFirstChild("Frame")
-						if waveFrame then
-							local waveContainer = waveFrame:FindFirstChild("wave")
-							if waveContainer then
-								local valueLabel = waveContainer:FindFirstChild("container")
-								if valueLabel then
-									local value = valueLabel:FindFirstChild("value")
-									if value and value.Text then
-										return tonumber(value.Text) or 1
-									end
-								end
-							end
-						end
-					end
-				end
-			end
-			
-			-- Fallback to ReplicatedStorage
 			local gameWave = ReplicatedStorage:FindFirstChild("GameWave")
 			if gameWave then
 				return tonumber(gameWave.Value) or 1
@@ -383,38 +366,6 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 			return 1
 		end)
 		return success and wave or 1
-	end
-	
-	local function ConvertTimer(number)
-		return math.floor(number / 60), number % 60
-	end
-	
-	local function GetTimer()
-		local ReplicatedStorage = game:GetService("ReplicatedStorage")
-		local Players = game:GetService("Players")
-		local LocalPlayer = Players.LocalPlayer
-		
-		local wave = getCurrentWave()
-		local minutes = 0
-		local seconds = 0
-		local timerCheck = false
-		
-		pcall(function()
-			-- Try to get timer from State
-			local state = ReplicatedStorage:FindFirstChild("State")
-			if state then
-				local timer = state:FindFirstChild("Timer")
-				if timer then
-					local timeValue = timer:FindFirstChild("Time")
-					if timeValue then
-						minutes, seconds = ConvertTimer(timeValue.Value)
-						timerCheck = timeValue.Value <= 5
-					end
-				end
-			end
-		end)
-		
-		return {wave, minutes, seconds + Recorder.SecondMili, tostring(timerCheck)}
 	end
 	
 	local function getCash()
@@ -599,65 +550,65 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 	
 	function Recorder:FormatLuaLog()
 		local lines = {}
-		
-		-- Format timer for TDS format
-		local function formatTimer(timer)
-			if not timer or type(timer) ~= "table" or #timer < 4 then
-				return "0, 0, 0, \"false\""
-			end
-			return string.format("%d, %d, %.1f, %s", timer[1] or 0, timer[2] or 0, timer[3] or 0, timer[4] or "\"false\"")
-		end
-		
-		-- Format ability data
-		local function formatAbilityData(data)
-			if not data or type(data) ~= "table" then
-				return "{}"
-			end
-			local formatted = {}
-			for key, value in pairs(data) do
-				if key == "directionCFrame" then
-					table.insert(formatted, string.format('["%s"] = CFrame.new(%s)', key, tostring(value)))
-				elseif key == "position" then
-					table.insert(formatted, string.format('["%s"] = Vector3.new(%s)', key, tostring(value)))
-				else
-					table.insert(formatted, string.format('["%s"] = %s', key, tostring(value)))
-				end
-			end
-			return "{" .. table.concat(formatted, ", ") .. "}"
-		end
+		local waveActions = {}
 		
 		for _, v in ipairs(self.ActionLog) do
-			local timerStr = formatTimer(v.timer)
-			
-			if v.type == "place" then
-				local rotX, rotY, rotZ = 0, 0, 0
-				if v.rotation then
-					rotX, rotY, rotZ = v.rotation[1] or 0, v.rotation[2] or 0, v.rotation[3] or 0
-				end
-				table.insert(lines, string.format('TDS:Place("%s", %.3f, %.3f, %.3f, {%s}, %.3f, %.3f, %.3f)', 
-					v.name, v.pos[1], v.pos[2], v.pos[3], timerStr, rotX, rotY, rotZ))
-			elseif v.type == "upgrade" then
-				local path = v.path or "Left"
-				table.insert(lines, string.format('TDS:Upgrade(%d, {%s}, "%s")', 
-					v.towerId or 0, timerStr, path))
-			elseif v.type == "sell" then
-				table.insert(lines, string.format('TDS:Sell(%d, {%s})', 
-					v.towerId or 0, timerStr))
-			elseif v.type == "target" then
-				table.insert(lines, string.format('TDS:Target(%d, "%s", {%s})', 
-					v.towerId or 0, v.target or "First", timerStr))
-			elseif v.type == "ability" then
-				local abilityData = formatAbilityData(v.abilityData)
-				table.insert(lines, string.format('TDS:Ability(%d, "%s", {%s}, %s)', 
-					v.towerId or 0, v.ability or "Unknown", timerStr, abilityData))
-			elseif v.type == "option" then
-				table.insert(lines, string.format('TDS:Option(%d, "%s", "%s", {%s})', 
-					v.towerId or 0, v.optionName or "", tostring(v.value or ""), timerStr))
-			elseif v.type == "skip" then
-				table.insert(lines, string.format('TDS:Skip({%s})', timerStr))
+			if not waveActions[v.wave] then
+				waveActions[v.wave] = {}
 			end
+			table.insert(waveActions[v.wave], v)
 		end
 		
+		local sortedWaves = {}
+		for wave, _ in pairs(waveActions) do
+			table.insert(sortedWaves, wave)
+		end
+		table.sort(sortedWaves)
+		
+		for _, wave in ipairs(sortedWaves) do
+			local actions = waveActions[wave]
+			table.insert(lines, string.format("-- Wave %d", wave))
+			for _, v in ipairs(actions) do
+				if v.type == "place" then
+					if v.waited then
+						local cost = getTowerCost(v.name)
+						table.insert(lines, string.format('waitForMoney(%d) -- %s', cost, v.name))
+						table.insert(lines, string.format('place(%.3f, %.3f, %.3f, "%s")', 
+							v.pos[1], v.pos[2], v.pos[3], v.name))
+					else
+						table.insert(lines, string.format('place(%.3f, %.3f, %.3f, "%s")', 
+							v.pos[1], v.pos[2], v.pos[3], v.name))
+					end
+				elseif v.type == "upgrade" then
+					local level = v.level or 1
+					local path = v.path or "Left"
+					if v.waited then
+						local cost = getUpgradeCost(level)
+						table.insert(lines, string.format('waitForMoney(%d) -- upgrade to lvl %d (%s)', cost, level, path))
+						if path == "Right" then
+							table.insert(lines, string.format('upgradeRight(%.3f, %.3f, %.3f, %d)', 
+								v.pos[1], v.pos[2], v.pos[3], level))
+						else
+							table.insert(lines, string.format('upgrade(%.3f, %.3f, %.3f, %d)', 
+								v.pos[1], v.pos[2], v.pos[3], level))
+						end
+					else
+						if path == "Right" then
+							table.insert(lines, string.format('upgradeRight(%.3f, %.3f, %.3f, %d)', 
+								v.pos[1], v.pos[2], v.pos[3], level))
+						else
+							table.insert(lines, string.format('upgrade(%.3f, %.3f, %.3f, %d)', 
+								v.pos[1], v.pos[2], v.pos[3], level))
+						end
+					end
+				elseif v.type == "ability" then
+					table.insert(lines, string.format('ability(%.3f, %.3f, %.3f, "%s")', 
+						v.pos[1], v.pos[2], v.pos[3], v.ability or "Unknown"))
+				elseif v.type == "skip" then
+					table.insert(lines, string.format('skip() -- Wave %d', v.wave))
+				end
+			end
+		end
 		return table.concat(lines, "\n")
 	end
 	
@@ -682,28 +633,6 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		self.RemoteFunction = remoteFunction
 		self.CurrentWave = getCurrentWave()
 		self.IsRecording = true
-		self.TowerCount = 0
-		self.TowersList = {}
-		
-		-- Initialize timer tracking
-		task.spawn(function()
-			local state = ReplicatedStorage:FindFirstChild("State")
-			if state then
-				local timer = state:FindFirstChild("Timer")
-				if timer then
-					local timeValue = timer:FindFirstChild("Time")
-					if timeValue then
-						timeValue:GetPropertyChangedSignal("Value"):Connect(function()
-							Recorder.SecondMili = 0
-							for i = 1, 9 do
-								task.wait(0.09)
-								Recorder.SecondMili = Recorder.SecondMili + 0.1
-							end
-						end)
-					end
-				end
-			end
-		end)
 		
 		task.spawn(function()
 			local gameWave = ReplicatedStorage:WaitForChild("GameWave", 10)
@@ -750,15 +679,8 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 				elseif secondArg == "Upgrade" then
 					actionType = "upgrade"
 					cashBefore = getCash()
-				elseif secondArg == "Sell" then
-					actionType = "sell"
-					cashBefore = getCash()
 				elseif secondArg == "Ability" then
 					actionType = "ability"
-				elseif secondArg == "Target" then
-					actionType = "target"
-				elseif secondArg == "Option" then
-					actionType = "option"
 				end
 			elseif firstArg == "Voting" and secondArg == "Skip" then
 				actionType = "skip"
@@ -773,17 +695,11 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 						local wave = rec.CurrentWave
 						
 						if actionType == "place" then
-							rec:LogPlace(args, cashBefore, wave, timestamp, result)
+							rec:LogPlace(args, cashBefore, wave, timestamp)
 						elseif actionType == "upgrade" then
-							rec:LogUpgrade(args, cashBefore, wave, timestamp, result)
-						elseif actionType == "sell" then
-							rec:LogSell(args, cashBefore, wave, timestamp, result)
+							rec:LogUpgrade(args, cashBefore, wave, timestamp)
 						elseif actionType == "ability" then
-							rec:LogAbility(args, wave, timestamp, result)
-						elseif actionType == "target" then
-							rec:LogTarget(args, cashBefore, wave, timestamp, result)
-						elseif actionType == "option" then
-							rec:LogOption(args, cashBefore, wave, timestamp, result)
+							rec:LogAbility(args, wave, timestamp)
 						elseif actionType == "skip" then
 							rec:LogSkip(wave, timestamp)
 						end
@@ -812,29 +728,18 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		self.IsRecording = false
 	end
 	
-	function Recorder:LogPlace(args, cashBefore, wave, timestamp, remoteResult)
+	function Recorder:LogPlace(args, cashBefore, wave, timestamp)
 		task.wait(0.1)
 		
 		local pos = nil
-		local rotation = nil
 		local towerName = nil
-		local towerInstance = nil
 		
 		local success = pcall(function()
-			if typeof(args[3]) == "table" then
-				if args[3].Position then
-					pos = args[3].Position
-				end
-				if args[3].Rotation then
-					rotation = args[3].Rotation
-				end
+			if typeof(args[3]) == "table" and args[3].Position then
+				pos = args[3].Position
 			end
 			if args[4] ~= nil then
 				towerName = tostring(args[4])
-			end
-			-- Try to get tower instance from remote result
-			if remoteResult and typeof(remoteResult) == "Instance" then
-				towerInstance = remoteResult
 			end
 		end)
 		
@@ -854,38 +759,12 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		
 		local waited = cashBefore < cost
 		
-		-- Track tower with ID
-		Recorder.TowerCount = Recorder.TowerCount + 1
-		local towerId = Recorder.TowerCount
-		
-		-- Store tower instance if available
-		if towerInstance then
-			towerInstance.Name = tostring(towerId)
-			Recorder.TowersList[towerId] = {
-				TowerName = towerName,
-				Instance = towerInstance,
-				Position = pos,
-				Rotation = rotation or CFrame.new()
-			}
-		end
-		
-		-- Extract rotation angles if available
-		local rotX, rotY, rotZ = 0, 0, 0
-		if rotation then
-			rotX, rotY, rotZ = rotation:ToEulerAnglesYXZ()
-		end
-		
-		local timer = GetTimer()
-		
 		table.insert(self.ActionLog, {
 			type = "place",
 			pos = {pos.X, pos.Y, pos.Z},
-			rotation = {rotX, rotY, rotZ},
 			name = towerName,
-			towerId = towerId,
 			wave = wave,
 			timestamp = timestamp,
-			timer = timer,
 			waited = waited,
 			cost = cost
 		})
@@ -893,19 +772,14 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		self:UpdateLog()
 	end
 	
-	function Recorder:LogUpgrade(args, cashBefore, wave, timestamp, remoteResult)
+	function Recorder:LogUpgrade(args, cashBefore, wave, timestamp)
 		local tower = nil
 		local upgradePath = nil
-		local towerId = nil
 		
 		local success = pcall(function()
 			if typeof(args[4]) == "table" then
 				tower = args[4].Troop
 				upgradePath = args[4].Path or args[4].path or args[4].UpgradePath
-				if tower then
-					-- Try to get tower ID from name
-					towerId = tonumber(tower.Name) or nil
-				end
 			end
 		end)
 		
@@ -968,16 +842,6 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 			return
 		end
 		
-		-- If tower ID not found, try to find it by matching position
-		if not towerId then
-			for id, towerData in pairs(Recorder.TowersList) do
-				if towerData.Instance == tower then
-					towerId = id
-					break
-				end
-			end
-		end
-		
 		local cashAfter = getCash()
 		local actualCost = cashBefore - cashAfter
 		local cost = getUpgradeCost(level)
@@ -987,189 +851,34 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		end
 		
 		local waited = cashBefore < cost
-		local timer = GetTimer()
 		
 		table.insert(self.ActionLog, {
 			type = "upgrade",
-			towerId = towerId,
 			pos = {root.Position.X, root.Position.Y, root.Position.Z},
 			wave = wave,
 			level = level,
 			path = path,
 			timestamp = timestamp,
-			timer = timer,
 			waited = waited,
-			cost = cost,
-			success = remoteResult == true
+			cost = cost
 		})
 		
 		self:UpdateLog()
 	end
 	
-	function Recorder:LogSell(args, cashBefore, wave, timestamp, remoteResult)
-		local tower = nil
-		local towerId = nil
-		
-		local success = pcall(function()
-			if typeof(args[3]) == "table" and args[3].Troop then
-				tower = args[3].Troop
-				towerId = tonumber(tower.Name) or nil
-			end
-		end)
-		
-		if not success or not tower then
-			return
-		end
-		
-		-- Find tower ID if not found
-		if not towerId then
-			for id, towerData in pairs(Recorder.TowersList) do
-				if towerData.Instance == tower then
-					towerId = id
-					break
-				end
-			end
-		end
-		
-		local timer = GetTimer()
-		
-		table.insert(self.ActionLog, {
-			type = "sell",
-			towerId = towerId,
-			wave = wave,
-			timestamp = timestamp,
-			timer = timer,
-			success = remoteResult == true or (remoteResult and not tower:FindFirstChild("HumanoidRootPart"))
-		})
-		
-		-- Remove from towers list if sold successfully
-		if towerId and Recorder.TowersList[towerId] then
-			Recorder.TowersList[towerId] = nil
-		end
-		
-		self:UpdateLog()
-	end
-	
-	function Recorder:LogTarget(args, cashBefore, wave, timestamp, remoteResult)
-		local tower = nil
-		local target = nil
-		local towerId = nil
-		
-		local success = pcall(function()
-			if typeof(args[4]) == "table" then
-				tower = args[4].Troop
-				target = args[4].Target
-				if tower then
-					towerId = tonumber(tower.Name) or nil
-				end
-			end
-		end)
-		
-		if not success or not tower then
-			return
-		end
-		
-		-- Find tower ID if not found
-		if not towerId then
-			for id, towerData in pairs(Recorder.TowersList) do
-				if towerData.Instance == tower then
-					towerId = id
-					break
-				end
-			end
-		end
-		
-		local timer = GetTimer()
-		
-		table.insert(self.ActionLog, {
-			type = "target",
-			towerId = towerId,
-			target = target,
-			wave = wave,
-			timestamp = timestamp,
-			timer = timer,
-			success = remoteResult == true
-		})
-		
-		self:UpdateLog()
-	end
-	
-	function Recorder:LogOption(args, cashBefore, wave, timestamp, remoteResult)
-		local tower = nil
-		local optionName = nil
-		local value = nil
-		local towerId = nil
-		
-		local success = pcall(function()
-			if typeof(args[4]) == "table" then
-				tower = args[4].Troop
-				optionName = args[4].Name
-				value = args[4].Value
-				if tower then
-					towerId = tonumber(tower.Name) or nil
-				end
-			end
-		end)
-		
-		if not success or not tower then
-			return
-		end
-		
-		-- Find tower ID if not found
-		if not towerId then
-			for id, towerData in pairs(Recorder.TowersList) do
-				if towerData.Instance == tower then
-					towerId = id
-					break
-				end
-			end
-		end
-		
-		local timer = GetTimer()
-		
-		table.insert(self.ActionLog, {
-			type = "option",
-			towerId = towerId,
-			optionName = optionName,
-			value = value,
-			wave = wave,
-			timestamp = timestamp,
-			timer = timer,
-			success = remoteResult == true
-		})
-		
-		self:UpdateLog()
-	end
-	
-	function Recorder:LogAbility(args, wave, timestamp, remoteResult)
+	function Recorder:LogAbility(args, wave, timestamp)
 		local tower = nil
 		local abilityName = nil
-		local towerId = nil
-		local abilityData = nil
 		
 		local success = pcall(function()
 			if typeof(args[4]) == "table" then
 				tower = args[4].Troop
 				abilityName = args[4].Name or args[4].name or args[4].AbilityName or args[4].Ability
-				abilityData = args[4].Data
-				if tower then
-					towerId = tonumber(tower.Name) or nil
-				end
 			end
 		end)
 		
 		if not success or not tower or not tower.Parent then
 			return
-		end
-		
-		-- Find tower ID if not found
-		if not towerId then
-			for id, towerData in pairs(Recorder.TowersList) do
-				if towerData.Instance == tower then
-					towerId = id
-					break
-				end
-			end
 		end
 		
 		task.wait(0.1)
@@ -1207,11 +916,11 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 						if #abilityList > 0 then
 							local abilitiesData = towerReplicator:FindFirstChild("AbilitiesData")
 							if abilitiesData then
-								for _, abilityDataItem in pairs(abilitiesData:GetChildren()) do
-									local cooldown = abilityDataItem:FindFirstChild("Cooldown") or abilityDataItem:FindFirstChild("cooldown")
+								for _, abilityData in pairs(abilitiesData:GetChildren()) do
+									local cooldown = abilityData:FindFirstChild("Cooldown") or abilityData:FindFirstChild("cooldown")
 									if cooldown and (cooldown:IsA("NumberValue") or cooldown:IsA("IntValue")) then
 										if cooldown.Value > 0 then
-											abilityName = abilityDataItem.Name
+											abilityName = abilityData.Name
 											break
 										end
 									end
@@ -1227,31 +936,22 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 			end)
 		end
 		
-		local timer = GetTimer()
-		
 		table.insert(self.ActionLog, {
 			type = "ability",
-			towerId = towerId,
 			pos = {root.Position.X, root.Position.Y, root.Position.Z},
 			wave = wave,
 			ability = abilityName or "Unknown",
-			abilityData = abilityData,
-			timestamp = timestamp,
-			timer = timer,
-			success = remoteResult == true
+			timestamp = timestamp
 		})
 		
 		self:UpdateLog()
 	end
 	
 	function Recorder:LogSkip(wave, timestamp)
-		local timer = GetTimer()
-		
 		table.insert(self.ActionLog, {
 			type = "skip",
 			wave = wave,
-			timestamp = timestamp,
-			timer = timer
+			timestamp = timestamp
 		})
 		
 		self:UpdateLog()
@@ -1341,7 +1041,7 @@ local MacroTab = Window:Tab({Title = "Macro", Icon = "code"}) do
 		task.wait(0.5)
 		if readfile then
 			local success, fileData = pcall(function()
-				return readfile("LunarisX_Macro.json")
+				return readfile("LunarisX/LunarisX_Macro.json")
 			end)
 			
 			if success and fileData and fileData ~= "" then
@@ -1576,7 +1276,7 @@ local AnnouncementTab = Window:Tab({Title = "Announce", Icon = "bell"}) do
                                     local localPlayer = Players.LocalPlayer
                                     if localPlayer then
                                         local client_id = tostring(localPlayer.UserId)
-                                        local saveFilePath = "LunarisX_Announcements_" .. client_id .. ".json"
+                                        local saveFilePath = "LunarisX/Announcement/LunarisX_Announcements_" .. client_id .. ".json"
                                         local success, fileData = pcall(function()
                                             return readfile(saveFilePath)
                                         end)
@@ -1625,87 +1325,6 @@ local AnnouncementTab = Window:Tab({Title = "Announce", Icon = "bell"}) do
                                 loadSavedAnnouncements()
                             end)
                             end
-                            
-                            -- Optimized announcement polling system
-                            local announcementUrl = "https://api.getlunarisx.cc/"
-                            local HttpService = game:GetService("HttpService")
-                            local lastMessage = nil
-                            local receivedMessages = {}
-                            
-                            task.spawn(function()
-                                while task.wait(2) do
-                                    local success, response = pcall(function()
-                                        return game:HttpGet(announcementUrl)
-                                    end)
-                                    
-                                    if success and response then
-                                        -- Check if the response is JSON or plain text
-                                        local msg = response
-                                        if response:sub(1, 1) == "{" then
-                                            local decoded = HttpService:JSONDecode(response)
-                                            msg = decoded.message or decoded.text or decoded.announcement or response
-                                        end
-                                        
-                                        -- Only process if message changed and not already received
-                                        if msg and msg ~= lastMessage and not receivedMessages[msg] then
-                                            lastMessage = msg
-                                            receivedMessages[msg] = true
-                                            
-                                            -- Add to UI
-                                            if Window.AddAnnouncementToUI then
-                                                Window:AddAnnouncementToUI(msg)
-                                            end
-                                            
-                                            -- Show notification
-                                            Window:Notify({
-                                                Title = "Announcement",
-                                                Desc = msg,
-                                                Time = 10,
-                                                Type = "normal"
-                                            })
-                                            
-                                            -- Save to file
-                                            if readfile and writefile then
-                                                task.spawn(function()
-                                                    local Players = game:GetService("Players")
-                                                    local localPlayer = Players.LocalPlayer
-                                                    if localPlayer then
-                                                        local client_id = tostring(localPlayer.UserId)
-                                                        local saveFilePath = "LunarisX_Announcements_" .. client_id .. ".json"
-                                                        
-                                                        local success2, fileData = pcall(function()
-                                                            return readfile(saveFilePath)
-                                                        end)
-                                                        
-                                                        local savedData = {}
-                                                        if success2 and fileData and fileData ~= "" then
-                                                            local success3, decoded = pcall(function()
-                                                                return HttpService:JSONDecode(fileData)
-                                                            end)
-                                                            if success3 and decoded and type(decoded.Announcements) == "table" then
-                                                                savedData = decoded
-                                                            end
-                                                        end
-                                                        
-                                                        if not savedData.Announcements then
-                                                            savedData.Announcements = {}
-                                                        end
-                                                        
-                                                        local newId = tostring(#savedData.Announcements + 1)
-                                                        savedData.Announcements[newId] = msg
-                                                        
-                                                        pcall(function()
-                                                            writefile(saveFilePath, HttpService:JSONEncode(savedData))
-                                                        end)
-                                                    end
-                                                end)
-                                            end
-                                        end
-                                    else
-                                        warn("[Announcement Error]", response)
-                                    end
-                                end
-                            end)
                             
                             break
                         end
@@ -1832,7 +1451,7 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
                             UIToggleKeybind = tostring(key)
                         }
                         local HttpService = game:GetService("HttpService")
-                        writefile("LunarisX_UIKeybind.json", HttpService:JSONEncode(saveData))
+                        writefile("LunarisX/LunarisX_UIKeybind.json", HttpService:JSONEncode(saveData))
                     end)
                 end
                 Window:Notify({
@@ -1851,7 +1470,7 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
         task.wait(0.5)
         if readfile then
             local success, fileData = pcall(function()
-                return readfile("LunarisX_UIKeybind.json")
+                return readfile("LunarisX/LunarisX_UIKeybind.json")
             end)
             
             if success and fileData and fileData ~= "" then
@@ -1876,11 +1495,107 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
     
     Settings:Section({Title = "Config Management"})
     
-    local function SaveConfig()
+    -- Ensure configs folder exists
+    ensureFolder("LunarisX/configs")
+    
+    local function getConfigPath(configName)
+        if not configName or configName == "" then
+            return nil
+        end
+        -- Sanitize filename
+        configName = configName:gsub("[^%w_%-]", "_")
+        return "LunarisX/configs/" .. configName .. ".json"
+    end
+    
+    local function getConfigList()
+        local configList = {}
+        if listfiles then
+            local success, files = pcall(function()
+                return listfiles("LunarisX/configs")
+            end)
+            if success and files then
+                for _, filePath in ipairs(files) do
+                    local fileName = filePath:match("([^/\\]+)%.json$")
+                    if fileName then
+                        table.insert(configList, fileName)
+                    end
+                end
+            end
+        end
+        return configList
+    end
+    
+    local currentConfigName = ""
+    local selectedConfigName = "No configs available"
+    
+    local ConfigNameInput = Settings:Textbox({
+        Title = "Config Name",
+        Desc = "enter a name for your config",
+        Placeholder = "MyConfig",
+        Value = "",
+        ClearTextOnFocus = false,
+        Callback = function(text)
+            currentConfigName = text or ""
+        end
+    })
+    
+    local ConfigDropdown = Settings:Dropdown({
+        Title = "Select Config",
+        List = {"No configs available"},
+        Value = "No configs available",
+        Callback = function(choice)
+            selectedConfigName = choice or "No configs available"
+        end
+    })
+    
+    local function refreshConfigList()
+        ConfigDropdown:Clear()
+        local configList = getConfigList()
+        if #configList > 0 then
+            for _, configName in ipairs(configList) do
+                ConfigDropdown:Add(configName)
+            end
+            ConfigDropdown:SetValue(configList[1])
+            selectedConfigName = configList[1]
+        else
+            ConfigDropdown:Add("No configs available")
+            ConfigDropdown:SetValue("No configs available")
+            selectedConfigName = "No configs available"
+        end
+    end
+    
+    -- Initialize config list
+    task.spawn(function()
+        task.wait(0.5)
+        refreshConfigList()
+    end)
+    
+    local function SaveConfig(configName)
         if not writefile then
             Window:Notify({
                 Title = "Error",
                 Desc = "File system not available",
+                Time = 3,
+                Type = "error"
+            })
+            return false
+        end
+        
+        if not configName or configName == "" then
+            Window:Notify({
+                Title = "Error",
+                Desc = "Please enter a config name",
+                Time = 3,
+                Type = "error"
+            })
+            return false
+        end
+        
+        local configPath = getConfigPath(configName)
+        if not configPath then
+            Window:Notify({
+                Title = "Error",
+                Desc = "Invalid config name",
                 Time = 3,
                 Type = "error"
             })
@@ -1905,17 +1620,18 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
             }
             
             local jsonData = HttpService:JSONEncode(configData)
-            writefile("LunarisX_Config.json", jsonData)
+            writefile(configPath, jsonData)
             return true
         end)
         
         if success then
             Window:Notify({
                 Title = "Success",
-                Desc = "Config saved successfully!",
+                Desc = "Config '" .. configName .. "' saved successfully!",
                 Time = 3,
                 Type = "normal"
             })
+            refreshConfigList()
             return true
         else
             Window:Notify({
@@ -1928,7 +1644,7 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
         end
     end
     
-    local function LoadConfig()
+    local function LoadConfig(configName)
         if not readfile then
             Window:Notify({
                 Title = "Error",
@@ -1939,8 +1655,29 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
             return false
         end
         
+        if not configName or configName == "" or configName == "No configs available" then
+            Window:Notify({
+                Title = "Error",
+                Desc = "Please select a config to load",
+                Time = 3,
+                Type = "error"
+            })
+            return false
+        end
+        
+        local configPath = getConfigPath(configName)
+        if not configPath then
+            Window:Notify({
+                Title = "Error",
+                Desc = "Invalid config name",
+                Time = 3,
+                Type = "error"
+            })
+            return false
+        end
+        
         local success, fileData = pcall(function()
-            return readfile("LunarisX_Config.json")
+            return readfile(configPath)
         end)
         
         if not success or not fileData or fileData == "" then
@@ -1997,7 +1734,7 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
                         AtWave = getgenv().LunarisX.AtWave or 1,
                         SellAllTower = getgenv().LunarisX.SellAllTower or false
                     }
-                    writefile("LunarisX_Macro.json", HttpService:JSONEncode(saveData))
+                    writefile("LunarisX/LunarisX_Macro.json", HttpService:JSONEncode(saveData))
                 end)
             end
         end
@@ -2029,7 +1766,7 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
                             local saveData = {
                                 UIToggleKeybind = tostring(newKeybind)
                             }
-                            writefile("LunarisX_UIKeybind.json", HttpService:JSONEncode(saveData))
+                            writefile("LunarisX/LunarisX_UIKeybind.json", HttpService:JSONEncode(saveData))
                         end)
                     end
                 end
@@ -2038,7 +1775,7 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
         
         Window:Notify({
             Title = "Success",
-            Desc = "Config loaded successfully!",
+            Desc = "Config '" .. configName .. "' loaded successfully!",
             Time = 3,
             Type = "normal"
         })
@@ -2047,17 +1784,78 @@ local Settings = Window:Tab({Title = "Settings", Icon = "wrench"}) do
     
     Settings:Button({
         Title = "Save Config",
-        Desc = "save all current settings to config file",
+        Desc = "save all current settings with the name above",
         Callback = function()
-            SaveConfig()
+            SaveConfig(currentConfigName)
         end
     })
     
     Settings:Button({
         Title = "Load Config",
-        Desc = "load all settings from config file",
+        Desc = "load settings from the selected config",
         Callback = function()
-            LoadConfig()
+            LoadConfig(selectedConfigName)
+        end
+    })
+    
+    Settings:Button({
+        Title = "Refresh Config List",
+        Desc = "refresh the list of available configs",
+        Callback = function()
+            refreshConfigList()
+            Window:Notify({
+                Title = "Refreshed",
+                Desc = "Config list updated!",
+                Time = 2,
+                Type = "normal"
+            })
+        end
+    })
+    
+    Settings:Button({
+        Title = "Delete Config",
+        Desc = "delete the selected config",
+        Callback = function()
+            if not selectedConfigName or selectedConfigName == "" or selectedConfigName == "No configs available" then
+                Window:Notify({
+                    Title = "Error",
+                    Desc = "Please select a config to delete",
+                    Time = 3,
+                    Type = "error"
+                })
+                return
+            end
+            
+            local configPath = getConfigPath(selectedConfigName)
+            if configPath and delfile then
+                local success = pcall(function()
+                    delfile(configPath)
+                end)
+                
+                if success then
+                    Window:Notify({
+                        Title = "Success",
+                        Desc = "Config '" .. selectedConfigName .. "' deleted!",
+                        Time = 3,
+                        Type = "normal"
+                    })
+                    refreshConfigList()
+                else
+                    Window:Notify({
+                        Title = "Error",
+                        Desc = "Failed to delete config",
+                        Time = 3,
+                        Type = "error"
+                    })
+                end
+            else
+                Window:Notify({
+                    Title = "Error",
+                    Desc = "Delete function not available",
+                    Time = 3,
+                    Type = "error"
+                })
+            end
         end
     })
     

@@ -5071,90 +5071,78 @@ function Library:Window(p)
 
 	local HttpService = game:GetService("HttpService")
 	local Players = game:GetService("Players")
+	local StarterGui = game:GetService("StarterGui")
 	local player = Players.LocalPlayer
 	
-	if player then
-		local client_id = tostring(player.UserId)
-		local BASE_URL = "https://api.getlunarisx.cc/"
-		local API_URL = BASE_URL .. "/announce/receive/" .. client_id
-		local saveFilePath = "LunarisX_Announcements_" .. client_id .. ".json"
-		
-		local function loadAnnouncements()
-			if readfile then
-				local success, fileData = pcall(function()
-					return readfile(saveFilePath)
+	if not player then
+		warn("LocalPlayer not found")
+		return
+	end
+	
+	local client_id = tostring(player.UserId)
+	print("Starting announcement client for ID:", client_id)
+	
+	local BASE_URL = [[https://api.getlunarisx.cc/]]
+	local API_URL = BASE_URL .. [[announce/receive/]] .. client_id
+	local saveFilePath = "LunarisX/Announcement/LunarisX_Announcements_" .. client_id .. ".json"
+	local received_announcements = {}
+	
+	local function loadAnnouncements()
+		if readfile then
+			local success, fileData = pcall(function()
+				return readfile(saveFilePath)
+			end)
+			
+			if success and fileData and fileData ~= "" then
+				local success2, savedData = pcall(function()
+					return HttpService:JSONDecode(fileData)
 				end)
 				
-				if success and fileData and fileData ~= "" then
-					local success2, savedData = pcall(function()
-						return HttpService:JSONDecode(fileData)
-					end)
-					
-					if success2 and savedData then
-						if type(savedData.Announcements) == "table" then
-							for id, message in pairs(savedData.Announcements) do
-								Tabs.Announcements[id] = message
-								Tabs.ReceivedAnnouncements[id] = true
-							end
-						end
-						if type(savedData.ReceivedAnnouncements) == "table" then
-							for id, _ in pairs(savedData.ReceivedAnnouncements) do
-								Tabs.ReceivedAnnouncements[id] = true
-							end
-						end
-						
-						task.spawn(function()
-							task.wait(1.5)
-							for id, message in pairs(savedData.Announcements) do
-								Tabs:AddAnnouncementToUI(message)
-							end
-						end)
-					end
-				end
-			end
-		end
-		
-		local function saveAnnouncements()
-			if writefile then
-				local saveData = {
-					Announcements = Tabs.Announcements,
-					ReceivedAnnouncements = Tabs.ReceivedAnnouncements
-				}
-				pcall(function()
-					local json = HttpService:JSONEncode(saveData)
-					writefile(saveFilePath, json)
-				end)
-			end
-		end
-		
-		loadAnnouncements()
-		
-		task.spawn(function()
-			task.wait(2.5)
-			if readfile then
-				local success, fileData = pcall(function()
-					return readfile(saveFilePath)
-				end)
-				
-				if success and fileData and fileData ~= "" then
-					local success2, savedData = pcall(function()
-						return HttpService:JSONDecode(fileData)
-					end)
-					
-					if success2 and savedData and type(savedData.Announcements) == "table" then
+				if success2 and savedData then
+					if type(savedData.Announcements) == "table" then
 						for id, message in pairs(savedData.Announcements) do
-							if not Tabs.Announcements[id] then
-								Tabs.Announcements[id] = message
-								Tabs.ReceivedAnnouncements[id] = true
+							Tabs.Announcements[id] = message
+							Tabs.ReceivedAnnouncements[id] = true
+							received_announcements[id] = true
+						end
+					end
+					if type(savedData.ReceivedAnnouncements) == "table" then
+						for id, _ in pairs(savedData.ReceivedAnnouncements) do
+							Tabs.ReceivedAnnouncements[id] = true
+							received_announcements[id] = true
+						end
+					end
+					
+					task.spawn(function()
+						task.wait(1.5)
+						if savedData.Announcements and type(savedData.Announcements) == "table" then
+							for id, message in pairs(savedData.Announcements) do
 								Tabs:AddAnnouncementToUI(message)
 							end
 						end
-					end
+					end)
 				end
 			end
-		end)
-		
-		task.spawn(function()
+		end
+	end
+	
+	local function saveAnnouncements()
+		if writefile then
+			local saveData = {
+				Announcements = Tabs.Announcements,
+				ReceivedAnnouncements = Tabs.ReceivedAnnouncements
+			}
+			pcall(function()
+				local json = HttpService:JSONEncode(saveData)
+				writefile(saveFilePath, json)
+			end)
+		end
+	end
+	
+	loadAnnouncements()
+	
+	local function pollAnnouncements()
+		while true do
 			local success, result = pcall(function()
 				return game:HttpGet(API_URL, true)
 			end)
@@ -5167,185 +5155,43 @@ function Library:Window(p)
 				
 				if announcements and type(announcements) == "table" then
 					for id, message in pairs(announcements) do
-						if not Tabs.ReceivedAnnouncements[id] then
+						if not received_announcements[id] then
+							received_announcements[id] = true
 							Tabs.Announcements[id] = tostring(message)
 							Tabs.ReceivedAnnouncements[id] = true
+							
 							saveAnnouncements()
+							
+							pcall(function()
+								StarterGui:SetCore("SendNotification", {
+									Title = "Announcement",
+									Text = tostring(message),
+									Duration = 10,
+								})
+							end)
+							
 							task.spawn(function()
 								Tabs:AddAnnouncementToUI(tostring(message))
 							end)
-						end
-					end
-				end
-			end
-		end)
-		
-		local announcementHistory = {}
-		
-		local function getAnnouncement(url)
-			if syn and syn.request then
-				local result = syn.request({Url = url, Method = "GET"})
-				return result.Body
-			elseif http_request then
-				local result = http_request({Url = url, Method = "GET"})
-				return result.Body
-			elseif request then
-				local result = request({Url = url, Method = "GET"})
-				return result.Body
-			else
-				local success, result = pcall(function()
-					return game:HttpGet(url, true)
-				end)
-				if success then
-					return result
-				end
-			end
-			return nil
-		end
-		
-		local function hasInHistory(msg)
-			for _, savedMsg in ipairs(announcementHistory) do
-				if tostring(savedMsg) == tostring(msg) then
-					return true
-				end
-			end
-			return false
-		end
-		
-		local function loadSavedHistory()
-			if readfile and isfile then
-				local historyFile = "LunarisX_AnnouncementHistory_" .. client_id .. ".json"
-				if isfile(historyFile) then
-					local success, fileData = pcall(function()
-						return readfile(historyFile)
-					end)
-					if success and fileData and fileData ~= "" then
-						local success2, savedHistory = pcall(function()
-							return HttpService:JSONDecode(fileData)
-						end)
-						if success2 and type(savedHistory) == "table" then
-							announcementHistory = savedHistory
-							for _, msg in ipairs(savedHistory) do
-								local msgStr = tostring(msg)
-								local found = false
-								for id, savedMsg in pairs(Tabs.Announcements) do
-									if tostring(savedMsg) == msgStr then
-										found = true
-										break
-									end
-								end
-								if not found then
-									local id = tostring(#Tabs.Announcements + 1)
-									Tabs.Announcements[id] = msgStr
-									Tabs.ReceivedAnnouncements[id] = true
-									task.spawn(function()
-										Tabs:AddAnnouncementToUI(msgStr)
-									end)
-								end
-							end
-						end
-					end
-				end
-			end
-		end
-		
-		local function saveHistory()
-			if writefile then
-				local historyFile = "LunarisX_AnnouncementHistory_" .. client_id .. ".json"
-				pcall(function()
-					local json = HttpService:JSONEncode(announcementHistory)
-					writefile(historyFile, json)
-				end)
-			end
-		end
-		
-		loadSavedHistory()
-		
-		local function pollAnnouncements()
-			while true do
-				local result = getAnnouncement(API_URL)
-				
-				if result then
-					local success, data = pcall(function()
-						return HttpService:JSONDecode(result)
-					end)
-					
-					if success and data then
-						local hasNew = false
-						
-						if data.announcement and type(data.announcement) == "string" then
-							local msg = data.announcement
-							if not hasInHistory(msg) then
-								table.insert(announcementHistory, msg)
-								local id = tostring(#Tabs.Announcements + 1)
-								Tabs.ReceivedAnnouncements[id] = true
-								Tabs.Announcements[id] = msg
-								hasNew = true
-								
-								saveHistory()
-								
-								task.spawn(function()
-									Tabs:AddAnnouncementToUI(msg)
-								end)
-								
-								pcall(function()
-									Tabs:Notify({
-										Title = "Announcement",
-										Desc = msg,
-										Time = 10,
-										Type = "normal"
-									})
-								end)
-							end
-						elseif type(data) == "table" then
-							for id, message in pairs(data) do
-								if not Tabs.ReceivedAnnouncements[id] then
-									Tabs.ReceivedAnnouncements[id] = true
-									Tabs.Announcements[id] = tostring(message)
-									hasNew = true
-									
-									local msgStr = tostring(message)
-									if not hasInHistory(msgStr) then
-										table.insert(announcementHistory, msgStr)
-									end
-									
-									task.spawn(function()
-										Tabs:AddAnnouncementToUI(msgStr)
-									end)
-									
-									pcall(function()
-										Tabs:Notify({
-											Title = "Announcement",
-											Desc = msgStr,
-											Time = 10,
-											Type = "normal"
-										})
-									end)
-								end
-							end
-						end
-						
-						if hasNew and writefile then
-							saveHistory()
-							task.spawn(function()
-								local saveData = {
-									Announcements = Tabs.Announcements,
-									ReceivedAnnouncements = Tabs.ReceivedAnnouncements
-								}
-								pcall(function()
-									local json = HttpService:JSONEncode(saveData)
-									writefile(saveFilePath, json)
-								end)
+							
+							pcall(function()
+								Tabs:Notify({
+									Title = "Announcement",
+									Desc = tostring(message),
+									Time = 10,
+									Type = "normal"
+								})
 							end)
 						end
 					end
 				end
-				task.wait(10)
 			end
+			
+			task.wait(2)
 		end
-		
-		task.spawn(pollAnnouncements)
 	end
+	
+	task.spawn(pollAnnouncements)
 	
 	function Tabs:GetAnnouncements()
 		if readfile then
@@ -5353,7 +5199,7 @@ function Library:Window(p)
 			local localPlayer = Players.LocalPlayer
 			if localPlayer then
 				local client_id = tostring(localPlayer.UserId)
-				local saveFilePath = "LunarisX_Announcements_" .. client_id .. ".json"
+				local saveFilePath = "LunarisX/Announcement/LunarisX_Announcements_" .. client_id .. ".json"
 				local success, fileData = pcall(function()
 					return readfile(saveFilePath)
 				end)
