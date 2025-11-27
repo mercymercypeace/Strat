@@ -27,14 +27,20 @@ screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
-local frameWidth = math.floor(300 * scale * mobileScale)
-local frameHeight = math.floor(450 * scale * mobileScale)
-local titleBarHeight = math.floor(40 * scale * mobileScale)
+local frameWidth = 1080
+local frameHeight = 1080
+local titleBarHeight = math.floor(60 * scale * mobileScale)
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = isMobile and UDim2.new(0.8, 0, 0, frameHeight) or UDim2.new(0, frameWidth, 0, frameHeight)
-mainFrame.Position = isMobile and UDim2.new(0.1, 0, 0.1, 0) or UDim2.new(0.5, -frameWidth/2, 0.5, -frameHeight/2)
+if isMobile then
+    local mobileScaleFactor = math.min(screenSize.X / 1080, screenSize.Y / 1080)
+    mainFrame.Size = UDim2.new(0, frameWidth * mobileScaleFactor, 0, frameHeight * mobileScaleFactor)
+    mainFrame.Position = UDim2.new(0.5, -(frameWidth * mobileScaleFactor)/2, 0.5, -(frameHeight * mobileScaleFactor)/2)
+else
+    mainFrame.Size = UDim2.new(0, frameWidth, 0, frameHeight)
+    mainFrame.Position = UDim2.new(0.5, -frameWidth/2, 0.5, -frameHeight/2)
+end
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BackgroundTransparency = 1
 mainFrame.BorderSizePixel = 0
@@ -128,17 +134,21 @@ local isMinimized = false
 
 local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
 
-local openPosition = isMobile and UDim2.new(0.1, 0, 0.1, 0) or UDim2.new(0.5, -frameWidth/2, 0.5, -frameHeight/2)
 local openTween = TweenService:Create(mainFrame, tweenInfo, {
-    BackgroundTransparency = 0,
-    Position = openPosition
+    BackgroundTransparency = 0
 })
 openTween:Play()
 
 minimizeButton.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
-        local minimizedSize = isMobile and UDim2.new(0.8, 0, 0, titleBarHeight) or UDim2.new(0, frameWidth, 0, titleBarHeight)
+        local minimizedSize
+        if isMobile then
+            local mobileScaleFactor = math.min(screenSize.X / 1080, screenSize.Y / 1080)
+            minimizedSize = UDim2.new(0, frameWidth * mobileScaleFactor, 0, titleBarHeight)
+        else
+            minimizedSize = UDim2.new(0, frameWidth, 0, titleBarHeight)
+        end
         local minimizeTween = TweenService:Create(mainFrame, tweenInfo, {
             Size = minimizedSize
         })
@@ -277,7 +287,6 @@ end
 local function getPlayerStats()
     local stats = {
         Coins = 0,
-        Experience = 0,
         Gems = 0,
         Triumphs = 0,
         Loses = 0,
@@ -285,14 +294,12 @@ local function getPlayerStats()
     }
     
     local coins = findStatObject("Coins") or findStatObject("coins")
-    local experience = findStatObject("Experience") or findStatObject("experence")
     local gems = findStatObject("Gems")
     local triumphs = findStatObject("Triumphs") or findStatObject("triumps")
     local loses = findStatObject("Loses") or findStatObject("loses")
     local level = findStatObject("Level")
     
     if coins then stats.Coins = coins.Value end
-    if experience then stats.Experience = experience.Value end
     if gems then stats.Gems = gems.Value end
     if triumphs then stats.Triumphs = triumphs.Value end
     if loses then stats.Loses = loses.Value end
@@ -305,7 +312,6 @@ local stats = getPlayerStats()
 local statLabels = {}
 
 statLabels.Coins = createStatLabel("Coins", stats.Coins)
-statLabels.Experience = createStatLabel("Experience", stats.Experience)
 statLabels.Gems = createStatLabel("Gems", stats.Gems)
 statLabels.Triumphs = createStatLabel("Triumphs", stats.Triumphs)
 statLabels.Loses = createStatLabel("Loses", stats.Loses)
@@ -321,7 +327,6 @@ end)
 local function updateStats()
     local newStats = getPlayerStats()
     if statLabels.Coins then statLabels.Coins.Text = tostring(newStats.Coins) end
-    if statLabels.Experience then statLabels.Experience.Text = tostring(newStats.Experience) end
     if statLabels.Gems then statLabels.Gems.Text = tostring(newStats.Gems) end
     if statLabels.Triumphs then statLabels.Triumphs.Text = tostring(newStats.Triumphs) end
     if statLabels.Loses then statLabels.Loses.Text = tostring(newStats.Loses) end
@@ -350,7 +355,6 @@ end
 local function refreshStatObjects()
     statObjects = {}
     findStatObject("Coins")
-    findStatObject("Experience")
     findStatObject("Gems")
     findStatObject("Triumphs")
     findStatObject("Loses")
@@ -365,8 +369,7 @@ end
 
 for _, stat in pairs(player:GetChildren()) do
     local statName = stat.Name:lower()
-    if (statName == "coins" or statName == "experience" or statName == "experence" or 
-        statName == "gems" or statName == "triumphs" or statName == "triumps" or 
+    if (statName == "coins" or statName == "gems" or statName == "triumphs" or statName == "triumps" or 
         statName == "loses" or statName == "level") and 
         (stat:IsA("IntValue") or stat:IsA("NumberValue") or stat:IsA("StringValue")) then
         setupStatMonitoring(stat)
@@ -375,8 +378,7 @@ end
 
 player.ChildAdded:Connect(function(child)
     local statName = child.Name:lower()
-    if (statName == "coins" or statName == "experience" or statName == "experence" or 
-        statName == "gems" or statName == "triumphs" or statName == "triumps" or 
+    if (statName == "coins" or statName == "gems" or statName == "triumphs" or statName == "triumps" or 
         statName == "loses" or statName == "level") and 
         (child:IsA("IntValue") or child:IsA("NumberValue") or child:IsA("StringValue")) then
         setupStatMonitoring(child)
