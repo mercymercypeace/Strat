@@ -1,5 +1,9 @@
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
+
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
 local instances = nil
 
@@ -48,7 +52,126 @@ end
 
 local w = library:CreateWindow(player.Name .. "'s Stats")
 
+if isMobile then
+    spawn(function()
+        wait(0.5)
+        local windowMain = nil
+        
+        for _, obj in pairs(game:GetService("CoreGui"):GetDescendants()) do
+            if obj:IsA("ImageButton") and obj.Name == "Main" then
+                windowMain = obj
+                break
+            elseif (obj:IsA("Frame") or obj:IsA("ImageButton")) then
+                local title = obj:FindFirstChild("Title") or (obj.Parent and obj.Parent:FindFirstChild("Title"))
+                if title and string.find(title.Text or "", player.Name) then
+                    windowMain = obj
+                    break
+                end
+            end
+        end
+        
+        if windowMain then
+            windowMain.Active = true
+            windowMain.Draggable = true
+            
+            local dragging = false
+            local dragInput = nil
+            local dragStart = nil
+            local startPos = nil
+            
+            local function updateDrag(input)
+                if dragging and dragStart and startPos then
+                    local delta = input.Position - dragStart
+                    local newPos = UDim2.new(
+                        startPos.X.Scale,
+                        startPos.X.Offset + delta.X,
+                        startPos.Y.Scale,
+                        math.max(-36, startPos.Y.Offset + delta.Y)
+                    )
+                    windowMain.Position = newPos
+                end
+            end
+            
+            windowMain.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = true
+                    dragStart = input.Position
+                    startPos = windowMain.Position
+                    dragInput = input
+                end
+            end)
+            
+            UserInputService.InputChanged:Connect(function(input)
+                if input == dragInput and dragging then
+                    updateDrag(input)
+                end
+            end)
+            
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = false
+                end
+            end)
+            
+            local titleBar = windowMain:FindFirstChild("Title") or windowMain:FindFirstChildOfClass("TextLabel")
+            if titleBar then
+                local closeButton = Instance.new("TextButton")
+                closeButton.Name = "MobileCloseButton"
+                closeButton.Size = UDim2.new(0, 40, 0, 40)
+                closeButton.Position = UDim2.new(1, -45, 0, 5)
+                closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+                closeButton.BorderSizePixel = 0
+                closeButton.Text = "X"
+                closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+                closeButton.TextSize = 20
+                closeButton.Font = Enum.Font.GothamBold
+                closeButton.ZIndex = 10
+                closeButton.Parent = titleBar.Parent or windowMain
+                
+                local closeCorner = Instance.new("UICorner")
+                closeCorner.CornerRadius = UDim.new(0, 6)
+                closeCorner.Parent = closeButton
+                
+                closeButton.MouseButton1Click:Connect(function()
+                    windowMain.Visible = false
+                end)
+                
+                closeButton.TouchTap:Connect(function()
+                    windowMain.Visible = false
+                end)
+                
+                closeButton.MouseEnter:Connect(function()
+                    TweenService:Create(closeButton, TweenInfo.new(0.2), {
+                        BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+                    }):Play()
+                end)
+                
+                closeButton.MouseLeave:Connect(function()
+                    TweenService:Create(closeButton, TweenInfo.new(0.2), {
+                        BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+                    }):Play()
+                end)
+            end
+        end
+    end)
+end
+
 local b = w:CreateFolder("Stats")
+
+if isMobile then
+    b:Button("Close GUI", function()
+        spawn(function()
+            wait(0.1)
+            for _, obj in pairs(game:GetService("CoreGui"):GetDescendants()) do
+                if obj:IsA("ImageButton") and obj.Name == "Main" then
+                    obj.Visible = false
+                elseif (obj:IsA("Frame") or obj:IsA("ImageButton")) and obj:FindFirstChild("Title") then
+                    obj.Visible = false
+                end
+            end
+        end)
+    end)
+end
 
 local coinsLabel = b:Label("Coins: 0", {
     TextSize = 18,
