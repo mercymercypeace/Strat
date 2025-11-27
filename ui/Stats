@@ -1,12 +1,23 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local GuiService = game:GetService("GuiService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+local instances = nil
+
+if _G.getrenv then
+    pcall(function() return _G.getrenv() end)
+end
+
+if _G.getinstances then
+    local success, result = pcall(function() return _G.getinstances() end)
+    if success then instances = result end
+end
+
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local screenSize = GuiService:GetScreenSize()
+local camera = workspace.CurrentCamera
+local screenSize = camera and camera.ViewportSize or Vector2.new(1920, 1080)
 local scale = isMobile and math.min(screenSize.X / 1920, screenSize.Y / 1080) or 1
 local mobileScale = isMobile and 1.5 or 1
 
@@ -229,6 +240,40 @@ local function createStatLabel(statName, value)
     return statValueLabel
 end
 
+local statObjects = {}
+
+local function findStatObject(statName)
+    if statObjects[statName] then
+        return statObjects[statName]
+    end
+    
+    local variations = {statName, statName:lower(), statName:upper(), statName:sub(1,1):upper()..statName:sub(2):lower()}
+    
+    for _, name in pairs(variations) do
+        local found = player:FindFirstChild(name)
+        if found and (found:IsA("IntValue") or found:IsA("NumberValue") or found:IsA("StringValue")) then
+            statObjects[statName] = found
+            return found
+        end
+    end
+    
+    if instances then
+        for _, instance in pairs(instances) do
+            if instance.Parent == player then
+                local instanceName = instance.Name:lower()
+                for _, name in pairs(variations) do
+                    if instanceName == name:lower() and (instance:IsA("IntValue") or instance:IsA("NumberValue") or instance:IsA("StringValue")) then
+                        statObjects[statName] = instance
+                        return instance
+                    end
+                end
+            end
+        end
+    end
+    
+    return nil
+end
+
 local function getPlayerStats()
     local stats = {
         Coins = 0,
@@ -239,12 +284,12 @@ local function getPlayerStats()
         Level = 0
     }
     
-    local coins = player:FindFirstChild("Coins") or player:FindFirstChild("coins")
-    local experience = player:FindFirstChild("Experience") or player:FindFirstChild("experence")
-    local gems = player:FindFirstChild("Gems") or player:FindFirstChild("gems")
-    local triumphs = player:FindFirstChild("Triumphs") or player:FindFirstChild("triumps")
-    local loses = player:FindFirstChild("Loses") or player:FindFirstChild("loses")
-    local level = player:FindFirstChild("Level") or player:FindFirstChild("level")
+    local coins = findStatObject("Coins") or findStatObject("coins")
+    local experience = findStatObject("Experience") or findStatObject("experence")
+    local gems = findStatObject("Gems")
+    local triumphs = findStatObject("Triumphs") or findStatObject("triumps")
+    local loses = findStatObject("Loses") or findStatObject("loses")
+    local level = findStatObject("Level")
     
     if coins then stats.Coins = coins.Value end
     if experience then stats.Experience = experience.Value end
@@ -283,15 +328,48 @@ local function updateStats()
     if statLabels.Level then statLabels.Level.Text = tostring(newStats.Level) end
 end
 
+local function setupStatMonitoring(statObj)
+    if not statObj then return end
+    
+    if _G.getconnections then
+        local success, connections = pcall(function() return _G.getconnections(statObj.Changed) end)
+        if success and connections and #connections > 0 then
+            for _, connection in pairs(connections) do
+                if connection.State then
+                    connection:Enable()
+                end
+            end
+        end
+    end
+    
+    statObj.Changed:Connect(function()
+        updateStats()
+    end)
+end
+
+local function refreshStatObjects()
+    statObjects = {}
+    findStatObject("Coins")
+    findStatObject("Experience")
+    findStatObject("Gems")
+    findStatObject("Triumphs")
+    findStatObject("Loses")
+    findStatObject("Level")
+    
+    for statName, statObj in pairs(statObjects) do
+        if statObj and statObj.Parent == player then
+            setupStatMonitoring(statObj)
+        end
+    end
+end
+
 for _, stat in pairs(player:GetChildren()) do
     local statName = stat.Name:lower()
     if (statName == "coins" or statName == "experience" or statName == "experence" or 
         statName == "gems" or statName == "triumphs" or statName == "triumps" or 
         statName == "loses" or statName == "level") and 
         (stat:IsA("IntValue") or stat:IsA("NumberValue") or stat:IsA("StringValue")) then
-        stat.Changed:Connect(function()
-            updateStats()
-        end)
+        setupStatMonitoring(stat)
     end
 end
 
@@ -301,15 +379,22 @@ player.ChildAdded:Connect(function(child)
         statName == "gems" or statName == "triumphs" or statName == "triumps" or 
         statName == "loses" or statName == "level") and 
         (child:IsA("IntValue") or child:IsA("NumberValue") or child:IsA("StringValue")) then
-        child.Changed:Connect(function()
-            updateStats()
-        end)
+        setupStatMonitoring(child)
+        refreshStatObjects()
     end
 end)
+
+refreshStatObjects()
 
 spawn(function()
     while wait(1) do
         updateStats()
+    end
+end)
+
+spawn(function()
+    while wait(5) do
+        refreshStatObjects()
     end
 end)
 
