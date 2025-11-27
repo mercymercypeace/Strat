@@ -1,8 +1,5 @@
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
 
 local instances = nil
 
@@ -15,246 +12,268 @@ if _G.getinstances then
     if success then instances = result end
 end
 
-local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local camera = workspace.CurrentCamera
-local screenSize = camera and camera.ViewportSize or Vector2.new(1920, 1080)
-local scale = isMobile and math.min(screenSize.X / 1920, screenSize.Y / 1080) or 1
-local mobileScale = isMobile and 1.5 or 1
+local library = {flags = {}, windows = {}, open = true, cursor = nil}
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "StatsGUI"
-screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.Parent = playerGui
+local tweenService = game:GetService"TweenService"
+local inputService = game:GetService"UserInputService"
 
-local _frameWidth = 1080
-local _frameHeight = 1080
-local titleBarHeight = isMobile and math.floor(80 * scale) or 60
+local dragging, dragInput, dragStart, startPos, dragObject
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-if isMobile then
-    mainFrame.Size = UDim2.new(0.9, 0, 0.9, 0)
-    mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-else
-    local maxWidth = math.min(1080, screenSize.X * 0.8)
-    local maxHeight = math.min(1080, screenSize.Y * 0.8)
-    mainFrame.Size = UDim2.new(0, maxWidth, 0, maxHeight)
-    mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+local function update(input)
+    local delta = input.Position - dragStart
+    local yPos = (startPos.Y.Offset + delta.Y) < -36 and -36 or startPos.Y.Offset + delta.Y
+    dragObject:TweenPosition(UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, yPos), "Out", "Quint", 0.1, true)
 end
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.BackgroundTransparency = 1
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.Parent = screenGui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, isMobile and math.floor(12 * scale) or 8)
-corner.Parent = mainFrame
 
-local titleBar = Instance.new("Frame")
-titleBar.Name = "TitleBar"
-titleBar.Size = UDim2.new(1, 0, 0, titleBarHeight)
-titleBar.Position = UDim2.new(0, 0, 0, 0)
-titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-titleBar.BorderSizePixel = 0
-titleBar.Parent = mainFrame
+function library:Create(class, properties)
+    properties = typeof(properties) == "table" and properties or {}
+    local inst = Instance.new(class)
+    for property, value in next, properties do
+        inst[property] = value
+    end
+    return inst
+end
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, isMobile and math.floor(12 * scale) or 8)
-titleCorner.Parent = titleBar
+function library:Draw(class, properties)
+    if not _G.Drawing then return nil end
+    local props = type(properties) == 'table' and properties or {};
+    local object = _G.Drawing.new(class)
+    for p, v in next, props do 
+        object[p] = v; 
+    end
+    return object
+end
 
-local titleText = Instance.new("TextLabel")
-titleText.Name = "TitleText"
-local titleTextPadding = isMobile and math.floor(100 * scale) or 80
-titleText.Size = UDim2.new(1, -titleTextPadding, 1, 0)
-titleText.Position = UDim2.new(0, isMobile and math.floor(15 * scale) or 10, 0, 0)
-titleText.BackgroundTransparency = 1
-titleText.Text = player.Name .. "'s Stats"
-titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleText.TextSize = isMobile and math.floor(24 * scale) or 20
-titleText.Font = Enum.Font.GothamBold
-titleText.TextXAlignment = Enum.TextXAlignment.Left
-titleText.TextScaled = isMobile
-titleText.Parent = titleBar
-
-local buttonSize = isMobile and math.floor(50 * scale) or 35
-local buttonPadding = isMobile and math.floor(8 * scale) or 5
-
-local minimizeButton = Instance.new("TextButton")
-minimizeButton.Name = "MinimizeButton"
-minimizeButton.Size = UDim2.new(0, buttonSize, 0, buttonSize)
-local minimizeButtonOffset = isMobile and math.floor(120 * scale) or 70
-minimizeButton.Position = UDim2.new(1, -minimizeButtonOffset, 0, buttonPadding)
-minimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-minimizeButton.BorderSizePixel = 0
-minimizeButton.Text = "-"
-minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-minimizeButton.TextSize = isMobile and math.floor(28 * scale) or 24
-minimizeButton.Font = Enum.Font.GothamBold
-minimizeButton.TextScaled = isMobile
-minimizeButton.Parent = titleBar
-
-local minimizeCorner = Instance.new("UICorner")
-minimizeCorner.CornerRadius = UDim.new(0, isMobile and math.floor(6 * scale) or 4)
-minimizeCorner.Parent = minimizeButton
-
-local closeButton = Instance.new("TextButton")
-closeButton.Name = "CloseButton"
-closeButton.Size = UDim2.new(0, buttonSize, 0, buttonSize)
-local closeButtonOffset = isMobile and math.floor(60 * scale) or 35
-closeButton.Position = UDim2.new(1, -closeButtonOffset, 0, buttonPadding)
-closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-closeButton.BorderSizePixel = 0
-closeButton.Text = "X"
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.TextSize = isMobile and math.floor(26 * scale) or 20
-closeButton.Font = Enum.Font.GothamBold
-closeButton.TextScaled = isMobile
-closeButton.Parent = titleBar
-
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, isMobile and math.floor(6 * scale) or 4)
-closeCorner.Parent = closeButton
-
-local contentPadding = isMobile and math.floor(15 * scale) or 10
-local contentFrame = Instance.new("ScrollingFrame")
-contentFrame.Name = "ContentFrame"
-contentFrame.Size = UDim2.new(1, -contentPadding*2, 1, -titleBarHeight - contentPadding)
-contentFrame.Position = UDim2.new(0, contentPadding, 0, titleBarHeight)
-contentFrame.BackgroundTransparency = 1
-contentFrame.BorderSizePixel = 0
-contentFrame.ScrollBarThickness = math.floor(6 * scale * mobileScale)
-contentFrame.Parent = mainFrame
-
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, isMobile and math.floor(15 * scale) or 10)
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Parent = contentFrame
-
-local originalSize = mainFrame.Size
-local isMinimized = false
-
-local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-
-local openTween = TweenService:Create(mainFrame, tweenInfo, {
-    BackgroundTransparency = 0
-})
-openTween:Play()
-
-minimizeButton.MouseButton1Click:Connect(function()
-    isMinimized = not isMinimized
-    if isMinimized then
-        local minimizedSize
-        if isMobile then
-            minimizedSize = UDim2.new(0.9, 0, 0, titleBarHeight)
-        else
-            local currentWidth = mainFrame.AbsoluteSize.X
-            minimizedSize = UDim2.new(0, currentWidth, 0, titleBarHeight)
-        end
-        local minimizeTween = TweenService:Create(mainFrame, tweenInfo, {
-            Size = minimizedSize
+local function createOptionHolder(holderTitle, parent, parentTable, subHolder)
+    local size = subHolder and 34 or 40
+    parentTable.main = library:Create("ImageButton", {
+        LayoutOrder = subHolder and parentTable.position or 0,
+        Position = UDim2.new(0, 20 + (250 * (parentTable.position or 0)), 0, 20),
+        Size = UDim2.new(0, 230, 0, size),
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://3570695787",
+        ImageColor3 = Color3.fromRGB(20, 20, 20),
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(100, 100, 100, 100),
+        SliceScale = 0.04,
+        ClipsDescendants = true,
+        Parent = parent
+    })
+    
+    local round
+    if not subHolder then
+        round = library:Create("ImageLabel", {
+            Size = UDim2.new(1, 0, 0, size),
+            BackgroundTransparency = 1,
+            Image = "rbxassetid://3570695787",
+            ImageColor3 = parentTable.open and (subHolder and Color3.fromRGB(16, 16, 16) or Color3.fromRGB(10, 10, 10)) or (subHolder and Color3.fromRGB(10, 10, 10) or Color3.fromRGB(6, 6, 6)),
+            ScaleType = Enum.ScaleType.Slice,
+            SliceCenter = Rect.new(100, 100, 100, 100),
+            SliceScale = 0.04,
+            Parent = parentTable.main
         })
-        minimizeTween:Play()
-        spawn(function()
-            wait(0.15)
-            contentFrame.Visible = false
+    end
+    
+    local title = library:Create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, size),
+        BackgroundTransparency = subHolder and 0 or 1,
+        BackgroundColor3 = Color3.fromRGB(10, 10, 10),
+        BorderSizePixel = 0,
+        Text = holderTitle,
+        TextSize = subHolder and 16 or 17,
+        Font = Enum.Font.GothamBold,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Parent = parentTable.main
+    })
+    
+    local closeHolder = library:Create("Frame", {
+        Position = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(-1, 0, 1, 0),
+        SizeConstraint = Enum.SizeConstraint.RelativeYY,
+        BackgroundTransparency = 1,
+        Parent = title
+    })
+    
+    local close = library:Create("ImageLabel", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(1, -size - 10, 1, -size - 10),
+        Rotation = parentTable.open and 90 or 180,
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://4918373417",
+        ImageColor3 = parentTable.open and Color3.fromRGB(50, 50, 50) or Color3.fromRGB(30, 30, 30),
+        ScaleType = Enum.ScaleType.Fit,
+        Parent = closeHolder
+    })
+    
+    parentTable.content = library:Create("Frame", {
+        Position = UDim2.new(0, 0, 0, size),
+        Size = UDim2.new(1, 0, 1, -size),
+        BackgroundTransparency = 1,
+        Parent = parentTable.main
+    })
+    
+    local layout = library:Create("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = parentTable.content
+    })
+    
+    layout.Changed:connect(function()
+        parentTable.content.Size = UDim2.new(1, 0, 0, layout.AbsoluteContentSize.Y)
+        parentTable.main.Size = #parentTable.options > 0 and parentTable.open and UDim2.new(0, 230, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 230, 0, size)
+    end)
+    
+    if not subHolder then
+        library:Create("UIPadding", {
+            Parent = parentTable.content
+        })
+        
+        title.InputBegan:connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragObject = parentTable.main
+                dragging = true
+                dragStart = input.Position
+                startPos = dragObject.Position
+            end
         end)
+        title.InputChanged:connect(function(input)
+            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                dragInput = input
+            end
+        end)
+        title.InputEnded:connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+            end
+        end)
+    end
+    
+    closeHolder.InputBegan:connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            parentTable.open = not parentTable.open
+            tweenService:Create(close, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Rotation = parentTable.open and 90 or 180, ImageColor3 = parentTable.open and Color3.fromRGB(50, 50, 50) or Color3.fromRGB(30, 30, 30)}):Play()
+            if subHolder then
+                tweenService:Create(title, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = parentTable.open and Color3.fromRGB(16, 16, 16) or Color3.fromRGB(10, 10, 10)}):Play()
+            else
+                tweenService:Create(round, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = parentTable.open and Color3.fromRGB(10, 10, 10) or Color3.fromRGB(6, 6, 6)}):Play()
+            end
+            parentTable.main:TweenSize(#parentTable.options > 0 and parentTable.open and UDim2.new(0, 230, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 230, 0, size), "Out", "Quad", 0.2, true)
+        end
+    end)
+    
+    function parentTable:SetTitle(newTitle)
+        title.Text = tostring(newTitle)
+    end
+    
+    return parentTable
+end
+
+local function createLabel(option, parent)
+    local main = library:Create("TextLabel", {
+        LayoutOrder = option.position,
+        Size = UDim2.new(1, 0, 0, 26),
+        BackgroundTransparency = 1,
+        Text = " " .. option.text,
+        TextSize = 17,
+        Font = Enum.Font.Gotham,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = parent.content
+    })
+    
+    setmetatable(option, {__newindex = function(t, i, v)
+        if i == "Text" then
+            main.Text = " " .. tostring(v)
+        end
+    end})
+end
+
+local function loadOptions(option, holder)
+    for _,newOption in next, option.options do
+        if newOption.type == "label" then
+            createLabel(newOption, option)
+        end
+    end
+end
+
+local function getFnctions(parent)
+    function parent:AddLabel(option)
+        option = typeof(option) == "table" and option or {}
+        option.text = tostring(option.text)
+        option.type = "label"
+        option.position = #self.options
+        table.insert(self.options, option)
+        return option
+    end
+end
+
+function library:CreateWindow(title)
+    local window = {title = tostring(title), options = {}, open = true, canInit = true, init = false, position = #self.windows}
+    getFnctions(window)
+    table.insert(library.windows, window)
+    return window
+end
+
+function library:Init()
+    self.base = self.base or self:Create("ScreenGui")
+    if _G.syn and _G.syn.protect_gui then
+        _G.syn.protect_gui(self.base)
+        self.base.Parent = game:GetService"CoreGui"
+    elseif type(_G.get_hidden_gui) == 'function' then
+        self.base.Parent = _G.get_hidden_gui()
+    elseif type(_G.gethui) == 'function' then
+        self.base.Parent = _G.gethui()
     else
-        contentFrame.Visible = true
-        local restoreTween = TweenService:Create(mainFrame, tweenInfo, {
-            Size = originalSize
+        self.base.Name = tostring(math.random())
+        self.base.Parent = game:GetService"CoreGui"
+    end
+    
+    if not self.cursor then
+        self.cursor = self:Create("Frame", {
+            ZIndex = 100,
+            AnchorPoint = Vector2.new(0, 0),
+            Size = UDim2.new(0, 5, 0, 5),
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+            Parent = self.base
         })
-        restoreTween:Play()
+    end
+    
+    for _, window in next, self.windows do
+        if window.canInit and not window.init then
+            window.init = true
+            createOptionHolder(window.title, self.base, window)
+            loadOptions(window)
+        end
+    end
+end
+
+function library:Close()
+    self.open = not self.open
+    if self.cursor then
+        self.cursor.Visible = self.open
+    end
+    if self.activePopup then
+        self.activePopup:Close()
+    end
+    for _, window in next, self.windows do
+        if window.main then
+            window.main.Visible = self.open
+        end
+    end
+end
+
+inputService.InputChanged:connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        if library.cursor then
+            local mouse = inputService:GetMouseLocation() + Vector2.new(0, -36)
+            library.cursor.Position = UDim2.new(0, mouse.X - 2, 0, mouse.Y - 2)
+        end
+    end
+    if input == dragInput and dragging then
+        update(input)
     end
 end)
-
-closeButton.MouseButton1Click:Connect(function()
-    local closeTween = TweenService:Create(mainFrame, tweenInfo, {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(0, 0, 0, 0)
-    })
-    closeTween:Play()
-    closeTween.Completed:Connect(function()
-        screenGui:Destroy()
-    end)
-end)
-
-minimizeButton.MouseEnter:Connect(function()
-    local hoverTween = TweenService:Create(minimizeButton, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {
-        BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    })
-    hoverTween:Play()
-end)
-
-minimizeButton.MouseLeave:Connect(function()
-    local hoverTween = TweenService:Create(minimizeButton, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {
-        BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    })
-    hoverTween:Play()
-end)
-
-closeButton.MouseEnter:Connect(function()
-    local hoverTween = TweenService:Create(closeButton, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {
-        BackgroundColor3 = Color3.fromRGB(255, 70, 70)
-    })
-    hoverTween:Play()
-end)
-
-closeButton.MouseLeave:Connect(function()
-    local hoverTween = TweenService:Create(closeButton, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {
-        BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    })
-    hoverTween:Play()
-end)
-
-local function createStatLabel(statName, value)
-    local statFrameHeight = isMobile and math.floor(80 * scale) or 60
-    local statPadding = isMobile and math.floor(15 * scale) or 10
-    local statInnerPadding = isMobile and math.floor(8 * scale) or 5
-    
-    local statFrame = Instance.new("Frame")
-    statFrame.Name = statName .. "Frame"
-    statFrame.Size = UDim2.new(1, 0, 0, statFrameHeight)
-    statFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    statFrame.BorderSizePixel = 0
-    statFrame.Parent = contentFrame
-    
-    local statCorner = Instance.new("UICorner")
-    statCorner.CornerRadius = UDim.new(0, isMobile and math.floor(10 * scale) or 6)
-    statCorner.Parent = statFrame
-    
-    local statNameLabel = Instance.new("TextLabel")
-    statNameLabel.Name = "StatName"
-    statNameLabel.Size = UDim2.new(0.5, -statPadding, 1, -statInnerPadding*2)
-    statNameLabel.Position = UDim2.new(0, statPadding, 0, statInnerPadding)
-    statNameLabel.BackgroundTransparency = 1
-    statNameLabel.Text = statName .. ":"
-    statNameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    statNameLabel.TextSize = isMobile and math.floor(20 * scale) or 18
-    statNameLabel.Font = Enum.Font.Gotham
-    statNameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    statNameLabel.TextScaled = isMobile
-    statNameLabel.Parent = statFrame
-    
-    local statValueLabel = Instance.new("TextLabel")
-    statValueLabel.Name = "StatValue"
-    statValueLabel.Size = UDim2.new(0.5, -statPadding, 1, -statInnerPadding*2)
-    statValueLabel.Position = UDim2.new(0.5, 0, 0, statInnerPadding)
-    statValueLabel.BackgroundTransparency = 1
-    statValueLabel.Text = tostring(value)
-    statValueLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-    statValueLabel.TextSize = isMobile and math.floor(20 * scale) or 18
-    statValueLabel.Font = Enum.Font.GothamBold
-    statValueLabel.TextXAlignment = Enum.TextXAlignment.Right
-    statValueLabel.TextScaled = isMobile
-    statValueLabel.Parent = statFrame
-    
-    return statValueLabel
-end
 
 local statObjects = {}
 
@@ -314,29 +333,21 @@ local function getPlayerStats()
     return stats
 end
 
-local stats = getPlayerStats()
-local statLabels = {}
+local window = library:CreateWindow(player.Name .. "'s Stats")
 
-statLabels.Coins = createStatLabel("Coins", stats.Coins)
-statLabels.Gems = createStatLabel("Gems", stats.Gems)
-statLabels.Triumphs = createStatLabel("Triumphs", stats.Triumphs)
-statLabels.Loses = createStatLabel("Loses", stats.Loses)
-statLabels.Level = createStatLabel("Level", stats.Level)
-
-local canvasPadding = math.floor(20 * scale * mobileScale)
-contentFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + canvasPadding)
-
-listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    contentFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + canvasPadding)
-end)
+local coinsLabel = window:AddLabel({text = "Coins: 0"})
+local gemsLabel = window:AddLabel({text = "Gems: 0"})
+local triumphsLabel = window:AddLabel({text = "Triumphs: 0"})
+local losesLabel = window:AddLabel({text = "Loses: 0"})
+local levelLabel = window:AddLabel({text = "Level: 0"})
 
 local function updateStats()
     local newStats = getPlayerStats()
-    if statLabels.Coins then statLabels.Coins.Text = tostring(newStats.Coins) end
-    if statLabels.Gems then statLabels.Gems.Text = tostring(newStats.Gems) end
-    if statLabels.Triumphs then statLabels.Triumphs.Text = tostring(newStats.Triumphs) end
-    if statLabels.Loses then statLabels.Loses.Text = tostring(newStats.Loses) end
-    if statLabels.Level then statLabels.Level.Text = tostring(newStats.Level) end
+    coinsLabel.Text = "Coins: " .. tostring(newStats.Coins)
+    gemsLabel.Text = "Gems: " .. tostring(newStats.Gems)
+    triumphsLabel.Text = "Triumphs: " .. tostring(newStats.Triumphs)
+    losesLabel.Text = "Loses: " .. tostring(newStats.Loses)
+    levelLabel.Text = "Level: " .. tostring(newStats.Level)
 end
 
 local function setupStatMonitoring(statObj)
@@ -406,3 +417,4 @@ spawn(function()
     end
 end)
 
+library:Init()
