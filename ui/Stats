@@ -12,268 +12,73 @@ if _G.getinstances then
     if success then instances = result end
 end
 
-local library = {flags = {}, windows = {}, open = true, cursor = nil}
-
-local tweenService = game:GetService"TweenService"
-local inputService = game:GetService"UserInputService"
-
-local dragging, dragInput, dragStart, startPos, dragObject
-
-local function update(input)
-    local delta = input.Position - dragStart
-    local yPos = (startPos.Y.Offset + delta.Y) < -36 and -36 or startPos.Y.Offset + delta.Y
-    dragObject:TweenPosition(UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, yPos), "Out", "Quint", 0.1, true)
-end
-
-
-function library:Create(class, properties)
-    properties = typeof(properties) == "table" and properties or {}
-    local inst = Instance.new(class)
-    for property, value in next, properties do
-        inst[property] = value
-    end
-    return inst
-end
-
-function library:Draw(class, properties)
-    if not _G.Drawing then return nil end
-    local props = type(properties) == 'table' and properties or {};
-    local object = _G.Drawing.new(class)
-    for p, v in next, props do 
-        object[p] = v; 
-    end
-    return object
-end
-
-local function createOptionHolder(holderTitle, parent, parentTable, subHolder)
-    local size = subHolder and 34 or 40
-    parentTable.main = library:Create("ImageButton", {
-        LayoutOrder = subHolder and parentTable.position or 0,
-        Position = UDim2.new(0, 20 + (250 * (parentTable.position or 0)), 0, 20),
-        Size = UDim2.new(0, 230, 0, size),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://3570695787",
-        ImageColor3 = Color3.fromRGB(20, 20, 20),
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(100, 100, 100, 100),
-        SliceScale = 0.04,
-        ClipsDescendants = true,
-        Parent = parent
-    })
+local library
+local success, result = pcall(function()
+    local url = 'https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wall%20v3'
+    local content
     
-    local round
-    if not subHolder then
-        round = library:Create("ImageLabel", {
-            Size = UDim2.new(1, 0, 0, size),
-            BackgroundTransparency = 1,
-            Image = "rbxassetid://3570695787",
-            ImageColor3 = parentTable.open and (subHolder and Color3.fromRGB(16, 16, 16) or Color3.fromRGB(10, 10, 10)) or (subHolder and Color3.fromRGB(10, 10, 10) or Color3.fromRGB(6, 6, 6)),
-            ScaleType = Enum.ScaleType.Slice,
-            SliceCenter = Rect.new(100, 100, 100, 100),
-            SliceScale = 0.04,
-            Parent = parentTable.main
-        })
-    end
-    
-    local title = library:Create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, size),
-        BackgroundTransparency = subHolder and 0 or 1,
-        BackgroundColor3 = Color3.fromRGB(10, 10, 10),
-        BorderSizePixel = 0,
-        Text = holderTitle,
-        TextSize = subHolder and 16 or 17,
-        Font = Enum.Font.GothamBold,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        Parent = parentTable.main
-    })
-    
-    local closeHolder = library:Create("Frame", {
-        Position = UDim2.new(1, 0, 0, 0),
-        Size = UDim2.new(-1, 0, 1, 0),
-        SizeConstraint = Enum.SizeConstraint.RelativeYY,
-        BackgroundTransparency = 1,
-        Parent = title
-    })
-    
-    local close = library:Create("ImageLabel", {
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(1, -size - 10, 1, -size - 10),
-        Rotation = parentTable.open and 90 or 180,
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://4918373417",
-        ImageColor3 = parentTable.open and Color3.fromRGB(50, 50, 50) or Color3.fromRGB(30, 30, 30),
-        ScaleType = Enum.ScaleType.Fit,
-        Parent = closeHolder
-    })
-    
-    parentTable.content = library:Create("Frame", {
-        Position = UDim2.new(0, 0, 0, size),
-        Size = UDim2.new(1, 0, 1, -size),
-        BackgroundTransparency = 1,
-        Parent = parentTable.main
-    })
-    
-    local layout = library:Create("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = parentTable.content
-    })
-    
-    layout.Changed:connect(function()
-        parentTable.content.Size = UDim2.new(1, 0, 0, layout.AbsoluteContentSize.Y)
-        parentTable.main.Size = #parentTable.options > 0 and parentTable.open and UDim2.new(0, 230, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 230, 0, size)
-    end)
-    
-    if not subHolder then
-        library:Create("UIPadding", {
-            Parent = parentTable.content
-        })
-        
-        title.InputBegan:connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                dragObject = parentTable.main
-                dragging = true
-                dragStart = input.Position
-                startPos = dragObject.Position
-            end
-        end)
-        title.InputChanged:connect(function(input)
-            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                dragInput = input
-            end
-        end)
-        title.InputEnded:connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                dragging = false
-            end
-        end)
-    end
-    
-    closeHolder.InputBegan:connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            parentTable.open = not parentTable.open
-            tweenService:Create(close, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Rotation = parentTable.open and 90 or 180, ImageColor3 = parentTable.open and Color3.fromRGB(50, 50, 50) or Color3.fromRGB(30, 30, 30)}):Play()
-            if subHolder then
-                tweenService:Create(title, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = parentTable.open and Color3.fromRGB(16, 16, 16) or Color3.fromRGB(10, 10, 10)}):Play()
-            else
-                tweenService:Create(round, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = parentTable.open and Color3.fromRGB(10, 10, 10) or Color3.fromRGB(6, 6, 6)}):Play()
-            end
-            parentTable.main:TweenSize(#parentTable.options > 0 and parentTable.open and UDim2.new(0, 230, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 230, 0, size), "Out", "Quad", 0.2, true)
-        end
-    end)
-    
-    function parentTable:SetTitle(newTitle)
-        title.Text = tostring(newTitle)
-    end
-    
-    return parentTable
-end
-
-local function createLabel(option, parent)
-    local main = library:Create("TextLabel", {
-        LayoutOrder = option.position,
-        Size = UDim2.new(1, 0, 0, 26),
-        BackgroundTransparency = 1,
-        Text = " " .. option.text,
-        TextSize = 17,
-        Font = Enum.Font.Gotham,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = parent.content
-    })
-    
-    setmetatable(option, {__newindex = function(t, i, v)
-        if i == "Text" then
-            main.Text = " " .. tostring(v)
-        end
-    end})
-end
-
-local function loadOptions(option, holder)
-    for _,newOption in next, option.options do
-        if newOption.type == "label" then
-            createLabel(newOption, option)
-        end
-    end
-end
-
-local function getFnctions(parent)
-    function parent:AddLabel(option)
-        option = typeof(option) == "table" and option or {}
-        option.text = tostring(option.text)
-        option.type = "label"
-        option.position = #self.options
-        table.insert(self.options, option)
-        return option
-    end
-end
-
-function library:CreateWindow(title)
-    local window = {title = tostring(title), options = {}, open = true, canInit = true, init = false, position = #self.windows}
-    getFnctions(window)
-    table.insert(library.windows, window)
-    return window
-end
-
-function library:Init()
-    self.base = self.base or self:Create("ScreenGui")
-    if _G.syn and _G.syn.protect_gui then
-        _G.syn.protect_gui(self.base)
-        self.base.Parent = game:GetService"CoreGui"
-    elseif type(_G.get_hidden_gui) == 'function' then
-        self.base.Parent = _G.get_hidden_gui()
-    elseif type(_G.gethui) == 'function' then
-        self.base.Parent = _G.gethui()
+    if type(game.HttpGet) == "function" then
+        content = game:HttpGet(url)
+    elseif _G.request and type(_G.request) == "function" then
+        local response = _G.request({Url = url, Method = "GET"})
+        content = response.Body
+    elseif _G.syn and _G.syn.request and type(_G.syn.request) == "function" then
+        local response = _G.syn.request({Url = url, Method = "GET"})
+        content = response.Body
     else
-        self.base.Name = tostring(math.random())
-        self.base.Parent = game:GetService"CoreGui"
+        error("No HTTP method available")
     end
     
-    if not self.cursor then
-        self.cursor = self:Create("Frame", {
-            ZIndex = 100,
-            AnchorPoint = Vector2.new(0, 0),
-            Size = UDim2.new(0, 5, 0, 5),
-            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            Parent = self.base
-        })
-    end
-    
-    for _, window in next, self.windows do
-        if window.canInit and not window.init then
-            window.init = true
-            createOptionHolder(window.title, self.base, window)
-            loadOptions(window)
+    if content then
+        local loaded = loadstring(content)
+        if loaded then
+            return loaded()
+        else
+            error("Failed to loadstring")
         end
-    end
-end
-
-function library:Close()
-    self.open = not self.open
-    if self.cursor then
-        self.cursor.Visible = self.open
-    end
-    if self.activePopup then
-        self.activePopup:Close()
-    end
-    for _, window in next, self.windows do
-        if window.main then
-            window.main.Visible = self.open
-        end
-    end
-end
-
-inputService.InputChanged:connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        if library.cursor then
-            local mouse = inputService:GetMouseLocation() + Vector2.new(0, -36)
-            library.cursor.Position = UDim2.new(0, mouse.X - 2, 0, mouse.Y - 2)
-        end
-    end
-    if input == dragInput and dragging then
-        update(input)
+    else
+        error("No content received")
     end
 end)
+if success and result then
+    library = result
+else
+    error("Failed to load UI library: " .. tostring(result))
+end
+
+local w = library:CreateWindow(player.Name .. "'s Stats")
+
+local b = w:CreateFolder("Stats")
+
+local coinsLabel = b:Label("Coins: 0", {
+    TextSize = 18,
+    TextColor = Color3.fromRGB(255, 255, 255),
+    BgColor = Color3.fromRGB(50, 50, 50),
+})
+
+local gemsLabel = b:Label("Gems: 0", {
+    TextSize = 18,
+    TextColor = Color3.fromRGB(255, 255, 255),
+    BgColor = Color3.fromRGB(50, 50, 50),
+})
+
+local triumphsLabel = b:Label("Triumphs: 0", {
+    TextSize = 18,
+    TextColor = Color3.fromRGB(255, 255, 255),
+    BgColor = Color3.fromRGB(50, 50, 50),
+})
+
+local losesLabel = b:Label("Loses: 0", {
+    TextSize = 18,
+    TextColor = Color3.fromRGB(255, 255, 255),
+    BgColor = Color3.fromRGB(50, 50, 50),
+})
+
+local levelLabel = b:Label("Level: 0", {
+    TextSize = 18,
+    TextColor = Color3.fromRGB(255, 255, 255),
+    BgColor = Color3.fromRGB(50, 50, 50),
+})
 
 local statObjects = {}
 
@@ -333,21 +138,13 @@ local function getPlayerStats()
     return stats
 end
 
-local window = library:CreateWindow(player.Name .. "'s Stats")
-
-local coinsLabel = window:AddLabel({text = "Coins: 0"})
-local gemsLabel = window:AddLabel({text = "Gems: 0"})
-local triumphsLabel = window:AddLabel({text = "Triumphs: 0"})
-local losesLabel = window:AddLabel({text = "Loses: 0"})
-local levelLabel = window:AddLabel({text = "Level: 0"})
-
 local function updateStats()
     local newStats = getPlayerStats()
-    coinsLabel.Text = "Coins: " .. tostring(newStats.Coins)
-    gemsLabel.Text = "Gems: " .. tostring(newStats.Gems)
-    triumphsLabel.Text = "Triumphs: " .. tostring(newStats.Triumphs)
-    losesLabel.Text = "Loses: " .. tostring(newStats.Loses)
-    levelLabel.Text = "Level: " .. tostring(newStats.Level)
+    coinsLabel:Refresh("Coins: " .. tostring(newStats.Coins))
+    gemsLabel:Refresh("Gems: " .. tostring(newStats.Gems))
+    triumphsLabel:Refresh("Triumphs: " .. tostring(newStats.Triumphs))
+    losesLabel:Refresh("Loses: " .. tostring(newStats.Loses))
+    levelLabel:Refresh("Level: " .. tostring(newStats.Level))
 end
 
 local function setupStatMonitoring(statObj)
@@ -416,5 +213,3 @@ spawn(function()
         refreshStatObjects()
     end
 end)
-
-library:Init()
