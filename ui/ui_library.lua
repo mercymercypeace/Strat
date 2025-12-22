@@ -1028,18 +1028,38 @@ do
 		function itemslist:SetValue(value)
 			if Multi then
 				selectedValues = {}
-				selectedValues[value] = true
-				TextLabelValue_1.Text = value
+				-- Handle both table and single value for backward compatibility
+				if type(value) == "table" then
+					for _, val in ipairs(value) do
+						selectedValues[val] = true
+					end
+				else
+					selectedValues[value] = true
+				end
+				
+				-- Update display text
+				local selectedList = {}
+				for i, v in pairs(selectedValues) do
+					table.insert(selectedList, i)
+				end
+				if #selectedList > 0 then
+					TextLabelValue_1.Text = table.concat(selectedList, ", ")
+				else
+					TextLabelValue_1.Text = "--"
+				end
+				
+				-- Update visual state of all items
 				for _, v in ipairs(ScrollingFrame_1:GetChildren()) do
 					if v:IsA("Frame") and v:FindFirstChild("TextLabel") then
-						if v.TextLabel.Text == value then
+						if selectedValues[v.TextLabel.Text] then
 							tw({v = v.TextLabel, t = 0.05, s = Enum.EasingStyle.Exponential, d = "Out", g = {TextTransparency = 0}}):Play()
 						else
 							tw({v = v.TextLabel, t = 0.05, s = Enum.EasingStyle.Exponential, d = "Out", g = {TextTransparency = 0.8}}):Play()
 						end
 					end
 				end
-				pcall(Callback, selectedValues)
+				
+				pcall(Callback, selectedList)
 			else
 				Value = value
 				TextLabelValue_1.Text = value

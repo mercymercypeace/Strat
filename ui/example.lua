@@ -77,6 +77,18 @@ local Tab = Window:Tab({Title = "Main", Icon = "star"}) do
         end
     })
 
+    Tab:Section({Title = "Multi-Select Dropdown"})
+    Tab:Dropdown({
+        Title = "Muti Selection",
+        Desc = "You can select multiple options",
+        List = {"A", "B", "C", "D", "E"},
+        Value = {"A", "B"},
+        Multi = true,
+        Callback = function(selected)
+            print("selected items:", table.concat(selected, ", "))
+        end
+    })
+
     Tab:Section({Title = "Example Code"})
     local CodeBlock = Tab:Code({
         Title = "Example Code",
