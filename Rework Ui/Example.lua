@@ -10,16 +10,15 @@
 ]]
 
 -- Load the UI Library
--- Option 1: Load from a URL (for GitHub)
--- local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/yourusername/yourrepo/main/UILibrary.lua"))()
+-- Option 1: Load from GitHub (Recommended)
+local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/mercymercypeace/Strat/refs/heads/main/Rework%20Ui/UILibrary.lua"))()
 
 -- Option 2: Load from local file (if using require or similar)
 -- local UI = require(script.Parent.UILibrary)
 
 -- Option 3: If both files are in the same executor workspace, you can use:
 -- Note: readfile is executor-specific (Synapse, Script-Ware, etc.)
--- The linter may show errors for executor-specific functions, but they work at runtime
-local UI = loadstring(readfile("UILibrary.lua"))() -- Executor-specific function
+-- local UI = loadstring(readfile("UILibrary.lua"))() -- Executor-specific function
 
 -- Initialize getgenv for storing config (executor compatibility)
 local env = _G

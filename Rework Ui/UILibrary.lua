@@ -57,6 +57,7 @@ function UILibrary:CreateWindow(title, width, height)
     mainFrame.Size = UDim2.new(0, width, 0, height)
     mainFrame.Position = UDim2.new(0.5, -width/2, 0.5, -height/2)
     mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    mainFrame.BackgroundTransparency = 0.3
     mainFrame.BorderSizePixel = 0
     mainFrame.Parent = screenGui
     
@@ -70,6 +71,7 @@ function UILibrary:CreateWindow(title, width, height)
     topBar.Size = UDim2.new(1, 0, 0, 40)
     topBar.Position = UDim2.new(0, 0, 0, 0)
     topBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    topBar.BackgroundTransparency = 0.2
     topBar.BorderSizePixel = 0
     topBar.Parent = mainFrame
     
@@ -124,11 +126,20 @@ function UILibrary:CreateWindow(title, width, height)
     closeCorner.CornerRadius = UDim.new(0, 4)
     closeCorner.Parent = closeButton
     
-    -- Vertical Line Separator
+    -- Horizontal Line Separator (on top)
+    local horizontalLine = Instance.new("Frame")
+    horizontalLine.Name = "HorizontalLine"
+    horizontalLine.Size = UDim2.new(1, 0, 0, 2)
+    horizontalLine.Position = UDim2.new(0, 0, 0, 40)
+    horizontalLine.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    horizontalLine.BorderSizePixel = 0
+    horizontalLine.Parent = mainFrame
+    
+    -- Vertical Line Separator (between sidebar and content)
     local verticalLine = Instance.new("Frame")
     verticalLine.Name = "VerticalLine"
-    verticalLine.Size = UDim2.new(0, 2, 1, -40)
-    verticalLine.Position = UDim2.new(0, 150, 0, 40)
+    verticalLine.Size = UDim2.new(0, 2, 1, -42)
+    verticalLine.Position = UDim2.new(0, 150, 0, 42)
     verticalLine.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     verticalLine.BorderSizePixel = 0
     verticalLine.Parent = mainFrame
@@ -136,18 +147,20 @@ function UILibrary:CreateWindow(title, width, height)
     -- Sidebar
     local sidebar = Instance.new("Frame")
     sidebar.Name = "Sidebar"
-    sidebar.Size = UDim2.new(0, 150, 1, -40)
-    sidebar.Position = UDim2.new(0, 0, 0, 40)
+    sidebar.Size = UDim2.new(0, 150, 1, -42)
+    sidebar.Position = UDim2.new(0, 0, 0, 42)
     sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    sidebar.BackgroundTransparency = 0.3
     sidebar.BorderSizePixel = 0
     sidebar.Parent = mainFrame
     
     -- Content Area
     local contentArea = Instance.new("ScrollingFrame")
     contentArea.Name = "ContentArea"
-    contentArea.Size = UDim2.new(1, -152, 1, -40)
-    contentArea.Position = UDim2.new(0, 152, 0, 40)
+    contentArea.Size = UDim2.new(1, -152, 1, -42)
+    contentArea.Position = UDim2.new(0, 152, 0, 42)
     contentArea.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    contentArea.BackgroundTransparency = 0.3
     contentArea.BorderSizePixel = 0
     contentArea.ScrollBarThickness = 6
     contentArea.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
@@ -202,69 +215,32 @@ function UILibrary:CreateWindow(title, width, height)
     -- Minimize/Maximize functionality
     local isMinimized = false
     local originalSize = mainFrame.Size
-    local originalPosition = mainFrame.Position
-    local minimizedBar = nil
     
     local function minimizeWindow()
         isMinimized = true
         originalSize = mainFrame.Size
-        originalPosition = mainFrame.Position
         
-        -- Create minimized bar
-        minimizedBar = Instance.new("Frame")
-        minimizedBar.Name = "MinimizedBar"
-        minimizedBar.Size = UDim2.new(0, 200, 0, 40)
-        minimizedBar.Position = UDim2.new(0, originalPosition.X.Offset, 1, -40)
-        minimizedBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        minimizedBar.BorderSizePixel = 0
-        minimizedBar.Parent = screenGui
+        -- Hide everything except top bar
+        sidebar.Visible = false
+        contentArea.Visible = false
+        if horizontalLine then horizontalLine.Visible = false end
+        if verticalLine then verticalLine.Visible = false end
         
-        local minimizedCorner = Instance.new("UICorner")
-        minimizedCorner.CornerRadius = UDim.new(0, 8)
-        minimizedCorner.Parent = minimizedBar
-        
-        local minimizedTitle = Instance.new("TextLabel")
-        minimizedTitle.Name = "Title"
-        minimizedTitle.Size = UDim2.new(1, -80, 1, 0)
-        minimizedTitle.Position = UDim2.new(0, 10, 0, 0)
-        minimizedTitle.BackgroundTransparency = 1
-        minimizedTitle.Text = title or "UI Library"
-        minimizedTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-        minimizedTitle.TextSize = 14
-        minimizedTitle.Font = Enum.Font.GothamBold
-        minimizedTitle.TextXAlignment = Enum.TextXAlignment.Left
-        minimizedTitle.Parent = minimizedBar
-        
-        local restoreButton = Instance.new("TextButton")
-        restoreButton.Name = "RestoreButton"
-        restoreButton.Size = UDim2.new(0, 30, 0, 30)
-        restoreButton.Position = UDim2.new(1, -35, 0, 5)
-        restoreButton.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
-        restoreButton.BorderSizePixel = 0
-        restoreButton.Text = "^"
-        restoreButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        restoreButton.TextSize = 16
-        restoreButton.Font = Enum.Font.GothamBold
-        restoreButton.Parent = minimizedBar
-        
-        local restoreCorner = Instance.new("UICorner")
-        restoreCorner.CornerRadius = UDim.new(0, 4)
-        restoreCorner.Parent = restoreButton
-        
-        restoreButton.MouseButton1Click:Connect(function()
-            window:Maximize()
-        end)
-        
-        mainFrame.Visible = false
+        -- Resize window to only show top bar
+        mainFrame.Size = UDim2.new(0, width, 0, 40)
     end
     
     local function maximizeWindow()
         isMinimized = false
-        if minimizedBar then
-            minimizedBar:Destroy()
-            minimizedBar = nil
-        end
-        mainFrame.Visible = true
+        
+        -- Show everything again
+        sidebar.Visible = true
+        contentArea.Visible = true
+        if horizontalLine then horizontalLine.Visible = true end
+        if verticalLine then verticalLine.Visible = true end
+        
+        -- Restore original size
+        mainFrame.Size = originalSize
     end
     
     minimizeButton.MouseButton1Click:Connect(function()
@@ -359,6 +335,8 @@ function UILibrary:CreateWindow(title, width, height)
         _tabs = tabs,
         _currentTab = currentTab,
         _contentList = contentList,
+        _horizontalLine = horizontalLine,
+        _verticalLine = verticalLine,
         _isMinimized = false,
         _minimize = minimizeWindow,
         _maximize = maximizeWindow,
@@ -431,7 +409,8 @@ function Window:CreateTab(name, displayName)
     local tabData = {
         button = tabButton,
         frame = tabFrame,
-        list = tabList
+        list = tabList,
+        indicator = indicatorLine
     }
     
     tabs[name] = tabData
@@ -441,20 +420,29 @@ function Window:CreateTab(name, displayName)
             self._currentTab.button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
             self._currentTab.button.TextColor3 = Color3.fromRGB(200, 200, 200)
             self._currentTab.frame.Visible = false
+            if self._currentTab.indicator then
+                self._currentTab.indicator.Visible = false
+            end
         end
         
         self._currentTab = tabData
-        tabData.button.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+        tabData.button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
         tabData.button.TextColor3 = Color3.fromRGB(255, 255, 255)
         tabData.frame.Visible = true
+        if tabData.indicator then
+            tabData.indicator.Visible = true
+        end
     end)
     
     -- Set as default if first tab
-    if #tabs == 1 then
+    if tabCount == 0 then
         self._currentTab = tabData
-        tabData.button.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+        tabData.button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
         tabData.button.TextColor3 = Color3.fromRGB(255, 255, 255)
         tabData.frame.Visible = true
+        if tabData.indicator then
+            tabData.indicator.Visible = true
+        end
     end
     
     local tab = setmetatable({
@@ -474,11 +462,18 @@ function Window:CreateAnnouncementTab(name, displayName)
     local contentArea = self._contentArea
     local currentTab = self._currentTab
     
+    -- Count existing tabs
+    local tabCount = 0
+    for _ in pairs(tabs) do
+        tabCount = tabCount + 1
+    end
+    
     local tabButton = Instance.new("TextButton")
     tabButton.Name = name .. "Tab"
     tabButton.Size = UDim2.new(1, -10, 0, 40)
-    tabButton.Position = UDim2.new(0, 5, 0, #tabs * 45 + 5)
+    tabButton.Position = UDim2.new(0, 5, 0, tabCount * 45 + 5)
     tabButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    tabButton.BackgroundTransparency = 0.3
     tabButton.BorderSizePixel = 0
     tabButton.Text = displayName
     tabButton.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -489,6 +484,20 @@ function Window:CreateAnnouncementTab(name, displayName)
     local tabCorner = Instance.new("UICorner")
     tabCorner.CornerRadius = UDim.new(0, 6)
     tabCorner.Parent = tabButton
+    
+    -- Purple line indicator for selected tab
+    local indicatorLine = Instance.new("Frame")
+    indicatorLine.Name = "Indicator"
+    indicatorLine.Size = UDim2.new(0, 3, 1, -10)
+    indicatorLine.Position = UDim2.new(0, 0, 0, 5)
+    indicatorLine.BackgroundColor3 = Color3.fromRGB(138, 43, 226) -- Purple
+    indicatorLine.BorderSizePixel = 0
+    indicatorLine.Visible = false
+    indicatorLine.Parent = tabButton
+    
+    local indicatorCorner = Instance.new("UICorner")
+    indicatorCorner.CornerRadius = UDim.new(0, 2)
+    indicatorCorner.Parent = indicatorLine
     
     local tabFrame = Instance.new("Frame")
     tabFrame.Name = name .. "Content"
@@ -503,6 +512,7 @@ function Window:CreateAnnouncementTab(name, displayName)
     announcementScroll.Size = UDim2.new(1, -20, 1, -20)
     announcementScroll.Position = UDim2.new(0, 10, 0, 10)
     announcementScroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    announcementScroll.BackgroundTransparency = 0.3
     announcementScroll.BorderSizePixel = 0
     announcementScroll.ScrollBarThickness = 6
     announcementScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
@@ -526,7 +536,8 @@ function Window:CreateAnnouncementTab(name, displayName)
         button = tabButton,
         frame = tabFrame,
         scroll = announcementScroll,
-        list = announcementList
+        list = announcementList,
+        indicator = indicatorLine
     }
     
     tabs[name] = tabData
@@ -536,20 +547,29 @@ function Window:CreateAnnouncementTab(name, displayName)
             self._currentTab.button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
             self._currentTab.button.TextColor3 = Color3.fromRGB(200, 200, 200)
             self._currentTab.frame.Visible = false
+            if self._currentTab.indicator then
+                self._currentTab.indicator.Visible = false
+            end
         end
         
         self._currentTab = tabData
-        tabData.button.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+        tabData.button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
         tabData.button.TextColor3 = Color3.fromRGB(255, 255, 255)
         tabData.frame.Visible = true
+        if tabData.indicator then
+            tabData.indicator.Visible = true
+        end
     end)
     
     -- Set as default if first tab
-    if #tabs == 1 then
+    if tabCount == 0 then
         self._currentTab = tabData
-        tabData.button.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
+        tabData.button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
         tabData.button.TextColor3 = Color3.fromRGB(255, 255, 255)
         tabData.frame.Visible = true
+        if tabData.indicator then
+            tabData.indicator.Visible = true
+        end
     end
     
     local announcementTab = setmetatable({
@@ -562,6 +582,7 @@ function Window:CreateAnnouncementTab(name, displayName)
             announcementFrame.Size = UDim2.new(1, -20, 0, 0)
             announcementFrame.Position = UDim2.new(0, 10, 0, 0)
             announcementFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            announcementFrame.BackgroundTransparency = 0.3
             announcementFrame.BorderSizePixel = 0
             announcementFrame.Parent = self._scroll
             
@@ -624,6 +645,7 @@ function Tab:CreateSection(title)
     section.Size = UDim2.new(1, -20, 0, 0)
     section.Position = UDim2.new(0, 10, 0, 0)
     section.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    section.BackgroundTransparency = 0.3
     section.BorderSizePixel = 0
     section.Parent = self._frame
     
