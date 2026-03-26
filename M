@@ -1,5 +1,17 @@
--- Load Rayfield Library
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- Load Rayfield Library securely to prevent EOF nil errors
+local fetchSuccess, fetchResult = pcall(function()
+    return game:HttpGet('https://sirius.menu/rayfield')
+end)
+if not fetchSuccess then
+    error("HTTP GET Failed: " .. tostring(fetchResult))
+end
+
+local loadFunc, loadErr = loadstring(fetchResult)
+if not loadFunc then
+    error("loadstring failed (your executor might be blocking it or returned bad HTML): " .. tostring(loadErr))
+end
+
+local Rayfield = loadFunc()
 
 -- Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,23 +30,22 @@ do
         DELAY_AFTER_LOSE = 3,
         AUTO_RETRY       = true,
         AUTO_NEXT        = true,
+        DIFFICULTY       = 1,
         MAX_CHAPTERS     = 5,
         MAX_STAGES       = 30,
-        AUTO_STARS       = true,
     }
 
     local State = {
         running       = false,
         chapter       = nil,
         stage         = nil,
-        difficulty    = 1,
         stars         = 1,
         wins          = 0,
         losses        = 0,
         conn          = nil,
     }
 
-    TBB.onNotify      = function(title, content, icon) end
+    TBB.onNotify       = function(title, content, icon) end
     TBB.onStatusChange = function(text) end
     TBB.onStatsChange  = function(text) end
 
@@ -48,10 +59,7 @@ do
 
     local function pushStats()
         local starStr = string.rep("⭐", State.stars) .. string.rep("☆", 3 - State.stars)
-        TBB.onStatsChange(string.format(
-            "W: %d  L: %d  |  %s  |  Diff: %d",
-            State.wins, State.losses, starStr, State.difficulty
-        ))
+        TBB.onStatsChange(string.format("W: %d  L: %d  |  %s  |  Diff: %d", State.wins, State.losses, starStr, CONFIG.DIFFICULTY))
     end
 
     local function getProgress()
@@ -68,27 +76,29 @@ do
             return "Chapter1", 1
         end
 
-        local bestChapter, bestStage = 1, 1
+        local bestChapter = 1
+        local bestStage   = 1
+
         for i = CONFIG.MAX_CHAPTERS, 1, -1 do
-            local ch = unlocked:FindFirstChild("Chapter" .. i)
-            if ch then
+            local chFolder = unlocked:FindFirstChild("Chapter" .. i)
+            if chFolder then
                 bestChapter = i
 
-                if ch:IsA("IntValue") or ch:IsA("NumberValue") then
-                    bestStage = math.max(ch.Value, 1)
+                if chFolder:IsA("IntValue") or chFolder:IsA("NumberValue") then
+                    bestStage = math.max(chFolder.Value, 1)
                 else
-                    local sv = ch:FindFirstChild("Stage")
-                        or ch:FindFirstChild("Current")
-                        or ch:FindFirstChild("Progress")
+                    local sv = chFolder:FindFirstChild("Stage")
+                        or chFolder:FindFirstChild("Current")
+                        or chFolder:FindFirstChild("Progress")
                     if sv and sv:IsA("ValueBase") then
                         bestStage = math.max(sv.Value, 1)
                     else
-                        local hi = 0
-                        for _, c in ipairs(ch:GetChildren()) do
-                            local n = tonumber(c.Name)
-                            if n and n > hi then hi = n end
+                        local highest = 0
+                        for _, child in ipairs(chFolder:GetChildren()) do
+                            local n = tonumber(child.Name)
+                            if n and n > highest then highest = n end
                         end
-                        if hi > 0 then bestStage = hi end
+                        if highest > 0 then bestStage = highest end
                     end
                 end
                 break
@@ -99,32 +109,32 @@ do
         return "Chapter" .. bestChapter, bestStage
     end
 
-    local function advanceStars()
-        if not CONFIG.AUTO_STARS then
-            State.stage = (State.stage or 1) + 1
-            State.stars = 1
-            return
-        end
-
-        if State.stars < 3 then
-            State.stars = State.stars + 1
-        else
-            State.stars = 1
-            State.stage = (State.stage or 1) + 1
-            if State.stage > CONFIG.MAX_STAGES then
-                notify("Done", "All stages cleared on this chapter!", "trophy")
-                State.running = false
-                setStatus("⏸  All stages cleared")
-                return
+    local function printProgress()
+        local ok, unlocked = pcall(function() return player:WaitForChild("PlayerData", 5):WaitForChild("Unlocked", 5) end)
+        if not ok or not unlocked then return end
+        
+        print("\n┌─────── 📊 Unlocked Progress ───────")
+        for i = 1, CONFIG.MAX_CHAPTERS do
+            local ch = unlocked:FindFirstChild("Chapter" .. i)
+            if ch then
+                local stageText = "?"
+                if ch:IsA("IntValue") or ch:IsA("NumberValue") then
+                    stageText = tostring(ch.Value)
+                else
+                    local sv = ch:FindFirstChild("Stage") or ch:FindFirstChild("Current") or ch:FindFirstChild("Progress")
+                    if sv then stageText = tostring(sv.Value) end
+                end
+                print("│  Chapter " .. i .. "  →  Stage " .. stageText)
             end
         end
+        print("└────────────────────────────────────\n")
     end
 
     local function startBattle()
         if not State.running then return end
 
         local events = ReplicatedStorage:FindFirstChild("Events")
-        local remote  = events
+        local remote = events
             and events:FindFirstChild("RemoteFunction")
             and events.RemoteFunction:FindFirstChild("StartBattle")
 
@@ -135,14 +145,21 @@ do
         end
 
         local chapter, stage = getProgress()
-
         local starStr = string.rep("⭐", State.stars) .. string.rep("☆", 3 - State.stars)
-        setStatus(string.format("▶  %s  S%d  %s  D%d", chapter, stage, starStr, State.difficulty))
+
+        setStatus(string.format("▶  %s  S%d  %s  D%d", chapter, stage, starStr, CONFIG.DIFFICULTY))
         pushStats()
 
-        pcall(function()
-            remote:InvokeServer(chapter, stage, State.difficulty, State.stars, false, {}, false, 1)
+        print(string.format("🚀 Firing  ›  %s  |  Stage %d  |  Stars %d  |  Diff %d", chapter, stage, State.stars, CONFIG.DIFFICULTY))
+
+        local ok, err = pcall(function()
+            -- Invoke with current State.stars based on chapter progression completion
+            remote:InvokeServer(chapter, stage, CONFIG.DIFFICULTY, State.stars, false, {}, false, 1)
         end)
+
+        if not ok then
+            notify("Error", "Remote failed: " .. tostring(err), "alert-circle")
+        end
     end
 
     local function hookWinLose()
@@ -158,12 +175,24 @@ do
 
             if isWin == true then
                 State.wins = State.wins + 1
-                advanceStars()
+                
+                if State.stage and State.stage < CONFIG.MAX_STAGES then
+                    State.stage = State.stage + 1
+                    print(string.format("🏆 Win!  ›  Advancing to Stage %d  (in %ds)", State.stage, CONFIG.DELAY_AFTER_WIN))
+                    notify("Victory!", string.format("Advancing to Stage %d", State.stage), "trophy")
+                else
+                    if State.stars < 3 then
+                        State.stars = State.stars + 1
+                        State.stage = 1
+                        print(string.format("🏆 Max Stage Cleared!  ›  Advancing to Star %d  (in %ds)", State.stars, CONFIG.DELAY_AFTER_WIN))
+                        notify("Star Up!", string.format("Advancing to Star %d", State.stars), "star")
+                    else
+                        print("🏆 Win!  ›  Chapter fully completed (3 stars)")
+                        notify("Victory!", "Chapter fully completed (3 stars)", "trophy")
+                        State.stage = nil
+                    end
+                end
 
-                if not State.running then return end
-
-                local starStr = string.rep("⭐", State.stars) .. string.rep("☆", 3 - State.stars)
-                notify("Victory!", string.format("Stage %d → next target: %s", State.stage, starStr), "trophy")
                 pushStats()
 
                 if CONFIG.AUTO_NEXT then
@@ -173,7 +202,8 @@ do
 
             elseif isWin == false then
                 State.losses = State.losses + 1
-                notify("Defeat", "Retrying stage " .. tostring(State.stage), "refresh-cw")
+                print(string.format("💀 Loss  ›  Retrying Stage %d  (in %ds)", State.stage or 0, CONFIG.DELAY_AFTER_LOSE))
+                notify("Defeat", string.format("Retrying Stage %d", State.stage or 0), "refresh-cw")
                 pushStats()
 
                 if CONFIG.AUTO_RETRY then
@@ -189,6 +219,7 @@ do
         State.running = true
         State.wins    = 0
         State.losses  = 0
+        printProgress()
         hookWinLose()
         startBattle()
         notify("Auto Farm", "Started", "play")
@@ -209,29 +240,23 @@ do
         else
             State.chapter = name
         end
-        State.stage   = 1
-        State.stars   = 1
+        State.stage = nil
+        State.stars = 1
+        print("📌 Chapter override set to: " .. tostring(name))
     end
 
     function TBB.setStage(n)
-        State.stage = tonumber(n) or 1
-        State.stars = 1
+        State.stage = tonumber(n) or nil
+        print("📌 Stage override set to: " .. tostring(State.stage))
     end
 
     function TBB.setDifficulty(n)
-        State.difficulty = math.clamp(tonumber(n) or 1, 1, 3)
-    end
-
-    function TBB.setAutoStars(bool)
-        CONFIG.AUTO_STARS = bool
-    end
-
-    function TBB.resetStars()
-        State.stars = 1
+        CONFIG.DIFFICULTY = math.clamp(tonumber(n) or 1, 1, 3)
+        pushStats()
     end
 
     function TBB.getStats()
-        return { wins = State.wins, losses = State.losses, stars = State.stars, stage = State.stage }
+        return { wins = State.wins, losses = State.losses, stage = State.stage }
     end
 end
 
@@ -512,15 +537,17 @@ local AutoStageToggle = StageTab:CreateToggle({
     end
 })
 
-local ChapterDropdown = StageTab:CreateDropdown({
-    Name = "Select Chapter",
-    Options = {"Auto", "Chapter1", "Chapter2", "Chapter3", "Chapter4", "Chapter5", "Chapter6"},
-    CurrentOption = {"Auto"},
-    MultipleOptions = false,
-    Flag = "ChapterSelection",
-    Callback = function(Option)
-        TBB.setChapter(Option[1] or Option)
-    end
+local ChapterInput = StageTab:CreateInput({
+    Name = "Override Chapter Name (e.g. Chapter3)",
+    PlaceholderText = "Leave blank for Auto",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        if Text and Text ~= "" then
+            TBB.setChapter(Text)
+        else
+            TBB.setChapter("Auto")
+        end
+    end,
 })
 
 local StageInput = StageTab:CreateInput({
@@ -531,7 +558,7 @@ local StageInput = StageTab:CreateInput({
         if Text and Text ~= "" then
             TBB.setStage(tonumber(Text) or 1)
         else
-            -- if blank, maybe we let it auto, but setting UI states might require additional API changes
+            -- if blank, let it auto detect
         end
     end,
 })
@@ -548,15 +575,6 @@ local DifficultyDropdown = StageTab:CreateDropdown({
         elseif opt == "Normal" then TBB.setDifficulty(2)
         elseif opt == "Tumore" then TBB.setDifficulty(3)
         end
-    end
-})
-
-local AutoStarToggle = StageTab:CreateToggle({
-    Name = "Auto Advance Stars (1->2->3)",
-    CurrentValue = true,
-    Flag = "AutoStarToggle",
-    Callback = function(Value)
-        TBB.setAutoStars(Value)
     end
 })
 
