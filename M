@@ -33,6 +33,8 @@ do
         DIFFICULTY       = 1,
         MAX_CHAPTERS     = 5,
         MAX_STAGES       = 30,
+        MIN_STAGE        = 1,
+        LOOP_STAGES      = false,
     }
 
     local State = {
@@ -176,28 +178,42 @@ do
             if isWin == true then
                 State.wins = State.wins + 1
                 
-                if State.stage and State.stage < CONFIG.MAX_STAGES then
-                    State.stage = State.stage + 1
-                    print(string.format("🏆 Win!  ›  Advancing to Stage %d  (in %ds)", State.stage, CONFIG.DELAY_AFTER_WIN))
-                    notify("Victory!", string.format("Advancing to Stage %d", State.stage), "trophy")
-                else
-                    if State.stars < 3 then
-                        State.stars = State.stars + 1
-                        State.stage = 1
-                        print(string.format("🏆 Max Stage Cleared!  ›  Advancing to Star %d  (in %ds)", State.stars, CONFIG.DELAY_AFTER_WIN))
-                        notify("Star Up!", string.format("Advancing to Star %d", State.stars), "star")
+                if CONFIG.LOOP_STAGES then
+                    if State.stage and State.stage < CONFIG.MAX_STAGES then
+                        State.stage = State.stage + 1
                     else
-                        print("🏆 Win!  ›  Chapter fully completed (3 stars)")
-                        notify("Victory!", "Chapter fully completed (3 stars)", "trophy")
-                        State.stage = nil
+                        State.stage = CONFIG.MIN_STAGE
                     end
-                end
-
-                pushStats()
-
-                if CONFIG.AUTO_NEXT then
+                    print(string.format("🏆 Win! (Loop) › Advancing to Stage %d (in %ds)", State.stage, CONFIG.DELAY_AFTER_WIN))
+                    notify("Victory!", string.format("Looping to Stage %d", State.stage), "repeat")
+                    pushStats()
+                    
                     task.wait(CONFIG.DELAY_AFTER_WIN)
                     startBattle()
+                else
+                    if State.stage and State.stage < CONFIG.MAX_STAGES then
+                        State.stage = State.stage + 1
+                        print(string.format("🏆 Win!  ›  Advancing to Stage %d  (in %ds)", State.stage, CONFIG.DELAY_AFTER_WIN))
+                        notify("Victory!", string.format("Advancing to Stage %d", State.stage), "trophy")
+                    else
+                        if State.stars < 3 then
+                            State.stars = State.stars + 1
+                            State.stage = 1
+                            print(string.format("🏆 Max Stage Cleared!  ›  Advancing to Star %d  (in %ds)", State.stars, CONFIG.DELAY_AFTER_WIN))
+                            notify("Star Up!", string.format("Advancing to Star %d", State.stars), "star")
+                        else
+                            print("🏆 Win!  ›  Chapter fully completed (3 stars)")
+                            notify("Victory!", "Chapter fully completed (3 stars)", "trophy")
+                            State.stage = nil
+                        end
+                    end
+
+                    pushStats()
+
+                    if CONFIG.AUTO_NEXT then
+                        task.wait(CONFIG.DELAY_AFTER_WIN)
+                        startBattle()
+                    end
                 end
 
             elseif isWin == false then
@@ -258,6 +274,28 @@ do
     function TBB.setDifficulty(n)
         CONFIG.DIFFICULTY = math.clamp(tonumber(n) or 1, 1, 3)
         pushStats()
+    end
+
+    function TBB.setAutoNext(val)
+        CONFIG.AUTO_NEXT = val
+    end
+
+    function TBB.setMinStage(n)
+        CONFIG.MIN_STAGE = tonumber(n) or 1
+        print("📌 Min Stage set to: " .. tostring(CONFIG.MIN_STAGE))
+    end
+
+    function TBB.setMaxStages(n)
+        CONFIG.MAX_STAGES = tonumber(n) or 30
+        print("📌 Max Stages set to: " .. tostring(CONFIG.MAX_STAGES))
+    end
+
+    function TBB.setLoopStages(val)
+        CONFIG.LOOP_STAGES = val
+        if val and State.stage and (State.stage < CONFIG.MIN_STAGE or State.stage > CONFIG.MAX_STAGES) then
+            State.stage = CONFIG.MIN_STAGE
+        end
+        print("📌 Loop Stages: " .. tostring(val))
     end
 
     function TBB.getStats()
@@ -395,6 +433,7 @@ end
 -- ==============================
 local unitRunning = false
 local bankRunning = false
+local cannonRunning = false
 local spamAllRunning = false
 local selectedSlot = "Slot3"
 local spawnDelay = 0.5
@@ -489,11 +528,20 @@ local SpamAllToggle = MainTab:CreateToggle({
 })
 
 local BankToggle = MainTab:CreateToggle({
-    Name = "Auto Spawn Bank",
+    Name = "Auto Bank",
     CurrentValue = false,
     Flag = "BankToggle",
     Callback = function(Value)
         bankRunning = Value
+    end
+})
+
+local CannonToggle = MainTab:CreateToggle({
+    Name = "Auto Cannon",
+    CurrentValue = false,
+    Flag = "CannonToggle",
+    Callback = function(Value)
+        cannonRunning = Value
     end
 })
 
@@ -540,6 +588,51 @@ local AutoStageToggle = StageTab:CreateToggle({
             TBB.stop()
         end
     end
+})
+
+local AutoNextToggle = StageTab:CreateToggle({
+    Name = "Auto Next Stage",
+    CurrentValue = true,
+    Flag = "AutoNextToggle",
+    Callback = function(Value)
+        TBB.setAutoNext(Value)
+    end
+})
+
+local LoopStagesToggle
+LoopStagesToggle = StageTab:CreateToggle({
+    Name = "Loop Stages",
+    CurrentValue = false,
+    Flag = "LoopStagesToggle",
+    Callback = function(Value)
+        TBB.setLoopStages(Value)
+        if Value and AutoNextToggle then
+            AutoNextToggle:Set(false)
+            Rayfield:Notify({Title = "Loop Activated", Content = "Auto Next has been disabled.", Duration = 2, Image = 4483362458})
+        end
+    end
+})
+
+local MinStageInput = StageTab:CreateInput({
+    Name = "Loop Min Stage",
+    PlaceholderText = "Default: 1",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        if Text and Text ~= "" then
+            TBB.setMinStage(tonumber(Text) or 1)
+        end
+    end,
+})
+
+local MaxStageInput = StageTab:CreateInput({
+    Name = "Max Stages (Normal & Loop Max)",
+    PlaceholderText = "Default: 30",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        if Text and Text ~= "" then
+            TBB.setMaxStages(tonumber(Text) or 30)
+        end
+    end,
 })
 
 local ChapterInput = StageTab:CreateInput({
@@ -678,6 +771,9 @@ task.spawn(function()
             end
             if bankRunning then
                 spawnUnit("Bank")
+            end
+            if cannonRunning then
+                spawnUnit("Cannon")
             end
         end)
         task.wait(spawnDelay)
