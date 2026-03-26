@@ -241,8 +241,13 @@ do
             State.chapter = name
         end
         State.stage = nil
-        State.stars = 1
         print("📌 Chapter override set to: " .. tostring(name))
+    end
+
+    function TBB.setStars(n)
+        State.stars = math.clamp(tonumber(n) or 1, 1, 3)
+        print("📌 Stars override set to: " .. tostring(State.stars))
+        pushStats()
     end
 
     function TBB.setStage(n)
@@ -575,6 +580,17 @@ local DifficultyDropdown = StageTab:CreateDropdown({
         elseif opt == "Normal" then TBB.setDifficulty(2)
         elseif opt == "Tumore" then TBB.setDifficulty(3)
         end
+    end
+})
+
+local StarsDropdown = StageTab:CreateDropdown({
+    Name = "Select Stars Target",
+    Options = {"1", "2", "3"},
+    CurrentOption = {"1"},
+    MultipleOptions = false,
+    Flag = "StarsSelection",
+    Callback = function(Option)
+        TBB.setStars(tonumber(Option[1] or Option) or 1)
     end
 })
 
