@@ -635,16 +635,21 @@ local MaxStageInput = StageTab:CreateInput({
     end,
 })
 
-local ChapterInput = StageTab:CreateInput({
-    Name = "Override Chapter Name (e.g. Chapter3)",
-    PlaceholderText = "Leave blank for Auto",
-    RemoveTextAfterFocusLost = false,
-    Callback = function(Text)
-        if Text and Text ~= "" then
-            TBB.setChapter(Text)
-        else
-            TBB.setChapter("Auto")
-        end
+local ChapterDropdown = StageTab:CreateDropdown({
+    Name = "Select Chapter Name",
+    Options = {
+        "Auto",
+        "Chapter1", "Chapter2", "Chapter3", "Chapter4",
+        "BattleBricksClassic", "BirthDayBash", "CoilChaos", "RedHerring",
+        "BlackBabatala", "UncookedBusiness", "FrozenNorth", "CrimsonSkies",
+        "CommunityPack1", "CommunityPack2", "CommunityPack3", "CommunityPack4"
+    },
+    CurrentOption = {"Auto"},
+    MultipleOptions = false,
+    Flag = "ChapterSelection",
+    Callback = function(Option)
+        local opt = Option[1] or Option
+        TBB.setChapter(opt)
     end,
 })
 
