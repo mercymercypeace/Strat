@@ -4,39 +4,36 @@ local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 
 -- Settings
-local RejoinDelay = 5 -- Seconds to wait before rejoining
+local RejoinDelay = 5 
 
 -- Function to Rejoin
 local function Rejoin()
     local player = Players.LocalPlayer
-    if #Players:GetPlayers() <= 1 then
-        -- Rejoin the same server if you were alone/private server
-        TeleportService:Teleport(game.PlaceId, player)
-    else
-        -- Join a new server instance
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
-    end
+    -- Teleporting using only PlaceId will find a new public server instance
+    -- instead of trying to rejoin the specific JobId (the specific room)
+    TeleportService:Teleport(game.PlaceId, player)
 end
 
--- Monitor for Disconnect UI
+-- Monitor for Disconnect UI (Error messages)
 GuiService.ErrorMessageChanged:Connect(function()
     print("Connection issue detected. Rejoining in " .. RejoinDelay .. " seconds...")
     task.wait(RejoinDelay)
     Rejoin()
 end)
 
--- Backup: Check if the Roblox prompt is visible every few seconds
+-- Backup: Periodic UI scan for error prompts
 task.spawn(function()
     while task.wait(10) do
         local coreGui = game:GetService("CoreGui")
-        if coreGui:FindFirstChild("RobloxPromptGui") then
-            local prompt = coreGui.RobloxPromptGui:FindFirstChild("promptOverlay")
+        local promptGui = coreGui:FindFirstChild("RobloxPromptGui")
+        if promptGui then
+            local prompt = promptGui:FindFirstChild("promptOverlay")
             if prompt and prompt:FindFirstChild("ErrorPrompt") then
-                print("Error prompt found via UI scan. Rejoining...")
+                print("Error prompt found. Rejoining to a new session...")
                 Rejoin()
             end
         end
     end
 end)
 
-print("Auto-Rejoin script is active.")
+print("Auto-Rejoin (Matchmaking Mode) is active.")
